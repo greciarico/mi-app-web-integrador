@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="formContent">
+    <div class="modal-header">
+        <h4 class="modal-title" th:text="${usuario.idUsuario} == null ? 'Crear Usuario' : 'Editar Usuario'"></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarFormulario()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <form id="formUsuario" th:action="@{/usuarios/guardar}" th:object="${usuario}" method="post">
+        <div class="modal-body">
+            <input type="hidden" th:field="*{idUsuario}"/>
+            <input type="hidden" th:field="*{fechaRegistro}" th:if="${usuario.idUsuario != null}"/>
+
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" th:field="*{nombre}" required class="form-control"/>
+                <small id="nombreError" class="text-danger"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="apPaterno">Apellido Paterno:</label>
+                <input type="text" id="apPaterno" th:field="*{apPaterno}" required class="form-control"/>
+                <small id="apPaternoError" class="text-danger"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="apMaterno">Apellido Materno:</label>
+                <input type="text" id="apMaterno" th:field="*{apMaterno}" required class="form-control"/>
+                <small id="apMaternoError" class="text-danger"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="telefono">Teléfono:</label>
+                <input type="number" id="telefono" th:field="*{telefono}" required class="form-control"/>
+                <small id="telefonoError" class="text-danger"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="dni">DNI:</label>
+                <input type="number" id="dni" th:field="*{dni}" required class="form-control"/>
+                <small id="dniError" class="text-danger"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="correo">Correo:</label>
+                <input type="email" id="correo" th:field="*{correo}" class="form-control"/>
+                <small id="correoError" class="text-danger"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="contrasena">Contraseña:</label>
+                <input type="password" id="contrasena" th:field="*{contrasena}" th:required="${usuario.idUsuario == null}" class="form-control"/>
+                <small id="contrasenaError" class="text-muted" th:if="${usuario.idUsuario != null}">Dejar en blanco para mantener la contraseña actual.</small>
+                <small id="contrasenaValidation" class="text-danger" th:if="${usuario.idUsuario == null}"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="estado">Estado:</label>
+                <select id="estado" th:field="*{estado}" class="form-control">
+                    <option value="1" th:selected="${usuario.estado == 1}">Activo</option>
+                    <option value="0" th:selected="${usuario.estado == 0}">Inactivo</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="rolUsuario">Rol:</label>
+                <select id="rolUsuario" th:field="*{rolUsuario.idRol}" class="form-control">
+                    <option th:each="rol : ${roles}"
+                            th:value="${rol.idRol}"
+                            th:text="${rol.tipoRol}"
+                            th:selected="${rol.idRol == (usuario.rolUsuario != null ? usuario.rolUsuario.idRol : -1)}">
+                    </option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" onclick="cerrarFormulario()">Cerrar</button>
+            <button type="submit" class="btn btn-success">Guardar</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:fragment="contenido">
+  <div>
+    <h2>Lista de Productos</h2>
+    <a href="javascript:void(0)" onclick="abrirModal('/productos/nuevo')">Crear Nuevo Producto</a>
+    <table class="table table-striped table-bordered">
+      <thead>
+      <tr>
+        <th>ID</th><th>Nombre</th><th>Descripción</th><th>Precio 1</th><th>Precio 2</th><th>Stock</th><th>Estado</th><th>Acciones</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="producto : ${productos}">
+        <td th:text="${producto.idProducto}"></td>
+        <td th:text="${producto.nombre}"></td>
+        <td th:text="${producto.descripcion}"></td>
+        <td th:text="${#numbers.formatDecimal(producto.precio1, 1, 'COMMA', 2, 'POINT')}"></td>
+        <td th:text="${#numbers.formatDecimal(producto.precio2, 1, 'COMMA', 2, 'POINT')}"></td>
+        <td th:text="${producto.stock}"></td>
+        <td th:text="${producto.estado == 1 ? 'Activo' : producto.estado == 0 ? 'Inactivo' : 'Eliminado'}"></td>
+        <td>
+          <a href="javascript:void(0)" th:onclick="|abrirModal('/productos/editar/${producto.idProducto}')|">Editar</a>
+          |
+          <a href="javascript:void(0)" th:onclick="|eliminarProducto(${producto.idProducto})|">Eliminar</a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Maneja el envío del formulario producto (crear/editar) vía AJAX
+    $(document).on('submit', '#formProducto', function(event) {
+        event.preventDefault();
+
+        var $form = $(this);
+        $.ajax({
+            url: $form.attr('action'),  // ej: /productos/guardar
+            method: $form.attr('method'),
+            data: $form.serialize(),
+            success: function(response) {
+                // Actualiza la tabla de productos con el nuevo fragmento
+                $('#content-area').html(response);
+
+                // Cierra el modal
+                $('#productoModal').modal('hide');
+            },
+            error: function() {
+                alert('Error guardando producto');
+            }
+        });
+    });
+
+    // Función para eliminar producto vía AJAX
+    function eliminarProducto(id) {
+        if(confirm('¿Está seguro de eliminar el producto?')) {
+            $.get('/productos/eliminar/' + id, function(data) {
+                $('#content-area').html(data);
+            }).fail(function() {
+                alert('Error eliminando producto');
+            });
+        }
+    }
+  </script>
+</section>
+</body>
+</html>

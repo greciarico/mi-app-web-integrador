@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios</title>
+    <!-- Incluye CSS AdminLTE y dependencias -->
+    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
+    <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
+    <!-- Más estilos -->
+    <script src="/plugins/jquery/jquery.min.js"></script>
+    <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/dist/js/adminlte.min.js"></script>
+    <!-- Removido: JS para Moment.js y daterangepicker, ya no son necesarios -->
+</head>
+<body class="hold-transition sidebar-mini">
+<section th:fragment="contenido" class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Lista de Usuarios</h3>
+                        <div class="card-tools">
+                            <a href="javascript:void(0)" onclick="abrirFormulario('/usuarios/nuevo')"
+                               class="btn btn-success" style="background-color:#183D00 !important; border-color:#183D00 !important;">
+                                <i class="fas fa-plus"></i> Crear Nuevo Usuario
+                            </a>
+                        </div>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <!-- BUSCADOR SIMPLIFICADO -->
+                        <div class="row mb-3">
+                            <div class="col-md-12"> <!-- Ocupa todo el ancho -->
+                                <div class="input-group">
+                                    <input type="search" id="searchTerm" class="form-control" placeholder="Buscar por nombre, apellido, DNI, correo, estado..."
+                                           onkeyup="aplicarFiltros()"/> <!-- Llama a la función al escribir -->
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" type="button" onclick="aplicarFiltros()">
+                                            <i class="fas fa-search"></i> Buscar
+                                        </button>
+                                        <!-- Botón de Reportes (solo visual) -->
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporte()">
+                                            <i class="fas fa-file-alt"></i> Generar Reporte
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FIN BUSCADOR SIMPLIFICADO -->
+
+                        <!-- La tabla se cargará dinámicamente aquí -->
+                        <div id="tablaUsuariosContainer">
+                            <table id="usuariosTable" class="table table-bordered table-striped">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Apellido Paterno</th>
+                                    <th>Apellido Materno</th>
+                                    <th>DNI</th>
+                                    <th>Correo</th>
+                                    <th>Celular</th>
+                                    <th>Estado</th> <!-- Título de la columna -->
+                                    <th>Acciones</th>
+                                </tr>
+                                </thead>
+                                <tbody id="usuariosTableBody">
+                                <!-- Contenido de la tabla se generará con JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+            <!-- /.col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+
+    <!-- Modal para el Formulario de Usuario -->
+    <div class="modal fade" id="usuarioModal" tabindex="-1" role="dialog" aria-labelledby="usuarioModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div id="modalFormContent">
+                    <!-- El fragmento usuarios_form_modal.html se insertará aquí -->
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+    <!-- /.modal -->
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+
+        // Variable global para almacenar todos los usuarios
+        // Thymeleaf pasa la lista de usuarios del modelo a esta variable JavaScript
+        // Usamos 'let' para poder reasignarla después de operaciones CRUD
+        let allUsers = /*[[${usuarios}]]*/ [];
+
+        // Función para renderizar la tabla con una lista de usuarios
+        function renderizarTabla(usersToDisplay) {
+            const tableBody = $('#usuariosTableBody');
+            tableBody.empty(); // Limpiar el cuerpo de la tabla antes de añadir nuevos datos
+
+            if (usersToDisplay.length === 0) {
+                tableBody.append('<tr><td colspan="9" class="text-center">No se encontraron usuarios.</td></tr>');
+                return;
+            }
+
+            usersToDisplay.forEach(usuario => {
+                const estadoText = usuario.estado === 1 ? 'Activo' : 'Inactivo';
+                const estadoClass = usuario.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
+
+                const row = `
+                    <tr>
+                        <td>${usuario.idUsuario}</td>
+                        <td>${usuario.nombre}</td>
+                        <td>${usuario.apPaterno}</td>
+                        <td>${usuario.apMaterno}</td>
+                        <td>${usuario.dni}</td>
+                        <td>${usuario.correo}</td>
+                        <td>${usuario.telefono}</td>
+                        <td class="text-center"><span class="${estadoClass}">${estadoText}</span></td>
+                        <td>
+                            <a href="javascript:void(0)" onclick="abrirFormulario('/usuarios/editar/${usuario.idUsuario}')"
+                               class="btn btn-info btn-sm">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <a href="javascript:void(0)" onclick="confirmarEliminar(${usuario.idUsuario})"
+                               class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                `;
+                tableBody.append(row);
+            });
+        }
+
+        // Función para limpiar todos los mensajes de error
+        function clearErrors() {
+            $('.text-danger').text('');
+            $('.form-control').removeClass('is-invalid');
+        }
+
+        // Función para mostrar un mensaje de error específico
+        function displayError(elementId, message) {
+            $('#' + elementId).text(message);
+            $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
+        }
+
+        // ===========================================
+        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS
+        // ===========================================
+
+        function validateNombreApellido(inputElementId, errorElementId, fieldName) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+
+            if (value === "") {
+                displayError(errorElementId, `${fieldName} es obligatorio.`);
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, `${fieldName} solo debe contener letras.`);
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateTelefono(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{9}$/;
+
+            if (value === "") {
+                displayError(errorElementId, "El teléfono es obligatorio.");
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateDni(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{8}$/;
+
+            if (value === "") {
+                displayError(errorElementId, "El DNI es obligatorio.");
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateCorreo(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (value === "") {
+                input.removeClass('is-invalid');
+                return true;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "Formato de correo electrónico inválido.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateContrasena(inputElementId, errorElementId, isNewUser) {
+            const input = $('#' + inputElementId);
+            const value = input.val();
+            const minLength = 6;
+
+            if (isNewUser) {
+                if (value === "") {
+                    displayError(errorElementId, "La contraseña es obligatoria.");
+                    return false;
+                } else if (value.length < minLength) {
+                    displayError(errorElementId, `La contraseña debe tener al menos ${minLength} caracteres.`);
+                    return false;
+                }
+            } else {
+                if (value.length > 0 && value.length < minLength) {
+                    displayError(errorElementId, `La contraseña debe tener al menos ${minLength} caracteres (si se proporciona una nueva).`);
+                    return false;
+                }
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        // Función asíncrona para verificar la unicidad del DNI
+        async function checkDniUnico(dniInputId, dniErrorId, userId) {
+            const dni = $('#' + dniInputId);
+            const value = dni.val().trim();
+
+            if (value.length !== 8) {
+                return true;
+            }
+
+            let url = '/usuarios/checkDni?dni=' + value;
+            if (userId) {
+                url += '&idUsuario=' + userId;
+            }
+
+            try {
+                const response = await $.ajax({
+                    type: "GET",
+                    url: url,
+                    dataType: "json"
+                });
+                if (response.exists) {
+                    displayError(dniErrorId, "Este DNI ya está registrado.");
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error("Error al verificar DNI:", error);
+                displayError(dniErrorId, "Error al verificar DNI. Intenta de nuevo.");
+                return false;
+            }
+        }
+
+        // ===========================================
+        // FUNCIÓN PRINCIPAL DE VALIDACIÓN DEL FORMULARIO
+        // ===========================================
+
+        async function validarFormulario() {
+            clearErrors();
+
+            let isValid = true;
+
+            if (!validateNombreApellido('nombre', 'nombreError', 'El nombre')) isValid = false;
+            if (!validateNombreApellido('apPaterno', 'apPaternoError', 'El apellido paterno')) isValid = false;
+            if (!validateNombreApellido('apMaterno', 'apMaternoError', 'El apellido materno')) isValid = false;
+            if (!validateTelefono('telefono', 'telefonoError')) isValid = false;
+            if (!validateDni('dni', 'dniError')) isValid = false;
+            if (!validateCorreo('correo', 'correoError')) isValid = false;
+
+            const isNewUser = $('#idUsuario').val() === '';
+            if (!validateContrasena('contrasena', isNewUser ? 'contrasenaValidation' : 'contrasenaError', isNewUser)) isValid = false;
+
+            if (!isValid) {
+                return false;
+            }
+
+            const userId = $('#idUsuario').val();
+            const dniUnico = await checkDniUnico('dni', 'dniError', userId ? parseInt(userId) : null);
+            if (!dniUnico) {
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // ===========================================
+        // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO
+        // ===========================================
+
+        function abrirFormulario(url) {
+            console.log("Intentando abrir formulario desde URL:", url);
+            $('#modalFormContent').load(url, function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar formulario',
+                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    console.log("Formulario cargado exitosamente. Contenido:", response.substring(0, 200) + "...");
+                    $('#formUsuario').off('submit').on('submit', async function(e) {
+                        e.preventDefault();
+                        const formIsValid = await validarFormulario();
+                        if (formIsValid) {
+                            guardarUsuarioAjax($(this));
+                        } else {
+                            console.log("Formulario inválido. No se envía.");
+                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+                        }
+                    });
+                    $('#usuarioModal').modal('show');
+                    console.log("Modal de usuario intentando mostrarse.");
+                }
+            });
+        }
+
+        function cerrarFormulario() {
+            $('#usuarioModal').modal('hide');
+            $('#modalFormContent').empty();
+            clearErrors();
+            console.log("Modal de usuario cerrado.");
+        }
+
+        // Función para guardar/actualizar usuario usando AJAX
+        function guardarUsuarioAjax(formElement) {
+            let formData = formElement.serialize();
+            let url = formElement.attr('action');
+
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: formData,
+                success: function(response) {
+                    if (response.status === "success") {
+                        mostrarNotificacion("success", response.message);
+                        cerrarFormulario();
+                        // Después de guardar/editar, recargar la lista completa de usuarios
+                        recargarListaUsuariosCompleta();
+                    } else {
+                        mostrarNotificacion("error", "Error: " + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = "Error al procesar la solicitud.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage += ": " + xhr.responseJSON.message;
+                    } else if (xhr.responseText) {
+                        errorMessage += ": " + xhr.responseText.substring(0, 100) + "...";
+                    }
+                    mostrarNotificacion("error", errorMessage);
+                    console.error("Error AJAX al guardar usuario:", error, xhr.responseText);
+                }
+            });
+        }
+
+        // Función para confirmar la eliminación de un usuario usando AJAX
+        function confirmarEliminar(id) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "¡No podrás revertir esto!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    console.log("Eliminando usuario con ID:", id);
+                    $.ajax({
+                        type: "GET",
+                        url: '/usuarios/eliminar/' + id,
+                        success: function(response) {
+                            if (response.status === "success") {
+                                mostrarNotificacion("success", response.message);
+                                // Después de eliminar, recargar la lista completa de usuarios
+                                recargarListaUsuariosCompleta();
+                            } else {
+                                mostrarNotificacion("error", "Error: " + response.message);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            let errorMessage = "Error al eliminar el usuario.";
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage += ": " + xhr.responseJSON.message;
+                            } else if (xhr.responseText) {
+                                errorMessage += ": " + xhr.responseText.substring(0, 100) + "...";
+                            }
+                            mostrarNotificacion("error", errorMessage);
+                            console.error("Error AJAX al eliminar usuario:", error, xhr.responseText);
+                        }
+                    });
+                }
+            });
+        }
+
+        // ===========================================
+        // FUNCIONES DE FILTRADO Y REPORTE (AHORA CLIENT-SIDE)
+        // ===========================================
+
+        // Función para recargar la lista completa de usuarios desde el servidor
+        // y luego aplicar los filtros locales.
+        function recargarListaUsuariosCompleta() {
+            $.ajax({
+                type: "GET",
+                url: '/usuarios/all', // Este endpoint DEBE existir en tu backend y devolver JSON
+                dataType: "json",
+                success: function(response) {
+                    allUsers = response; // Actualizar la variable global con los nuevos datos
+                    aplicarFiltros(); // Aplicar el filtro actual a la nueva lista (mantener el término de búsqueda)
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error al recargar la lista completa de usuarios:", error);
+                    mostrarNotificacion("error", "Error al recargar la lista de usuarios. Verifica el endpoint /usuarios/all en tu backend.");
+                }
+            });
+        }
+
+        function aplicarFiltros() {
+            const searchTerm = $('#searchTerm').val().toLowerCase().trim();
+            let filteredUsers = allUsers; // Siempre empezamos con la lista completa
+
+            if (searchTerm) {
+                // Filtro específico para "activo" o "inactivo"
+                if (searchTerm === 'activo') {
+                    filteredUsers = allUsers.filter(usuario => usuario.estado === 1);
+                } else if (searchTerm === 'inactivo') {
+                    filteredUsers = allUsers.filter(usuario => usuario.estado === 0);
+                } else {
+                    // Si no es "activo" o "inactivo", aplica el filtro general en todos los campos
+                    filteredUsers = allUsers.filter(usuario => {
+                        const estadoText = usuario.estado === 1 ? 'activo' : 'inactivo'; // Para buscar por texto de estado
+                        return (
+                            (usuario.nombre && usuario.nombre.toLowerCase().includes(searchTerm)) ||
+                            (usuario.apPaterno && usuario.apPaterno.toLowerCase().includes(searchTerm)) ||
+                            (usuario.apMaterno && usuario.apMaterno.toLowerCase().includes(searchTerm)) ||
+                            (usuario.dni && usuario.dni.toLowerCase().includes(searchTerm)) ||
+                            (usuario.correo && usuario.correo.toLowerCase().includes(searchTerm)) ||
+                            estadoText.includes(searchTerm)
+                        );
+                    });
+                }
+            }
+            renderizarTabla(filteredUsers); // Renderizar la tabla con los usuarios filtrados
+        }
+
+        function generarReporte() {
+            mostrarNotificacion("info", "La funcionalidad de generar reporte aún no está implementada.");
+        }
+
+        // Función para mostrar notificaciones usando AdminLTE Toasts
+        function mostrarNotificacion(type, message) {
+            $(document).Toasts('create', {
+                class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
+                title: type === 'success' ? 'Éxito' : (type === 'info' ? 'Información' : 'Error'),
+                body: message,
+                autohide: true,
+                delay: 3000
+            });
+        }
+
+        // Ejecutar al cargar la página por primera vez
+        $(document).ready(function() {
+            // La variable allUsers ya viene inicializada por Thymeleaf en la primera carga.
+            // Solo necesitamos renderizar la tabla con esos datos.
+            aplicarFiltros(); // Esto también aplicará cualquier searchTerm inicial si lo hubiera
+        });
+
+        /*]]>*/
+    </script>
+</section>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:fragment="contenido">
+    <div>
+        <h2 th:text="${producto.idProducto} == null ? 'Crear Producto' : 'Editar Producto'"></h2>
+        <form id="formProducto" th:action="@{/productos/guardar}" th:object="${producto}" method="post">
+
+            <input type="hidden" th:field="*{idProducto}"/>
+
+            <label>Nombre:</label>
+            <input type="text" th:field="*{nombre}" maxlength="100" required/>
+
+            <label>Descripción:</label>
+            <input type="text" th:field="*{descripcion}" maxlength="100" required/>
+
+            <label>Categoría:</label>
+            <select th:field="*{categoria.idCategoria}" required>
+                <option value="" disabled th:selected="${producto.categoria == null}">-- Seleccione categoría --</option>
+                <option th:each="cat : ${categorias}"
+                        th:value="${cat.idCategoria}"
+                        th:text="${cat.nombreCategoria}"
+                        th:selected="${producto.categoria != null} ? ${cat.idCategoria} == ${producto.categoria.idCategoria} : false">
+                </option>
+            </select>
+
+            <label>Precio 1:</label>
+            <input type="number" step="0.01" th:field="*{precio1}" min="0" required/>
+
+            <label>Precio 2:</label>
+            <input type="number" step="0.01" th:field="*{precio2}" min="0" required/>
+
+            <label>Stock:</label>
+            <input type="number" th:field="*{stock}" min="0" required/>
+
+            <label>Estado:</label>
+            <select th:field="*{estado}" required>
+                <option value="1" th:selected="${producto.estado == 1}">Activo</option>
+                <option value="0" th:selected="${producto.estado == 0}">Inactivo</option>
+            </select>
+
+            <!-- Si quieres mostrar la fecha de registro (no editable), la puedes mostrar así: -->
+            <label>Fecha de Registro:</label>
+            <input type="text" th:value="${producto.fechaRegistro}" readonly/>
+
+            <button type="submit">Guardar</button>
+        </form>
+    </div>
+</section>
+</body>
+</html>
