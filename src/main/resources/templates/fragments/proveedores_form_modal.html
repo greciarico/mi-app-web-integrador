@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Los head/body tags en un fragmento no son estrictamente necesarios pero a veces ayudan con la validación de IDE -->
+</head>
+<body>
+<div th:fragment="formContent">
+    <div class="modal-header">
+        <h4 class="modal-title" th:text="${proveedor.idProveedor == null ? 'Crear Nuevo Proveedor' : 'Editar Proveedor'}"></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarFormularioProveedor()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <form id="formProveedor" th:object="${proveedor}" th:action="${proveedor.idProveedor == null ? '/proveedores/guardar' : '/proveedores/guardar'}" method="post">
+        <div class="modal-body">
+            <input type="hidden" th:field="*{idProveedor}" id="idProveedor"/>
+            <input type="hidden" th:field="*{fechaRegistro}" id="fechaRegistro"/>
+
+            <div class="form-group">
+                <label for="ruc">RUC</label>
+                <input type="text" class="form-control" id="ruc" th:field="*{ruc}" placeholder="RUC del proveedor">
+                <span class="text-danger" id="rucError"></span>
+            </div>
+            <div class="form-group">
+                <label for="nombreComercial">Nombre Comercial</label>
+                <input type="text" class="form-control" id="nombreComercial" th:field="*{nombreComercial}" placeholder="Nombre comercial del proveedor">
+                <span class="text-danger" id="nombreComercialError"></span>
+            </div>
+            <div class="form-group">
+                <label for="razonSocial">Razón Social</label>
+                <input type="text" class="form-control" id="razonSocial" th:field="*{razonSocial}" placeholder="Razón social del proveedor">
+                <span class="text-danger" id="razonSocialError"></span>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono</label>
+                <input type="text" class="form-control" id="telefono" th:field="*{telefono}" placeholder="Teléfono del proveedor (opcional)">
+                <span class="text-danger" id="telefonoError"></span>
+            </div>
+            <div class="form-group">
+                <label for="correo">Correo</label>
+                <input type="email" class="form-control" id="correo" th:field="*{correo}" placeholder="Correo del proveedor (opcional)">
+                <span class="text-danger" id="correoError"></span>
+            </div>
+            <div class="form-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" class="form-control" id="direccion" th:field="*{direccion}" placeholder="Dirección del proveedor">
+                <span class="text-danger" id="direccionError"></span>
+            </div>
+            <div class="form-group">
+                <label for="estado">Estado</label>
+                <select class="form-control" id="estado" th:field="*{estado}">
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cerrarFormularioProveedor()">Cerrar</button>
+            <button type="submit" class="btn btn-primary" style="background-color:#183D00 !important; border-color:#183D00 !important;">Guardar</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

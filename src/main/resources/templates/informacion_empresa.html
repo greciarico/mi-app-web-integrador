@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Información de la Empresa</title>
+    <!-- Incluye CSS AdminLTE y dependencias -->
+    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
+    <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
+    <!-- Más estilos -->
+    <script src="/plugins/jquery/jquery.min.js"></script>
+    <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/dist/js/adminlte.min.js"></script>
+</head>
+<body class="hold-transition sidebar-mini">
+<section th:fragment="contenido" class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Detalles de la Empresa</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-primary" onclick="abrirFormularioEmpresa('/informacion-empresa/form')">
+                                <i class="fas fa-edit"></i> Editar Información
+                            </button>
+                        </div>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>RUC:</strong> <span th:text="${empresa.ruc ?: 'N/A'}"></span></p>
+                                <p><strong>Nombre Comercial:</strong> <span th:text="${empresa.nombreComercial ?: 'N/A'}"></span></p>
+                                <p><strong>Razón Social:</strong> <span th:text="${empresa.razonSocial ?: 'N/A'}"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Dirección:</strong> <span th:text="${empresa.direccion ?: 'N/A'}"></span></p>
+                                <p><strong>Teléfono:</strong> <span th:text="${empresa.telefono ?: 'N/A'}"></span></p>
+                                <p><strong>Fecha de Registro:</strong> <span th:text="${empresa.fechaRegistro != null ? #temporals.format(empresa.fechaRegistro, 'dd/MM/yyyy') : 'N/A'}"></span></p>
+                            </div>
+                        </div>
+                        <div th:if="${empresa.idEmpresa == null}" class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle"></i> No se ha configurado la información de la empresa. Por favor, haz clic en "Editar Información" para agregarla.
+                        </div>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+            <!-- /.col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+
+    <!-- Modal para el Formulario de Empresa -->
+    <div class="modal fade" id="empresaModal" tabindex="-1" role="dialog" aria-labelledby="empresaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div id="modalFormContentEmpresa">
+                    <!-- El fragmento informacion_empresa_form_modal.html se insertará aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+
+        // Función para limpiar todos los mensajes de error (genérica)
+        function clearErrors() {
+            $('.text-danger').text('');
+            $('.form-control').removeClass('is-invalid');
+        }
+
+        // Función para mostrar un mensaje de error específico (genérica)
+        function displayError(elementId, message) {
+            $('#' + elementId).text(message);
+            $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
+        }
+
+        // ===========================================
+        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS (PARA EMPRESA)
+        // ===========================================
+
+        function validateRuc(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{11}$/; // RUC de 11 dígitos numéricos
+
+            if (value === "") {
+                displayError(errorElementId, "El RUC es obligatorio.");
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El RUC debe tener 11 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateNombreComercial(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            if (value === "") {
+                displayError(errorElementId, "El Nombre Comercial es obligatorio.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateRazonSocial(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            if (value === "") {
+                displayError(errorElementId, "La Razón Social es obligatoria.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateDireccion(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            if (value === "") {
+                displayError(errorElementId, "La Dirección es obligatoria.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateTelefono(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{9}$/; // Teléfono de 9 dígitos (opcional, pero si se pone, valida formato)
+
+            if (value === "") { // Si es opcional y vacío, es válido
+                input.removeClass('is-invalid');
+                return true;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        async function checkRucUnico(rucInputId, rucErrorId) {
+            const ruc = $('#' + rucInputId).val();
+            if (ruc.trim() === "") {
+                return true; // Ya será validado por validateRuc
+            }
+
+            let url = '/informacion-empresa/checkRuc?ruc=' + encodeURIComponent(ruc);
+
+            try {
+                const response = await $.ajax({
+                    type: "GET",
+                    url: url,
+                    dataType: "json"
+                });
+                if (response.exists) {
+                    displayError(rucErrorId, "Este RUC ya está registrado para otra empresa.");
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error("Error al verificar RUC de empresa:", error);
+                displayError(rucErrorId, "Error al verificar RUC. Intenta de nuevo.");
+                return false;
+            }
+        }
+
+        // Función principal de validación del formulario de Empresa
+        async function validarFormularioEmpresa() {
+            clearErrors();
+            let isValid = true;
+
+            // Validaciones de campos obligatorios
+            if (!validateRuc('ruc', 'rucError')) isValid = false;
+            if (!validateNombreComercial('nombreComercial', 'nombreComercialError')) isValid = false;
+            if (!validateRazonSocial('razonSocial', 'razonSocialError')) isValid = false;
+            if (!validateDireccion('direccion', 'direccionError')) isValid = false;
+
+            // Validaciones de campos opcionales si se ingresan
+            if (!validateTelefono('telefono', 'telefonoError')) isValid = false;
+
+            if (!isValid) return false;
+
+            // Validación de RUC único (excluye el propio registro si existe)
+            const rucUnico = await checkRucUnico('ruc', 'rucError');
+            if (!rucUnico) isValid = false;
+
+            return isValid;
+        }
+
+        // ===========================================
+        // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE EMPRESA
+        // ===========================================
+
+        function abrirFormularioEmpresa(url) {
+            console.log("Intentando abrir formulario de Empresa desde URL:", url);
+            $('#modalFormContentEmpresa').load(url, function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario de Empresa:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar formulario',
+                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    console.log("Formulario de Empresa cargado exitosamente.");
+                    $('#formEmpresa').off('submit').on('submit', async function(e) {
+                        e.preventDefault(); // Previene el envío tradicional del formulario
+                        const formIsValid = await validarFormularioEmpresa();
+                        if (formIsValid) {
+                            guardarEmpresaAjax();
+                        } else {
+                            console.log("Formulario de Empresa inválido. No se envía.");
+                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+                        }
+                    });
+                    $('#empresaModal').modal('show');
+                    console.log("Modal de Empresa intentando mostrarse.");
+                }
+            });
+        }
+
+        function cerrarFormularioEmpresa() {
+            $('#empresaModal').modal('hide'); // Esconde el modal
+            // Después de un breve retraso para la transición, limpiar el contenido y remover el backdrop
+            setTimeout(function() {
+                $('#modalFormContentEmpresa').empty(); // Limpia el contenido del modal
+                // Asegura la eliminación del backdrop si Bootstrap no lo hace automáticamente
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open'); // Quita la clase que bloquea el scroll
+            }, 300); // 300ms de retraso para la animación de cierre del modal
+            console.log("Modal de Empresa cerrado.");
+        }
+
+        function guardarEmpresaAjax() {
+            // Recoger los datos del formulario para enviar como JSON
+            const dataToSend = {
+                idEmpresa: $('#idEmpresa').val() ? parseInt($('#idEmpresa').val(), 10) : null,
+                fechaRegistro: $('#fechaRegistro').val(),
+                ruc: $('#ruc').val(),
+                nombreComercial: $('#nombreComercial').val(),
+                direccion: $('#direccion').val(),
+                telefono: $('#telefono').val(),
+                razonSocial: $('#razonSocial').val()
+            };
+
+            const url = '/informacion-empresa/guardar';
+
+            $.ajax({
+                type: "POST",
+                url: url,
+                contentType: 'application/json', // ¡Importante! Indicar que envías JSON
+                data: JSON.stringify(dataToSend), // Convierte el objeto JavaScript a una cadena JSON
+                success: function(response) {
+                    if (response.status === "success") {
+                        mostrarNotificacion("success", response.message);
+                        cerrarFormularioEmpresa(); // Cierra el modal
+                        recargarInformacionEmpresa(); // Recarga la vista principal de la empresa
+                    } else {
+                        mostrarNotificacion("error", "Error: " + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = "Error al procesar la solicitud.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage += ": " + xhr.responseJSON.message;
+                    } else if (xhr.responseText) {
+                        errorMessage += ": " + xhr.responseText.substring(0, Math.min(xhr.responseText.length, 100)) + "...";
+                    }
+                    mostrarNotificacion("error", errorMessage);
+                    console.error("Error AJAX al guardar Empresa:", error, xhr.responseText, xhr);
+                }
+            });
+        }
+
+        // Función para recargar los datos del formulario de la empresa (refresca la vista principal)
+        // Esta función debe ser global para que layout.html pueda llamarla
+        function recargarInformacionEmpresa() {
+            console.log("Recargando información de la empresa...");
+            // ¡CAMBIO CLAVE AQUÍ! Eliminar el segundo argumento del .load()
+            $('#content-area').load('/informacion-empresa', function(response, status, xhr) {
+                 if (status === "error") {
+                    console.error("Error al recargar la información de la empresa: " + xhr.status + " " + xhr.statusText);
+                    mostrarNotificacion("error", "Error al recargar la información de la empresa.");
+                 } else {
+                    console.log("Información de la empresa recargada exitosamente.");
+                    // Vuelve a adjuntar el manejador de submit después de recargar el contenido DOM
+                    inicializarFormularioEmpresa();
+                 }
+            });
+        }
+
+
+        // Función para mostrar notificaciones usando AdminLTE Toasts
+        function mostrarNotificacion(type, message) {
+            $(document).Toasts('create', {
+                class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
+                title: type === 'success' ? 'Éxito' : (type === 'info' ? 'Información' : 'Error'),
+                body: message,
+                autohide: true,
+                delay: 3000
+            });
+        }
+
+        // Ejecutar al cargar la página por primera vez
+        $(document).ready(function() {
+            // No adjuntamos el submit handler aquí directamente, ya que el formulario está dentro del modal.
+            // Se adjunta en 'abrirFormularioEmpresa' una vez que el contenido del modal se carga.
+            // La primera vez que se carga la vista de empresa, también se necesita adjuntar el evento.
+            // Esto lo maneja el layout.html que llama a inicializarFormularioEmpresa.
+        });
+
+        /*]]>*/
+    </script>
+</section>
+</body>
+</html>

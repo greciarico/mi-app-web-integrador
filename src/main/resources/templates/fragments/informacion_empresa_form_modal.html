@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="formContent">
+    <div class="modal-header">
+        <h4 class="modal-title" th:text="${empresa.idEmpresa == null ? 'Configurar Información de la Empresa' : 'Editar Información de la Empresa'}"></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarFormularioEmpresa()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <form id="formEmpresa" th:object="${empresa}">
+        <div class="modal-body">
+            <input type="hidden" th:field="*{idEmpresa}" id="idEmpresa"/>
+            <!-- CAMBIO CLAVE AQUÍ: Formato explícito para fechaRegistro -->
+            <input type="hidden" id="fechaRegistro" name="fechaRegistro"
+                   th:value="${empresa.fechaRegistro != null ? #temporals.format(empresa.fechaRegistro, 'yyyy-MM-dd') : ''}"/>
+
+            <div class="form-group">
+                <label for="ruc">RUC</label>
+                <input type="text" class="form-control" id="ruc" th:field="*{ruc}" placeholder="RUC de la empresa" maxlength="11">
+                <span class="text-danger" id="rucError"></span>
+            </div>
+            <div class="form-group">
+                <label for="nombreComercial">Nombre Comercial</label>
+                <input type="text" class="form-control" id="nombreComercial" th:field="*{nombreComercial}" placeholder="Nombre comercial de la empresa">
+                <span class="text-danger" id="nombreComercialError"></span>
+            </div>
+            <div class="form-group">
+                <label for="razonSocial">Razón Social</labe1>
+                    <input type="text" class="form-control" id="razonSocial" th:field="*{razonSocial}" placeholder="Razón social de la empresa">
+                    <span class="text-danger" id="razonSocialError"></span>
+            </div>
+            <div class="form-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" class="form-control" id="direccion" th:field="*{direccion}" placeholder="Dirección de la empresa">
+                <span class="text-danger" id="direccionError"></span>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono (opcional)</label>
+                <input type="text" class="form-control" id="telefono" th:field="*{telefono}" placeholder="Teléfono de la empresa" maxlength="9">
+                <span class="text-danger" id="telefonoError"></span>
+            </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cerrarFormularioEmpresa()">Cerrar</button>
+            <button type="submit" class="btn btn-primary" style="background-color:#183D00 !important; border-color:#183D00 !important;">Guardar</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

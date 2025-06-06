@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>D&D Nature's</title>
+  <!-- Incluye CSS AdminLTE y dependencias -->
+  <!-- Asegúrate de que esta ruta a Font Awesome sea correcta y accesible -->
+  <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
+  <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
+  <!-- Más estilos CSS personalizados si los tienes -->
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+
+<div class="wrapper">
+
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <!-- Aquí va el contenido del header -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <!-- El botón de hamburguesa con data-widget="pushmenu" -->
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+      </li>
+      <li class="nav-item d-none d-sm-inline-block">
+        <a href="/" class="nav-link">Inicio</a>
+      </li>
+    </ul>
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item">
+        <!-- Mostrar nombre completo del usuario logueado -->
+        <!-- NOTA: Para que esto funcione, tu controlador que renderiza este layout
+                   debe añadir un objeto 'currentUser' (de tipo Usuario) al modelo.
+                   Ejemplo en un controlador de Spring:
+                   @GetMapping("/dashboard")
+                   public String showDashboard(Model model, Authentication authentication) {
+                       String username = authentication.getName();
+                       Usuario currentUser = usuarioService.obtenerUsuarioPorCorreo(username).orElse(null); // O por username si es diferente
+                       model.addAttribute("currentUser", currentUser);
+                       return "layout"; // O el nombre de tu plantilla principal
+                   }
+        -->
+        <span th:if="${currentUser != null}" th:text="${currentUser.nombre + ' ' + currentUser.apPaterno + ' ' + currentUser.apMaterno}">Nombre Completo</span>
+        <span th:unless="${currentUser != null}" th:text="${#authentication.name}">Usuario</span>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="main-sidebar sidebar-light-success elevation-4">
+    <a href="#" class="brand-link">
+      <img src="/dist/img/Logo.png" alt="Logo" class="brand-image elevation-3">
+      <!-- SOLUCIÓN: Se añadió &nbsp; para que el span siempre ocupe espacio -->
+      <span class="brand-text font-weight-light">&nbsp;</span>
+    </a>
+
+    <div class="sidebar">
+      <!-- Aquí generas el menú dinámico -->
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+
+          <!-- Mantenimiento -->
+          <li class="nav-item has-treeview">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-tools"></i>
+              <p>
+                Mantenimiento
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/usuarios">
+                  <i class="fas fa-user-cog nav-icon"></i>
+                  <p>Usuario</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/clientes">
+                  <i class="fas fa-users nav-icon"></i>
+                  <p>Clientes</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/proveedores">
+                  <i class="fas fa-truck nav-icon"></i>
+                  <p>Proveedores</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/igv">
+                  <i class="fas fa-percentage nav-icon"></i>
+                  <p>IGV</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/productos">
+                  <i class="fas fa-box-open nav-icon"></i>
+                  <p>Productos</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/categorias">
+                  <i class="fas fa-tags nav-icon"></i>
+                  <p>Categorias</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/merma">
+                  <i class="fas fa-trash-alt nav-icon"></i>
+                  <p>Merma</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Registro de compra -->
+          <li class="nav-item has-treeview">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-file-invoice-dollar"></i>
+              <p>
+                Registro de compra
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/documento-compra">
+                  <i class="fas fa-file-alt nav-icon"></i>
+                  <p>Documento de compra</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Registro de venta -->
+          <li class="nav-item has-treeview">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-shopping-cart"></i>
+              <p>
+                Registro de venta
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="#" class="nav-link menu-link" data-url="/ventas">
+                  <i class="fas fa-receipt nav-icon"></i>
+                  <p>Ventas</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Información de la Empresa -->
+          <li class="nav-item">
+            <a href="#" class="nav-link menu-link" data-url="/informacion-empresa">
+              <i class="nav-icon fas fa-building"></i>
+              <p>Información de la Empresa</p>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <!-- Botón siempre abajo -->
+      <div class="p-3 mt-auto">
+        <a href="/logout"
+           class="btn btn-outline-danger btn-block d-flex align-items-center justify-content-center text-danger fw-bold"
+           style="text-shadow: none;"
+           onmouseover="this.style.textShadow='0 0 8px red';"
+           onmouseout="this.style.textShadow='none';">
+          <i class="fas fa-sign-out-alt mr-2"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Contenido central -->
+  <div class="content-wrapper" id="content-area">
+    <!-- Aquí cargarás el contenido dinámico -->
+    <section class="content-header">
+      <div class="container-fluid">
+        <h1>Bienvenido al dashboard</h1>
+      </div>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer class="main-footer text-center">
+    <strong>Copyright &copy; 2025 D&D Nature's.</strong> Todos los derechos reservados.
+  </footer>
+
+</div>
+
+<!-- SCRIPTS DE JAVASCRIPT (MOVIDOS AL FINAL DEL BODY) -->
+<!-- jQuery (necesario para AdminLTE) -->
+<script src="/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 (Bundle incluye Popper.js) -->
+<script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App (este es el más importante para el menú) -->
+<script src="/dist/js/adminlte.min.js"></script>
+
+<script>
+  $(document).ready(function() {
+    console.log("jQuery y el DOM están listos en layout.html.");
+
+    $('.menu-link').click(function(e) {
+      e.preventDefault();
+      let url = $(this).data('url');
+      console.log("Cargando contenido con AJAX desde:", url);
+      // Carga el contenido con AJAX en #content-area
+      $('#content-area').load(url, function(response, status, xhr) {
+          if (status === "error") {
+              console.error("Error al cargar el contenido:", xhr.status, xhr.statusText);
+              // Puedes mostrar una notificación de error aquí si lo deseas
+          } else {
+              console.log("Contenido cargado exitosamente desde:", url);
+              // =========================================================
+              // SOLUCIÓN CLAVE: Re-inicializar widgets de AdminLTE
+              // =========================================================
+              // Un pequeño retraso para asegurar que el DOM esté completamente actualizado
+              // después de la carga AJAX antes de re-inicializar los widgets.
+              setTimeout(function() {
+                  // 1. Asegurarse de que la barra lateral no esté colapsada al cargar una nueva página
+                  //    (si ese es el comportamiento deseado).
+                  $('body').removeClass('sidebar-collapse');
+
+                  // 2. Re-inicializar el widget PushMenu para asegurar que el botón de hamburguesa funcione.
+                  //    Esto re-adjunta los manejadores de eventos si se perdieron o se sobrescribieron.
+                  $('[data-widget="pushmenu"]').PushMenu();
+
+                  // 3. Re-inicializar el widget Treeview para que los menús desplegables de la barra lateral
+                  //    funcionen correctamente si el contenido AJAX los afecta o si se cargan nuevos elementos.
+                  $('[data-widget="treeview"]').Treeview();
+
+                  // Opcional: Si después de esto el menú sigue sin responder al primer clic,
+                  // y deseas forzar un "toggle" inicial para que el estado se sincronice,
+                  // podrías añadir una de estas líneas (usar con precaución para evitar doble animación):
+                  // $('[data-widget="pushmenu"]').PushMenu('toggle'); // Esto lo colapsaría/expandiría una vez
+                  // $('[data-widget="pushmenu"]').PushMenu('toggle'); // Y esto lo regresaría al estado original
+                  // La combinación `removeClass('sidebar-collapse')` y `PushMenu()` suele ser suficiente.
+
+                  // =================================================================
+                  // SOLUCIÓN PARA LA RECARGA DE DATOS DEL USUARIO
+                  // Si la URL cargada es '/usuarios', llamamos a la función
+                  // que recarga la lista de usuarios.
+                  // 'recargarListaUsuariosCompleta' debe ser una función global
+                  // definida en el script de usuarios.html.
+                  // =================================================================
+                   if (url === '/usuarios' && typeof recargarListaUsuariosCompleta === 'function') {
+                      console.log("Detectado retorno a /usuarios. Iniciando recarga de datos.");
+                      recargarListaUsuariosCompleta();
+                  } else if (url === '/productos' && typeof recargarListaProductosCompleta === 'function') {
+                      console.log("Detectado retorno a /productos. Iniciando recarga de datos.");
+                      recargarListaProductosCompleta();
+                  } else if (url === '/proveedores' && typeof recargarListaProveedoresCompleta === 'function') {
+                      console.log("Detectado retorno a /proveedores. Iniciando recarga de datos.");
+                      recargarListaProveedoresCompleta();
+                  } else if (url === '/categorias' && typeof recargarListaCategoriasCompleta === 'function') {
+                      console.log("Detectado retorno a /categorias. Iniciando recarga de datos.");
+                      recargarListaCategoriasCompleta();
+                  }else if (url === '/igv' && typeof recargarListaIgvCompleta === 'function') { // ¡CAMBIO AQUÍ!
+                      console.log("Detectado retorno a /igv. Iniciando recarga de datos.");
+                      recargarListaIgvCompleta();
+                  }else if (url === '/informacion-empresa' && typeof inicializarFormularioEmpresa === 'function') { // ¡CAMBIO CLAVE!
+                      console.log("Detectado retorno a /informacion-empresa. Inicializando formulario.");
+                      // Para esta vista, llamamos a la función que adjunta el submit handler
+                      inicializarFormularioEmpresa();
+                  }
+
+              }, 50); // Retraso de 50 milisegundos
+          }
+      });
+
+    });
+  });
+</script>
+
+</body>
+</html>

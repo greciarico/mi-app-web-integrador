@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de IGV</title>
+    <!-- Incluye CSS AdminLTE y dependencias -->
+    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
+    <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
+    <!-- Más estilos -->
+    <script src="/plugins/jquery/jquery.min.js"></script>
+    <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/dist/js/adminlte.min.js"></script>
+</head>
+<body class="hold-transition sidebar-mini">
+<section th:fragment="contenido" class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Lista de Registros de IGV</h3>
+                        <div class="card-tools">
+                            <a href="javascript:void(0)" onclick="abrirFormularioIgv('/igv/nuevo')"
+                               class="btn btn-success" style="background-color:#183D00 !important; border-color:#183D00 !important;">
+                                <i class="fas fa-plus"></i> Crear Nuevo IGV
+                            </a>
+                        </div>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <!-- BUSCADOR SIMPLIFICADO DE IGV -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="input-group">
+                                    <input type="search" id="searchTermIgv" class="form-control" placeholder="Buscar por valor, estado, descripción..."
+                                           onkeyup="aplicarFiltrosIgv()"/>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" type="button" onclick="aplicarFiltrosIgv()">
+                                            <i class="fas fa-search"></i> Buscar
+                                        </button>
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteIgv()">
+                                            <i class="fas fa-file-alt"></i> Generar Reporte
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FIN BUSCADOR SIMPLIFICADO DE IGV -->
+
+                        <!-- Tabla de IGV -->
+                        <div id="tablaIgvContainer">
+                            <table id="igvTable" class="table table-bordered table-striped">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Valor IGV</th>
+                                    <th>Fecha Registro</th>
+                                    <th>Descripción</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                                </thead>
+                                <tbody id="igvTableBody">
+                                <!-- Contenido de la tabla se generará con JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+            <!-- /.col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+
+    <!-- Modal para el Formulario de IGV -->
+    <div class="modal fade" id="igvModal" tabindex="-1" role="dialog" aria-labelledby="igvModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div id="modalFormContentIgv">
+                    <!-- El fragmento igv_form_modal.html se insertará aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+
+        // Variable global para almacenar todos los registros de IGV
+        let allIgvs = /*[[${igvs}]]*/ [];
+
+        // Función para renderizar la tabla con una lista de IGV
+        function renderizarTablaIgv(igvsToDisplay) {
+            const tableBody = $('#igvTableBody');
+            tableBody.empty();
+
+            if (igvsToDisplay.length === 0) {
+                tableBody.append('<tr><td colspan="6" class="text-center">No se encontraron registros de IGV.</td></tr>');
+                return;
+            }
+
+            igvsToDisplay.forEach(igv => {
+                const estadoText = igv.estado === 1 ? 'Activo' : 'Inactivo';
+                const estadoClass = igv.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
+                const fechaRegistroFormatted = igv.fechaRegistro ? new Date(igv.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
+                // Para mostrar en la tabla, multiplicamos por 100 para el porcentaje (sin decimales)
+                const igvValueFormatted = igv.igv ? (parseFloat(igv.igv) * 100).toFixed(0) + '%' : 'N/A';
+
+                const row = `
+                    <tr>
+                        <td>${igv.idIgv}</td>
+                        <td>${igvValueFormatted}</td>
+                        <td>${fechaRegistroFormatted}</td>
+                        <td>${igv.descripcion || 'N/A'}</td>
+                        <td class="text-center"><span class="${estadoClass}">${estadoText}</span></td>
+                        <td>
+                            <a href="javascript:void(0)" onclick="abrirFormularioIgv('/igv/editar/${igv.idIgv}')"
+                               class="btn btn-info btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="javascript:void(0)" onclick="confirmarEliminarIgv(${igv.idIgv})"
+                               class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+                tableBody.append(row);
+            });
+        }
+
+        // Función para limpiar todos los mensajes de error (genérica)
+        function clearErrors() {
+            $('.text-danger').text('');
+            $('.form-control').removeClass('is-invalid');
+        }
+
+        // Función para mostrar un mensaje de error específico (genérica)
+        function displayError(elementId, message) {
+            $('#' + elementId).text(message);
+            $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
+        }
+
+        // ===========================================
+        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS (PARA IGV)
+        // ===========================================
+
+        function validateIgvPercentage(inputElementId, errorElementId) { // Renombrado para claridad
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const numValue = parseInt(value, 10);
+
+            if (value === "") {
+                displayError(errorElementId, "El valor de IGV es obligatorio.");
+                return false;
+            } else if (isNaN(numValue) || numValue <= 0 || !/^\d+$/.test(value)) {
+                displayError(errorElementId, "El IGV debe ser un número entero positivo (ej: 18).");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        // Función principal de validación del formulario de IGV
+        async function validarFormularioIgv() {
+            clearErrors();
+            let isValid = true;
+
+            // Validar el campo visible de porcentaje
+            if (!validateIgvPercentage('igvPercentage', 'igvError')) isValid = false;
+
+            return isValid;
+        }
+
+        // ===========================================
+        // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE IGV
+        // ===========================================
+
+        function abrirFormularioIgv(url) {
+            console.log("Intentando abrir formulario de IGV desde URL:", url);
+            $('#modalFormContentIgv').load(url, function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario de IGV:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar formulario',
+                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    console.log("Formulario de IGV cargado exitosamente.");
+
+                    // El valor inicial del porcentaje ya lo gestiona th:value en el HTML.
+                    // Ahora, solo nos preocupamos por la validación y el envío.
+
+                    $('#formIgv').off('submit').on('submit', async function(e) {
+                        e.preventDefault();
+                        const formIsValid = await validarFormularioIgv();
+                        if (formIsValid) {
+                            guardarIgvAjax(); // Llama a guardarIgvAjax sin pasar el formulario directamente
+                        } else {
+                            console.log("Formulario de IGV inválido. No se envía.");
+                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+                        }
+                    });
+                    $('#igvModal').modal('show');
+                    console.log("Modal de IGV intentando mostrarse.");
+                }
+            });
+        }
+
+        function cerrarFormularioIgv() {
+            $('#igvModal').modal('hide');
+            $('#modalFormContentIgv').empty();
+            clearErrors();
+            console.log("Modal de IGV cerrado.");
+        }
+
+        // MODIFICADO: Esta función ahora construye los datos manualmente para AJAX y envía como JSON
+        function guardarIgvAjax() {
+            // Recoger los datos del formulario
+            const idIgv = $('#idIgv').val();
+            const fechaRegistro = $('#fechaRegistro').val(); // Fecha de registro se mantiene si es edición
+            const igvPercentageValue = parseInt($('#igvPercentage').val(), 10);
+            const igvDecimalValue = (igvPercentageValue / 100).toFixed(2); // Convertir a string con 2 decimales para precisión
+            const descripcion = $('#descripcion').val();
+            const estado = $('#estado').val();
+
+            // Construir el objeto de datos para enviar
+            const dataToSend = {
+                idIgv: idIgv === '' ? null : parseInt(idIgv, 10), // Si es nuevo, idIgv será vacío, convertir a null
+                fechaRegistro: fechaRegistro, // Enviar tal cual (Spring Boot y Jackson lo manejarán)
+                igv: parseFloat(igvDecimalValue), // Convertir a número (flotante) antes de enviar en JSON
+                descripcion: descripcion,
+                estado: parseInt(estado, 10) // Convertir a entero (Byte)
+            };
+
+            const url = '/igv/guardar'; // URL fija de guardado
+
+            $.ajax({
+                type: "POST",
+                url: url,
+                contentType: 'application/json', // ¡Importante! Indicar que envías JSON
+                data: JSON.stringify(dataToSend), // Convierte el objeto JavaScript a una cadena JSON
+                success: function(response) {
+                    if (response.status === "success") {
+                        mostrarNotificacion("success", response.message);
+                        cerrarFormularioIgv();
+                        recargarListaIgvCompleta();
+                    } else {
+                        mostrarNotificacion("error", "Error: " + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = "Error al procesar la solicitud.";
+                    // Intenta obtener un mensaje de error más específico del servidor
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage += ": " + xhr.responseJSON.message;
+                    } else if (xhr.responseText) { // Si hay respuesta de texto pero no JSON
+                        errorMessage += ": " + xhr.responseText.substring(0, Math.min(xhr.responseText.length, 100)) + "...";
+                    }
+                    mostrarNotificacion("error", errorMessage);
+                    console.error("Error AJAX al guardar IGV:", error, xhr.responseText, xhr);
+                }
+            });
+        }
+
+
+        function confirmarEliminarIgv(id) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "¡No podrás revertir esto!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    console.log("Eliminando IGV con ID:", id);
+                    $.ajax({
+                        type: "GET", // La eliminación lógica es un GET aquí
+                        url: '/igv/eliminar/' + id,
+                        success: function(response) {
+                            if (response.status === "success") {
+                                mostrarNotificacion("success", response.message);
+                                recargarListaIgvCompleta();
+                            } else {
+                                mostrarNotificacion("error", "Error: " + response.message);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            let errorMessage = "Error al eliminar el IGV.";
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage += ": " + xhr.responseJSON.message;
+                            } else if (xhr.responseText) {
+                                errorMessage += ": " + xhr.responseText.substring(0, Math.min(xhr.responseText.length, 100)) + "...";
+                            }
+                            mostrarNotificacion("error", errorMessage);
+                            console.error("Error AJAX al eliminar IGV:", error, xhr.responseText);
+                        }
+                    });
+                }
+            });
+        }
+
+        // ===========================================
+        // FUNCIONES DE FILTRADO Y REPORTE DE IGV (CLIENT-SIDE)
+        // ===========================================
+
+        // Esta función debe ser global para que layout.html pueda llamarla
+        function recargarListaIgvCompleta() {
+            $.ajax({
+                type: "GET",
+                url: '/igv/all',
+                dataType: "json",
+                success: function(response) {
+                    allIgvs = response;
+                    aplicarFiltrosIgv(); // Aplicar el filtro actual
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error al recargar la lista completa de IGV:", error);
+                    mostrarNotificacion("error", "Error al recargar la lista de IGV. Verifica el endpoint /igv/all en tu backend.");
+                }
+            });
+        }
+
+        function aplicarFiltrosIgv() {
+            const searchTerm = $('#searchTermIgv').val().toLowerCase().trim();
+            let filteredIgvs = allIgvs;
+
+            if (searchTerm) {
+                if (searchTerm === 'activo') {
+                    filteredIgvs = allIgvs.filter(igv => igv.estado === 1);
+                } else if (searchTerm === 'inactivo') {
+                    filteredIgvs = allIgvs.filter(igv => igv.estado === 0);
+                } else {
+                    filteredIgvs = allIgvs.filter(igv => {
+                        const estadoText = igv.estado === 1 ? 'activo' : 'inactivo';
+                        // Convertir el valor numérico a string para buscar en porcentaje
+                        const igvValuePercentageString = igv.igv ? (parseFloat(igv.igv) * 100).toFixed(0).toString() : '';
+                        return (
+                            igvValuePercentageString.includes(searchTerm) ||
+                            (igv.descripcion && igv.descripcion.toLowerCase().includes(searchTerm)) ||
+                            estadoText.includes(searchTerm)
+                        );
+                    });
+                }
+            }
+            renderizarTablaIgv(filteredIgvs);
+        }
+
+        function generarReporteIgv() {
+            mostrarNotificacion("info", "La funcionalidad de generar reporte de IGV aún no está implementada.");
+        }
+
+        // Función para mostrar notificaciones usando AdminLTE Toasts
+        function mostrarNotificacion(type, message) {
+            $(document).Toasts('create', {
+                class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
+                title: type === 'success' ? 'Éxito' : (type === 'info' ? 'Información' : 'Error'),
+                body: message,
+                autohide: true,
+                delay: 3000
+            });
+        }
+
+
+        // Ejecutar al cargar la página por primera vez
+        $(document).ready(function() {
+            aplicarFiltrosIgv(); // Renderizar la tabla inicialmente con todos los IGV (y aplicar filtro si hay)
+        });
+
+        /*]]>*/
+    </script>
+</section>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Los head/body tags en un fragmento no son estrictamente necesarios pero a veces ayudan con la validación de IDE -->
+</head>
+<body>
+<div th:fragment="formContent">
+    <div class="modal-header">
+        <h4 class="modal-title" th:text="${igv.idIgv == null ? 'Crear Nuevo Registro de IGV' : 'Editar Registro de IGV'}"></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarFormularioIgv()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <!-- CAMBIO CLAVE AQUÍ: th:object y th:action de vuelta para el binding de Thymeleaf -->
+    <form id="formIgv" th:object="${igv}" th:action="${igv.idIgv == null ? '/igv/guardar' : '/igv/guardar'}" method="post">
+        <div class="modal-body">
+            <!-- Campos que se envían directamente o se usan para IDs -->
+            <input type="hidden" th:field="*{idIgv}" id="idIgv"/>
+            <input type="hidden" th:field="*{fechaRegistro}" id="fechaRegistro"/>
+
+            <div class="form-group">
+                <label for="igvPercentage">Valor de IGV</label>
+                <div class="input-group">
+                    <!-- Este input será el visible para el usuario. Envía su valor como 'igvPercentageInput'. -->
+                    <!-- th:value convierte el BigDecimal (ej. 0.18) a entero (ej. 18) para mostrar. -->
+                    <input type="number" class="form-control" id="igvPercentage" name="igvPercentageInput"
+                           min="0" placeholder="Ej: 18 para 18%"
+                           th:value="${igv.igv != null ? #numbers.formatDecimal(igv.igv * 100, 0, 0) : ''}">
+                    <div class="input-group-append">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <span class="text-danger" id="igvError"></span>
+            </div>
+            <div class="form-group">
+                <label for="descripcion">Descripción (opcional)</label>
+                <!-- Se mantiene th:field para los campos directos -->
+                <input type="text" class="form-control" id="descripcion" th:field="*{descripcion}" placeholder="Breve descripción del valor de IGV">
+            </div>
+            <div class="form-group">
+                <label for="estado">Estado</label>
+                <!-- Se mantiene th:field para los campos directos -->
+                <select class="form-control" id="estado" th:field="*{estado}">
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cerrarFormularioIgv()">Cerrar</button>
+            <button type="submit" class="btn btn-primary" style="background-color:#183D00 !important; border-color:#183D00 !important;">Guardar</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>
