@@ -18,6 +18,11 @@ public interface ProductoRepository extends JpaRepository<Producto, Integer> {
     @Query("SELECT p FROM Producto p WHERE p.estado <> :estadoExcluido")
     List<Producto> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido); // El parámetro es Byte
 
+    // Método para buscar un producto por nombre (ej. para validación de unicidad)
+    Optional<Producto> findByNombre(String nombre);
+
+    // Método para verificar si un producto existe por nombre, excluyendo un ID
+    boolean existsByNombreAndIdProductoIsNot(String nombre, Integer idProducto);
 }
 
 

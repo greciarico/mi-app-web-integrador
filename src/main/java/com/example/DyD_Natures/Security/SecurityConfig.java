@@ -27,58 +27,53 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/logout", "/css/**", "/js/**", "/plugins/**", "/dist/**", "/img/**").permitAll()
 
                         // 2. Permite acceso público a los endpoints AJAX para la carga inicial de datos y validaciones
-                        //    Esto es crucial para que el JavaScript pueda cargar la tabla inicial
-                        //    incluso antes de que el usuario haga login o si hay filtros activos en páginas de inicio.
                         .requestMatchers("/usuarios/all", "/usuarios/checkDni").permitAll()
-                        .requestMatchers("/productos/all").permitAll()
+                        .requestMatchers("/productos/all").permitAll() // Necesario para el dropdown de Merma
                         .requestMatchers("/proveedores/all", "/proveedores/checkRuc").permitAll()
                         .requestMatchers("/categorias/all", "/categorias/checkNombreCategoria").permitAll()
                         .requestMatchers("/igv/all").permitAll()
+                        .requestMatchers("/informacion-empresa/data").permitAll()
+                        .requestMatchers("/informacion-empresa/checkRuc").permitAll()
                         // =================================================================
-                        // NUEVO: Rutas de Empresa para AJAX y vistas generales (ADMINISTRADOR)
+                        // NUEVO: Rutas de Merma (Actualizado a /merma)
                         // =================================================================
-                        .requestMatchers("/informacion-empresa/data").permitAll() // Para que el JS cargue los datos iniciales
-                        .requestMatchers("/informacion-empresa/checkRuc").permitAll() // Para la validación de RUC
-                        .requestMatchers("/informacion-empresa/**").hasRole("ADMINISTRADOR") // Todas las demás operaciones CRUD/vista
+                        .requestMatchers("/merma/all").permitAll() // Para cargar la tabla
+                        .requestMatchers("/merma/productos").permitAll() // Para el dropdown de productos
+                        .requestMatchers("/merma/**").hasRole("ADMINISTRADOR") // Todas las demás operaciones CRUD
                         // =================================================================
 
                         // 3. Rutas con roles específicos (más restrictivas van después de las public permitAll)
-                        // Página de inicio (root)
-                        .requestMatchers("/").hasRole("ADMINISTRADOR") // Solo ADMINISTRADOR para la página de inicio
+                        .requestMatchers("/").hasRole("ADMINISTRADOR")
 
-                        // Módulos de Mantenimiento (generalmente para ADMINISTRADOR)
-                        .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR") // CRUD completo de usuarios
-                        .requestMatchers("/productos/**").hasRole("ADMINISTRADOR") // CRUD completo de productos
-                        .requestMatchers("/proveedores/**").hasRole("ADMINISTRADOR") // CRUD completo de proveedores
-                        .requestMatchers("/categorias/**").hasRole("ADMINISTRADOR") // CRUD completo de categorías
-                        .requestMatchers("/igv/**").hasRole("ADMINISTRADOR") // CRUD completo de IGV
-                        .requestMatchers("/mantenimiento/clientes/**").hasRole("ADMINISTRADOR") // Mantenimiento de clientes
-                        .requestMatchers("/mantenimiento/merma/**").hasRole("ADMINISTRADOR") // Mantenimiento de Merma
+                        // Módulos de Mantenimiento (ADMINISTRADOR)
+                        .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/productos/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/proveedores/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/categorias/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/igv/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/mantenimiento/clientes/**").hasRole("ADMINISTRADOR")
+                        // .requestMatchers("/mantenimiento/merma/**") ya no se usa, ahora es /merma
+                        .requestMatchers("/informacion-empresa/**").hasRole("ADMINISTRADOR")
+
 
                         // Módulos de Registro de Compra y Venta (Ventas puede ser para VENDEDOR también)
-                        .requestMatchers("/registro-compra/**").hasRole("ADMINISTRADOR") // Registro de compra
-                        .requestMatchers("/registro-venta/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR") // Registro de venta
+                        .requestMatchers("/registro-compra/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/registro-venta/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
                         .requestMatchers("/ventas/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
-
-                        // Información de la Empresa (ya manejado arriba con hasRole("ADMINISTRADOR"))
-                        // .requestMatchers("/informacion-empresa").authenticated() // Se cambia a hasRole("ADMINISTRADOR") arriba
 
                         // 4. Cualquier otra solicitud DEBE estar autenticada (regla general al final)
                         .anyRequest().authenticated()
                 )
-                // Configuración del formulario de login
                 .formLogin(login -> login
                         .loginPage("/login")
                         .defaultSuccessUrl("/", true)
                         .permitAll()
                 )
-                // Configuración del logout
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login")
+                        .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 )
-                // Deshabilita CSRF (considera habilitarlo en producción con las configuraciones adecuadas)
                 .csrf(csrf -> csrf.disable());
 
         return http.build();

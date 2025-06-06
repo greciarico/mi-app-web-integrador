@@ -264,6 +264,9 @@
                       console.log("Detectado retorno a /informacion-empresa. Inicializando formulario.");
                       // Para esta vista, llamamos a la función que adjunta el submit handler
                       inicializarFormularioEmpresa();
+                  }else if (url === '/merma' && typeof recargarListaMermaCompleta === 'function') { // MODIFICADO: URL de Merma
+                      console.log("Detectado retorno a /merma. Iniciando recarga de datos."); // MODIFICADO
+                      recargarListaMermaCompleta();
                   }
 
               }, 50); // Retraso de 50 milisegundos

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="formContent">
+    <div class="modal-header">
+        <h4 class="modal-title" th:text="${merma.idMerma == null ? 'Registrar Nueva Merma' : 'Editar Registro de Merma'}"></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarFormularioMerma()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <form id="formMerma" th:object="${merma}">
+        <div class="modal-body">
+            <input type="hidden" th:field="*{idMerma}" id="idMerma"/>
+            <input type="hidden" th:field="*{fechaRegistro}" id="fechaRegistro"/>
+
+            <div class="form-group">
+                <label for="idProducto">Producto</label>
+                <select class="form-control" id="idProducto" th:field="*{producto.idProducto}">
+                    <option value="">-- Seleccione un Producto --</option>
+                    <option th:each="prod : ${productos}"
+                            th:value="${prod.idProducto}"
+                            th:text="${prod.nombre}"
+                            th:selected="${merma.producto != null and merma.producto.idProducto == prod.idProducto}">
+                    </option>
+                </select>
+                <span class="text-danger" id="productoError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="cantidad">Cantidad de Merma</label>
+                <input type="number" class="form-control" id="cantidad" th:field="*{cantidad}" min="1" placeholder="Cantidad de unidades mermadas">
+                <span class="text-danger" id="cantidadError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="descripcion">Descripción (opcional)</label>
+                <textarea class="form-control" id="descripcion" th:field="*{descripcion}" rows="3" placeholder="Detalle la razón de la merma"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cerrarFormularioMerma()">Cerrar</button>
+            <button type="submit" class="btn btn-primary" style="background-color:#183D00 !important; border-color:#183D00 !important;">Guardar</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>
