@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="formContent">
+    <div class="modal-header">
+        <h4 class="modal-title" th:text="${cliente.idCliente == null ? 'Crear Nuevo Cliente' : 'Editar Cliente'}"></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarFormularioCliente()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <form id="formCliente" th:object="${cliente}">
+        <div class="modal-body">
+            <input type="hidden" th:field="*{idCliente}" id="idCliente"/>
+            <!-- Fecha de registro, solo se envía si ya existe (para no sobreescribir en edición) -->
+            <input type="hidden" id="fechaRegistro" name="fechaRegistro"
+                   th:value="${cliente.fechaRegistro != null ? #temporals.format(cliente.fechaRegistro, 'yyyy-MM-dd') : ''}"/>
+
+            <div class="form-group">
+                <label for="idTipoCliente">Tipo de Cliente:</label>
+                <select class="form-control" id="idTipoCliente" th:field="*{tipoCliente.idRolCliente}">
+                    <option value="">-- Seleccione el Tipo de Cliente --</option>
+                    <option th:each="tipo : ${tiposCliente}"
+                            th:value="${tipo.idRolCliente}"
+                            th:text="${tipo.rolCliente}"
+                            th:selected="${cliente.tipoCliente != null and cliente.tipoCliente.idRolCliente == tipo.idRolCliente}">
+                    </option>
+                </select>
+                <span class="text-danger" id="tipoClienteError"></span>
+            </div>
+
+            <!-- Campos para Persona Natural -->
+            <div id="naturalFields" style="display: none;">
+                <div class="form-group">
+                    <label for="dni">DNI:</label>
+                    <input type="number" class="form-control" id="dni" th:field="*{dni}" maxlength="8" placeholder="DNI de la persona natural">
+                    <span class="text-danger" id="dniError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" class="form-control" id="nombre" th:field="*{nombre}" placeholder="Nombre de la persona natural">
+                    <span class="text-danger" id="nombreError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="apPaterno">Apellido Paterno:</label>
+                    <input type="text" class="form-control" id="apPaterno" th:field="*{apPaterno}" placeholder="Apellido paterno">
+                    <span class="text-danger" id="apPaternoError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="apMaterno">Apellido Materno:</label>
+                    <input type="text" class="form-control" id="apMaterno" th:field="*{apMaterno}" placeholder="Apellido materno">
+                    <span class="text-danger" id="apMaternoError"></span>
+                </div>
+            </div>
+
+            <!-- Campos para Persona Jurídica -->
+            <div id="juridicaFields" style="display: none;">
+                <div class="form-group">
+                    <label for="ruc">RUC:</label>
+                    <input type="number" class="form-control" id="ruc" th:field="*{ruc}" maxlength="11" placeholder="RUC de la empresa">
+                    <span class="text-danger" id="rucError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="razonSocial">Razón Social:</label>
+                    <input type="text" class="form-control" id="razonSocial" th:field="*{razonSocial}" placeholder="Razón social de la empresa">
+                    <span class="text-danger" id="razonSocialError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="nombreComercial">Nombre Comercial:</label>
+                    <input type="text" class="form-control" id="nombreComercial" th:field="*{nombreComercial}" placeholder="Nombre comercial de la empresa">
+                    <span class="text-danger" id="nombreComercialError"></span>
+                </div>
+            </div>
+
+            <!-- Campos Comunes -->
+            <div class="form-group">
+                <label for="direccion">Dirección:</label>
+                <input type="text" class="form-control" id="direccion" th:field="*{direccion}" placeholder="Dirección del cliente">
+                <span class="text-danger" id="direccionError"></span>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono:</label>
+                <input type="number" class="form-control" id="telefono" th:field="*{telefono}" maxlength="9" placeholder="Número de teléfono (9 dígitos)">
+                <span class="text-danger" id="telefonoError"></span>
+            </div>
+            <div class="form-group">
+                <label for="estado">Estado:</label>
+                <select class="form-control" id="estado" th:field="*{estado}">
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cerrarFormularioCliente()">Cerrar</button>
+            <button type="submit" class="btn btn-primary" style="background-color:#183D00 !important; border-color:#183D00 !important;">Guardar</button>
+        </div>
+    </form>
+
+    <script th:inline="javascript">
+        // Lógica JavaScript para mostrar/ocultar campos y validaciones dentro del modal
+        function toggleClientFields() {
+            const tipoClienteId = parseInt($('#idTipoCliente').val(), 10);
+            clearErrors(); // Limpiar errores al cambiar de tipo
+
+            // Primero, ocultar todos los campos específicos de tipo
+            $('#naturalFields').hide();
+            $('#juridicaFields').hide();
+
+            // Determinar qué conjunto de campos mostrar y qué conjunto de campos limpiar
+            if (tipoClienteId === 1) { // Persona Natural
+                $('#naturalFields').show();
+                // Limpiar solo los campos de Persona Jurídica si están vacíos o no son relevantes
+                // Esto es crucial para la edición: si un cliente era Jurídico y se cambió a Natural,
+                // sus campos Jurídicos deben limpiarse. Si es un nuevo cliente, se limpiarán.
+                // Si es un cliente Natural que se está editando, estos campos ya estarán vacíos.
+                $('#ruc').val('');
+                $('#razonSocial').val('');
+                $('#nombreComercial').val('');
+            } else if (tipoClienteId === 2) { // Persona Jurídica
+                $('#juridicaFields').show();
+                // Limpiar solo los campos de Persona Natural
+                $('#dni').val('');
+                $('#nombre').val('');
+                $('#apPaterno').val('');
+                $('#apMaterno').val('');
+            } else { // No se ha seleccionado ningún tipo (ej. al cargar el formulario para un nuevo cliente)
+                // Limpiar todos los campos específicos de tipo
+                $('#dni').val('');
+                $('#nombre').val('');
+                $('#apPaterno').val('');
+                $('#apMaterno').val('');
+                $('#ruc').val('');
+                $('#razonSocial').val('');
+                $('#nombreComercial').val('');
+            }
+        }
+
+        // --- Las funciones de validación (validateRequired, validateDni, etc.) no cambian y permanecen aquí ---
+        function validateRequired(inputElementId, errorElementId, fieldName) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            if (value === "") {
+                displayError(errorElementId, `${fieldName} es obligatorio.`);
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateDni(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{8}$/; // Exactamente 8 dígitos numéricos
+
+            if (value === "") {
+                displayError(errorElementId, "El DNI es obligatorio.");
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateRuc(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{11}$/; // Exactamente 11 dígitos numéricos
+
+            if (value === "") {
+                displayError(errorElementId, "El RUC es obligatorio.");
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El RUC debe tener 11 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateNombreApellidos(inputElementId, errorElementId, fieldName) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/; // Solo letras y espacios
+
+            if (value === "") {
+                displayError(errorElementId, `${fieldName} es obligatorio.`);
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, `${fieldName} solo debe contener letras.`);
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        function validateTelefono(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{9}$/; // Exactamente 9 dígitos numéricos (opcional si está vacío)
+
+            if (value === "") {
+                input.removeClass('is-invalid'); // No es obligatorio, si está vacío es válido
+                return true;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            return true;
+        }
+
+        // Función asíncrona para verificar unicidad de DNI
+        async function checkDniUnicoCliente(dniInputId, dniErrorId, idCliente) {
+            const dni = $('#' + dniInputId).val();
+            if (dni.trim() === "") return true; // La validación de DNI vacío ya lo maneja
+
+            let url = '/clientes/checkDni?dni=' + encodeURIComponent(dni);
+            if (idCliente) {
+                url += '&idCliente=' + idCliente;
+            }
+            try {
+                const response = await $.ajax({ type: "GET", url: url, dataType: "json" });
+                if (response.exists) {
+                    displayError(dniErrorId, "Este DNI ya está registrado.");
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error("Error al verificar DNI de cliente:", error);
+                displayError(dniErrorId, "Error al verificar DNI. Intenta de nuevo.");
+                return false;
+            }
+        }
+
+        // Función asíncrona para verificar unicidad de RUC
+        async function checkRucUnicoCliente(rucInputId, rucErrorId, idCliente) {
+            const ruc = $('#' + rucInputId).val();
+            if (ruc.trim() === "") return true; // La validación de RUC vacío ya lo maneja
+
+            let url = '/clientes/checkRuc?ruc=' + encodeURIComponent(ruc);
+            if (idCliente) {
+                url += '&idCliente=' + idCliente;
+            }
+            try {
+                const response = await $.ajax({ type: "GET", url: url, dataType: "json" });
+                if (response.exists) {
+                    displayError(rucErrorId, "Este RUC ya está registrado.");
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error("Error al verificar RUC de cliente:", error);
+                displayError(rucErrorId, "Error al verificar RUC. Intenta de nuevo.");
+                return false;
+            }
+        }
+        // --- Fin de funciones de validación ---
+
+        // Función principal de validación del formulario de Cliente
+        async function validarFormularioCliente() {
+            clearErrors();
+            let isValid = true;
+            const idCliente = $('#idCliente').val() === '' ? null : parseInt($('#idCliente').val(), 10);
+            const tipoClienteId = parseInt($('#idTipoCliente').val(), 10);
+
+            if (isNaN(tipoClienteId) || tipoClienteId === 0) { // Validar selección de tipo de cliente
+                displayError('tipoClienteError', 'Debe seleccionar un tipo de cliente.');
+                isValid = false;
+            }
+
+            if (!validateRequired('direccion', 'direccionError', 'La dirección')) isValid = false;
+            if (!validateTelefono('telefono', 'telefonoError')) isValid = false;
+
+            if (tipoClienteId === 1) { // Persona Natural
+                if (!validateDni('dni', 'dniError')) isValid = false;
+                if (!validateNombreApellidos('nombre', 'nombreError', 'El nombre')) isValid = false;
+                if (!validateNombreApellidos('apPaterno', 'apPaternoError', 'El apellido paterno')) isValid = false;
+                if (!validateNombreApellidos('apMaterno', 'apMaternoError', 'El apellido materno')) isValid = false;
+
+                if (isValid) { // Solo si las validaciones síncronas pasan, verifica unicidad
+                    const dniUnico = await checkDniUnicoCliente('dni', 'dniError', idCliente);
+                    if (!dniUnico) isValid = false;
+                }
+
+            } else if (tipoClienteId === 2) { // Persona Jurídica
+                if (!validateRuc('ruc', 'rucError')) isValid = false;
+                if (!validateRequired('razonSocial', 'razonSocialError', 'La razón social')) isValid = false;
+                if (!validateRequired('nombreComercial', 'nombreComercialError', 'El nombre comercial')) isValid = false;
+
+                if (isValid) { // Solo si las validaciones síncronas pasan, verifica unicidad
+                    const rucUnico = await checkRucUnicoCliente('ruc', 'rucError', idCliente);
+                    if (!rucUnico) isValid = false;
+                }
+            }
+
+            // Re-evaluar isValid después de las validaciones asíncronas
+            return isValid;
+        }
+
+    </script>
+</div>
+</body>
+</html>

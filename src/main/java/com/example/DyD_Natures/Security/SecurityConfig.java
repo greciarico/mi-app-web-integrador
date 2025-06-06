@@ -34,12 +34,16 @@ public class SecurityConfig {
                         .requestMatchers("/igv/all").permitAll()
                         .requestMatchers("/informacion-empresa/data").permitAll()
                         .requestMatchers("/informacion-empresa/checkRuc").permitAll()
+                        .requestMatchers("/merma/all").permitAll()
+                        .requestMatchers("/merma/productos").permitAll()
                         // =================================================================
-                        // NUEVO: Rutas de Merma (Actualizado a /merma)
+                        // CAMBIADO: Rutas de Clientes ahora usan /clientes
                         // =================================================================
-                        .requestMatchers("/merma/all").permitAll() // Para cargar la tabla
-                        .requestMatchers("/merma/productos").permitAll() // Para el dropdown de productos
-                        .requestMatchers("/merma/**").hasRole("ADMINISTRADOR") // Todas las demás operaciones CRUD
+                        .requestMatchers("/clientes/all").permitAll() // Para cargar la tabla
+                        .requestMatchers("/clientes/tipos").permitAll() // Si tuvieras un endpoint para tipos
+                        .requestMatchers("/clientes/checkDni").permitAll() // Validación de DNI
+                        .requestMatchers("/clientes/checkRuc").permitAll() // Validación de RUC
+                        .requestMatchers("/clientes/**").hasRole("ADMINISTRADOR") // Todas las demás operaciones CRUD
                         // =================================================================
 
                         // 3. Rutas con roles específicos (más restrictivas van después de las public permitAll)
@@ -51,8 +55,8 @@ public class SecurityConfig {
                         .requestMatchers("/proveedores/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/categorias/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/igv/**").hasRole("ADMINISTRADOR")
-                        .requestMatchers("/mantenimiento/clientes/**").hasRole("ADMINISTRADOR")
-                        // .requestMatchers("/mantenimiento/merma/**") ya no se usa, ahora es /merma
+                        .requestMatchers("/merma/**").hasRole("ADMINISTRADOR")
+                        // .requestMatchers("/mantenimiento/clientes/**") ya NO se usa
                         .requestMatchers("/informacion-empresa/**").hasRole("ADMINISTRADOR")
 
 

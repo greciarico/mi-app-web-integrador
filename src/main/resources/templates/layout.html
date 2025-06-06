@@ -267,6 +267,9 @@
                   }else if (url === '/merma' && typeof recargarListaMermaCompleta === 'function') { // MODIFICADO: URL de Merma
                       console.log("Detectado retorno a /merma. Iniciando recarga de datos."); // MODIFICADO
                       recargarListaMermaCompleta();
+                  }else if (url === '/clientes' && typeof recargarListaClientesCompleta === 'function') { // ¡CAMBIADO!
+                      console.log("Detectado retorno a /clientes. Iniciando recarga de datos."); // ¡CAMBIADO!
+                      recargarListaClientesCompleta();
                   }
 
               }, 50); // Retraso de 50 milisegundos

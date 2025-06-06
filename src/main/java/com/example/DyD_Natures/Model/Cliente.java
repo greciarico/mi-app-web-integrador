@@ -12,42 +12,42 @@ public class Cliente {
     @Column(name = "id_cliente", nullable = false)
     private Integer idCliente;
 
-    @Column(name = "fecha_registro", nullable = false)
+    @Column(name = "fecha_registro", nullable = true)
     private LocalDate fechaRegistro;
 
-    @Column(name = "dni", nullable = false, length = 8)
+    @Column(name = "dni", nullable = true, length = 8)
     private String dni;
 
-    @Column(name = "ruc", nullable = false, length = 11)
+    @Column(name = "ruc", nullable = true, length = 11)
     private String ruc;
 
-    @Column(name = "direccion", nullable = false, length = 1000)
+    @Column(name = "direccion", nullable = true, length = 1000)
     private String direccion;
 
     @Column(name = "telefono", length = 9)
     private String telefono;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "tipo_cliente", nullable = false,
+    @JoinColumn(name = "tipo_cliente", nullable = true,
             foreignKey = @ForeignKey(name = "fk_cliente_tipo_cliente"))
     private TipoCliente tipoCliente;
 
-    @Column(name = "nombre", nullable = false, length = 100)
+    @Column(name = "nombre", nullable = true, length = 100)
     private String nombre;
 
-    @Column(name = "ap_paterno", nullable = false, length = 100)
+    @Column(name = "ap_paterno", nullable = true, length = 100)
     private String apPaterno;
 
-    @Column(name = "ap_materno", nullable = false, length = 100)
+    @Column(name = "ap_materno", nullable = true, length = 100)
     private String apMaterno;
 
-    @Column(name = "razon_social", nullable = false, length = 100)
+    @Column(name = "razon_social", nullable = true, length = 100)
     private String razonSocial;
 
-    @Column(name = "nombre_comercial", nullable = false, length = 100)
+    @Column(name = "nombre_comercial", nullable = true, length = 100)
     private String nombreComercial;
 
-    @Column(name = "estado", nullable = false)
+    @Column(name = "estado", nullable = true)
     private Byte estado = 1;
 
     public Cliente() {
