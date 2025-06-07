@@ -1,7 +1,7 @@
 # === Etapa de compilación ===
 # Usa una imagen base que incluya Maven y un JDK de Java 17
 # Puedes ajustar la versión de Java si tu proyecto usa otra (ej. 11, 21)
-FROM maven:3.9.5-eclipse-temurin-21 AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 # Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
