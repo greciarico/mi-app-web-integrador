@@ -1,9 +1,11 @@
 package com.example.DyD_Natures.Model;
 
-
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonManagedReference; // Importar
 
 @Entity
 @Table(name = "documento_compra")
@@ -30,6 +32,12 @@ public class DocumentoCompra {
 
     @Column(name = "num_documento", nullable = false, length = 45)
     private String numDocumento;
+
+    // AÑADIDO: @JsonManagedReference para manejar la referencia bidireccional
+    // Esta es la "parte" que Jackson va a serializar normalmente.
+    @JsonManagedReference
+    @OneToMany(mappedBy = "documentoCompra", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<DetalleCompra> detalleCompras = new ArrayList<>();
 
     public DocumentoCompra() {
     }
@@ -81,5 +89,27 @@ public class DocumentoCompra {
     public void setNumDocumento(String numDocumento) {
         this.numDocumento = numDocumento;
     }
-}
 
+    public List<DetalleCompra> getDetalleCompras() {
+        return detalleCompras;
+    }
+
+    public void setDetalleCompras(List<DetalleCompra> detalleCompras) {
+        this.detalleCompras.clear();
+        if (detalleCompras != null) {
+            for (DetalleCompra detalle : detalleCompras) {
+                this.addDetalleCompra(detalle);
+            }
+        }
+    }
+
+    public void addDetalleCompra(DetalleCompra detalle) {
+        this.detalleCompras.add(detalle);
+        detalle.setDocumentoCompra(this);
+    }
+
+    public void removeDetalleCompra(DetalleCompra detalle) {
+        this.detalleCompras.remove(detalle);
+        detalle.setDocumentoCompra(null);
+    }
+}

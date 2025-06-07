@@ -28,7 +28,7 @@ public class SecurityConfig {
 
                         // 2. Permite acceso público a los endpoints AJAX para la carga inicial de datos y validaciones
                         .requestMatchers("/usuarios/all", "/usuarios/checkDni").permitAll()
-                        .requestMatchers("/productos/all").permitAll() // Necesario para el dropdown de Merma
+                        .requestMatchers("/productos/all").permitAll()
                         .requestMatchers("/proveedores/all", "/proveedores/checkRuc").permitAll()
                         .requestMatchers("/categorias/all", "/categorias/checkNombreCategoria").permitAll()
                         .requestMatchers("/igv/all").permitAll()
@@ -36,15 +36,13 @@ public class SecurityConfig {
                         .requestMatchers("/informacion-empresa/checkRuc").permitAll()
                         .requestMatchers("/merma/all").permitAll()
                         .requestMatchers("/merma/productos").permitAll()
-                        // =================================================================
-                        // CAMBIADO: Rutas de Clientes ahora usan /clientes
-                        // =================================================================
-                        .requestMatchers("/clientes/all").permitAll() // Para cargar la tabla
-                        .requestMatchers("/clientes/tipos").permitAll() // Si tuvieras un endpoint para tipos
-                        .requestMatchers("/clientes/checkDni").permitAll() // Validación de DNI
-                        .requestMatchers("/clientes/checkRuc").permitAll() // Validación de RUC
-                        .requestMatchers("/clientes/**").hasRole("ADMINISTRADOR") // Todas las demás operaciones CRUD
-                        // =================================================================
+                        .requestMatchers("/clientes/all").permitAll()
+                        .requestMatchers("/clientes/tipos").permitAll()
+                        .requestMatchers("/clientes/checkDni").permitAll()
+                        .requestMatchers("/clientes/checkRuc").permitAll()
+                        // Rutas de Documento de Compra
+                        .requestMatchers("/documento-compra/all").permitAll() // Para cargar la tabla
+                        .requestMatchers("/documento-compra/**").hasRole("ADMINISTRADOR") // Todas las demás operaciones CRUD
 
                         // 3. Rutas con roles específicos (más restrictivas van después de las public permitAll)
                         .requestMatchers("/").hasRole("ADMINISTRADOR")
@@ -56,12 +54,12 @@ public class SecurityConfig {
                         .requestMatchers("/categorias/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/igv/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/merma/**").hasRole("ADMINISTRADOR")
-                        // .requestMatchers("/mantenimiento/clientes/**") ya NO se usa
+                        .requestMatchers("/clientes/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/informacion-empresa/**").hasRole("ADMINISTRADOR")
 
 
                         // Módulos de Registro de Compra y Venta (Ventas puede ser para VENDEDOR también)
-                        .requestMatchers("/registro-compra/**").hasRole("ADMINISTRADOR")
+                        // .requestMatchers("/documento-compra/**") ya manejado arriba
                         .requestMatchers("/registro-venta/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
                         .requestMatchers("/ventas/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
 

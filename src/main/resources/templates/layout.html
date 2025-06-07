@@ -270,6 +270,9 @@
                   }else if (url === '/clientes' && typeof recargarListaClientesCompleta === 'function') { // ¡CAMBIADO!
                       console.log("Detectado retorno a /clientes. Iniciando recarga de datos."); // ¡CAMBIADO!
                       recargarListaClientesCompleta();
+                  } else if (url === '/documento-compra' && typeof recargarListaDocumentosCompraCompleta === 'function') {
+                      console.log("Detectado retorno a /documento-compra. Iniciando recarga de datos.");
+                      recargarListaDocumentosCompraCompleta();
                   }
 
               }, 50); // Retraso de 50 milisegundos
