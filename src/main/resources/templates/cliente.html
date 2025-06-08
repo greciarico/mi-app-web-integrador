@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Clientes</title>
-    <!-- Incluye CSS AdminLTE y dependencias -->
     <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
     <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
-    <!-- Más estilos -->
     <script src="/plugins/jquery/jquery.min.js"></script>
     <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -28,9 +26,7 @@
                             </a>
                         </div>
                     </div>
-                    <!-- /.card-header -->
                     <div class="card-body">
-                        <!-- FILTROS Y BUSCADOR -->
                         <div class="row mb-3">
                             <div class="col-md-4">
                                 <div class="form-group">
@@ -62,9 +58,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- FIN FILTROS Y BUSCADOR -->
-
-                        <!-- Tabla de Clientes -->
                         <div id="tablaClientesContainer">
                             <table id="clientesTable" class="table table-bordered table-striped">
                                 <thead>
@@ -80,27 +73,18 @@
                                 </tr>
                                 </thead>
                                 <tbody id="clientesTableBody">
-                                <!-- Contenido de la tabla se generará con JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    <!-- /.card-body -->
                 </div>
-                <!-- /.card -->
             </div>
-            <!-- /.col -->
         </div>
-        <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
-
-    <!-- Modal para el Formulario de Cliente -->
     <div class="modal fade" id="clienteModal" tabindex="-1" role="dialog" aria-labelledby="clienteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div id="modalFormContentCliente">
-                    <!-- El fragmento cliente_form_modal.html se insertará aquí -->
                 </div>
             </div>
         </div>
@@ -124,7 +108,7 @@
             }
 
             clientesToDisplay.forEach(cliente => {
-                const tipoClienteNombre = cliente.tipoCliente ? cliente.tipoCliente.rolCliente : 'Desconocido'; // CAMBIADO: rolCliente
+                const tipoClienteNombre = cliente.tipoCliente ? cliente.tipoCliente.rolCliente : 'Desconocido';
                 const identificacion = cliente.dni || cliente.ruc || 'N/A';
                 const nombreDisplay = cliente.nombre ? `${cliente.nombre} ${cliente.apPaterno || ''} ${cliente.apMaterno || ''}`.trim() : cliente.razonSocial || 'N/A';
                 const estadoText = cliente.estado === 1 ? 'Activo' : 'Inactivo';
@@ -142,11 +126,11 @@
                         <td>
                             <a href="javascript:void(0)" onclick="abrirFormularioCliente('/clientes/editar/${cliente.idCliente}')"
                                class="btn btn-info btn-sm">
-                                <i class="fas fa-edit"></i> Editar
+                                <i class="fas fa-edit"></i>
                             </a>
                             <a href="javascript:void(0)" onclick="confirmarEliminarCliente(${cliente.idCliente})"
                                class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash"></i> Eliminar
+                                <i class="fas fa-trash"></i>
                             </a>
                         </td>
                     </tr>
@@ -168,25 +152,175 @@
         }
 
         // ===========================================
-        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS (PARA CLIENTE)
-        // Se usarán en cliente_form_modal.html
+        // FUNCIONES DE VALIDACIÓN EN TIEMPO REAL - PREVIENEN CARACTERES NO VÁLIDOS Y LIMITAN LONGITUD
         // ===========================================
-        // Estas funciones se definen aquí para que estén disponibles globalmente al cargar el modal.
-        function validateRequired(inputElementId, errorElementId, fieldName) {
+
+        // Helper para prevenir input y limitar longitud
+        function preventInvalidAndLimit(event, regex, maxLength, errorElementId, fieldName) {
+            const input = event.target;
+            const value = input.value;
+            const char = String.fromCharCode(event.which || event.keyCode);
+
+            // Permite backspace, tab, enter, flechas, delete (para edición)
+            if (event.which === 8 || event.which === 9 || event.which === 13 || event.which === 37 || event.which === 39 || event.which === 46) {
+                return true;
+            }
+
+            // Si el carácter no cumple con la regex, previene su entrada
+            if (!regex.test(char)) {
+                event.preventDefault();
+                displayError(errorElementId, `${fieldName} solo debe contener caracteres válidos.`);
+                return false;
+            }
+
+            // Limita la longitud
+            if (maxLength && value.length >= maxLength) {
+                event.preventDefault();
+                displayError(errorElementId, `${fieldName} no debe exceder ${maxLength} caracteres.`);
+                return false;
+            }
+
+            // Si pasa las validaciones, limpia el error
+            clearSpecificError(errorElementId);
+            return true;
+        }
+
+        // Función para limpiar un error específico y el estado visual
+        function clearSpecificError(errorElementId) {
+            $('#' + errorElementId).text('');
+            $('#' + errorElementId).prevAll('.form-control').first().removeClass('is-invalid');
+        }
+
+
+        // Funciones específicas para cada campo en tiempo real (keydown para prevenir input)
+        function setupDniInput() {
+            $('#dni').off('keydown').on('keydown', function(event) {
+                preventInvalidAndLimit(event, /^\d$/, 8, 'dniError', 'El DNI');
+                // La validación de longitud se hará después de que el carácter sea añadido,
+                // por eso la revisión de 8 dígitos es mejor en 'input' o 'blur'
+            }).off('input').on('input', function() {
+                // Para manejar el pegado de texto que excede la longitud
+                let value = $(this).val();
+                if (value.length > 8) {
+                    $(this).val(value.substring(0, 8));
+                }
+                if (value.length > 0 && value.length < 8) {
+                    displayError('dniError', "El DNI debe tener 8 dígitos.");
+                } else {
+                    clearSpecificError('dniError');
+                }
+            }).off('blur').on('blur', function() { // Revisar al salir del campo
+                const value = $(this).val();
+                if (value.length > 0 && value.length < 8) {
+                    displayError('dniError', "El DNI debe tener 8 dígitos.");
+                } else {
+                    clearSpecificError('dniError');
+                }
+            });
+        }
+
+        function setupRucInput() {
+            $('#ruc').off('keydown').on('keydown', function(event) {
+                preventInvalidAndLimit(event, /^\d$/, 11, 'rucError', 'El RUC');
+            }).off('input').on('input', function() {
+                let value = $(this).val();
+                if (value.length > 11) {
+                    $(this).val(value.substring(0, 11));
+                }
+                if (value.length > 0 && value.length < 11) {
+                    displayError('rucError', "El RUC debe tener 11 dígitos.");
+                } else {
+                    clearSpecificError('rucError');
+                }
+            }).off('blur').on('blur', function() {
+                const value = $(this).val();
+                if (value.length > 0 && value.length < 11) {
+                    displayError('rucError', "El RUC debe tener 11 dígitos.");
+                } else {
+                    clearSpecificError('rucError');
+                }
+            });
+        }
+
+        function setupTelefonoInput() {
+            $('#telefono').off('keydown').on('keydown', function(event) {
+                preventInvalidAndLimit(event, /^\d$/, 9, 'telefonoError', 'El teléfono');
+            }).off('input').on('input', function() {
+                let value = $(this).val();
+                if (value.length > 9) {
+                    $(this).val(value.substring(0, 9));
+                }
+                if (value.length > 0 && value.length < 9) {
+                    displayError('telefonoError', "El teléfono debe tener 9 dígitos.");
+                } else {
+                    clearSpecificError('telefonoError');
+                }
+            }).off('blur').on('blur', function() {
+                const value = $(this).val();
+                if (value.length > 0 && value.length < 9) {
+                    displayError('telefonoError', "El teléfono debe tener 9 dígitos.");
+                } else {
+                    clearSpecificError('telefonoError');
+                }
+            });
+        }
+
+        // Para nombres y apellidos (letras y espacios, acentos y ñ)
+        function setupAlphabeticInput(elementId, errorElementId, fieldName) {
+            $('#' + elementId).off('keydown').on('keydown', function(event) {
+                // Regex para letras (mayúsculas, minúsculas, acentos, ñ) y espacios
+                const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]$/;
+                preventInvalidAndLimit(event, regex, null, errorElementId, fieldName); // No hay límite de longitud estricto aquí, el backend debería manejarlo
+            }).off('input').on('input', function() {
+                // Para limpiar errores al escribir correctamente
+                clearSpecificError(errorElementId);
+            });
+        }
+
+        // Para razón social y nombre comercial (letras, números, espacios, algunos caracteres especiales básicos)
+        function setupAlphanumericInput(elementId, errorElementId, fieldName) {
+            $('#' + elementId).off('keydown').on('keydown', function(event) {
+                // Regex para letras, números, espacios, puntos, comas, guiones, y/o
+                const regex = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,&/-]*$/; // Ampliado para más caracteres comunes en nombres comerciales
+                const char = String.fromCharCode(event.which || event.keyCode);
+
+                // Permite backspace, tab, enter, flechas, delete (para edición)
+                if (event.which === 8 || event.which === 9 || event.which === 13 || event.which === 37 || event.which === 39 || event.which === 46) {
+                    return true;
+                }
+
+                // Si el carácter no cumple con la regex, previene su entrada
+                if (!regex.test(char)) {
+                    event.preventDefault();
+                    displayError(errorElementId, `${fieldName} contiene caracteres no permitidos.`);
+                    return false;
+                }
+                clearSpecificError(errorElementId);
+                return true;
+            }).off('input').on('input', function() {
+                clearSpecificError(errorElementId);
+            });
+        }
+
+        // ===========================================
+        // FUNCIONES DE VALIDACIÓN AL ENVIAR EL FORMULARIO (INCLUYEN REQUERIDOS)
+        // ===========================================
+
+        function validateRequiredSubmit(inputElementId, errorElementId, fieldName) {
             const input = $('#' + inputElementId);
             const value = input.val().trim();
             if (value === "") {
                 displayError(errorElementId, `${fieldName} es obligatorio.`);
                 return false;
             }
-            input.removeClass('is-invalid');
+            clearSpecificError(errorElementId);
             return true;
         }
 
-        function validateDni(inputElementId, errorElementId) {
+        function validateDniSubmit(inputElementId, errorElementId) {
             const input = $('#' + inputElementId);
             const value = input.val().trim();
-            const regex = /^\d{8}$/; // Exactamente 8 dígitos numéricos
+            const regex = /^\d{8}$/;
 
             if (value === "") {
                 displayError(errorElementId, "El DNI es obligatorio.");
@@ -195,14 +329,14 @@
                 displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
                 return false;
             }
-            input.removeClass('is-invalid');
+            clearSpecificError(errorElementId);
             return true;
         }
 
-        function validateRuc(inputElementId, errorElementId) {
+        function validateRucSubmit(inputElementId, errorElementId) {
             const input = $('#' + inputElementId);
             const value = input.val().trim();
-            const regex = /^\d{11}$/; // Exactamente 11 dígitos numéricos
+            const regex = /^\d{11}$/;
 
             if (value === "") {
                 displayError(errorElementId, "El RUC es obligatorio.");
@@ -211,46 +345,73 @@
                 displayError(errorElementId, "El RUC debe tener 11 dígitos numéricos.");
                 return false;
             }
-            input.removeClass('is-invalid');
+            clearSpecificError(errorElementId);
             return true;
         }
 
-        function validateNombreApellidos(inputElementId, errorElementId, fieldName) {
+        function validateNombreApellidosSubmit(inputElementId, errorElementId, fieldName) {
             const input = $('#' + inputElementId);
             const value = input.val().trim();
-            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/; // Solo letras y espacios
+            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 
             if (value === "") {
                 displayError(errorElementId, `${fieldName} es obligatorio.`);
                 return false;
             } else if (!regex.test(value)) {
-                displayError(errorElementId, `${fieldName} solo debe contener letras.`);
+                displayError(errorElementId, `${fieldName} solo debe contener letras y espacios.`);
                 return false;
             }
-            input.removeClass('is-invalid');
+            clearSpecificError(errorElementId);
             return true;
         }
 
-        function validateTelefono(inputElementId, errorElementId) {
+        // Se usa para razón social y nombre comercial al enviar
+        function validateAlphanumericSubmit(inputElementId, errorElementId, fieldName, isRequired) {
             const input = $('#' + inputElementId);
             const value = input.val().trim();
-            const regex = /^\d{9}$/; // Exactamente 9 dígitos numéricos (opcional si está vacío)
+            // Regex más permisiva para nombres comerciales y razón social
+            const regex = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,&/-]+$/;
+
+            if (isRequired && value === "") {
+                displayError(errorElementId, `${fieldName} es obligatorio.`);
+                return false;
+            }
+
+            // Si tiene valor (sea requerido o no), validar formato
+            if (value !== "" && !regex.test(value)) {
+                displayError(errorElementId, `${fieldName} contiene caracteres no permitidos.`);
+                return false;
+            }
+            clearSpecificError(errorElementId);
+            return true;
+        }
+
+
+        function validateTelefonoSubmit(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{9}$/;
 
             if (value === "") {
-                input.removeClass('is-invalid'); // No es obligatorio, si está vacío es válido
+                // Si es opcional y está vacío, es válido
+                clearSpecificError(errorElementId);
                 return true;
             } else if (!regex.test(value)) {
                 displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
                 return false;
             }
-            input.removeClass('is-invalid');
+            clearSpecificError(errorElementId);
             return true;
         }
 
-        // Función asíncrona para verificar unicidad de DNI
+
+        // Función asíncrona para verificar unicidad de DNI (en el backend)
         async function checkDniUnicoCliente(dniInputId, dniErrorId, idCliente) {
             const dni = $('#' + dniInputId).val();
-            if (dni.trim() === "") return true; // La validación de DNI vacío ya lo maneja
+            if (dni.trim() === "") {
+                clearSpecificError(dniErrorId);
+                return true;
+            }
 
             let url = '/clientes/checkDni?dni=' + encodeURIComponent(dni);
             if (idCliente) {
@@ -260,20 +421,26 @@
                 const response = await $.ajax({ type: "GET", url: url, dataType: "json" });
                 if (response.exists) {
                     displayError(dniErrorId, "Este DNI ya está registrado.");
+                    $('#' + dniInputId).addClass('is-invalid');
                     return false;
                 }
+                clearSpecificError(dniErrorId);
                 return true;
             } catch (error) {
                 console.error("Error al verificar DNI de cliente:", error);
                 displayError(dniErrorId, "Error al verificar DNI. Intenta de nuevo.");
+                $('#' + dniInputId).addClass('is-invalid');
                 return false;
             }
         }
 
-        // Función asíncrona para verificar unicidad de RUC
+        // Función asíncrona para verificar unicidad de RUC (en el backend)
         async function checkRucUnicoCliente(rucInputId, rucErrorId, idCliente) {
             const ruc = $('#' + rucInputId).val();
-            if (ruc.trim() === "") return true; // La validación de RUC vacío ya lo maneja
+            if (ruc.trim() === "") {
+                clearSpecificError(rucErrorId);
+                return true;
+            }
 
             let url = '/clientes/checkRuc?ruc=' + encodeURIComponent(ruc);
             if (idCliente) {
@@ -283,15 +450,122 @@
                 const response = await $.ajax({ type: "GET", url: url, dataType: "json" });
                 if (response.exists) {
                     displayError(rucErrorId, "Este RUC ya está registrado.");
+                    $('#' + rucInputId).addClass('is-invalid');
                     return false;
                 }
+                clearSpecificError(rucErrorId);
                 return true;
             } catch (error) {
                 console.error("Error al verificar RUC de cliente:", error);
                 displayError(rucErrorId, "Error al verificar RUC. Intenta de nuevo.");
+                $('#' + rucInputId).addClass('is-invalid');
                 return false;
             }
         }
+
+        // ===========================================
+        // FUNCIÓN PRINCIPAL DE VALIDACIÓN DEL FORMULARIO DE CLIENTE AL ENVIAR
+        // ===========================================
+
+        async function validarFormularioCliente() {
+            clearErrors(); // Limpiar errores antes de la validación final
+
+            let isValid = true;
+            const idTipoCliente = parseInt($('#idTipoCliente').val(), 10);
+            const idCliente = $('#idCliente').val();
+
+            // Validaciones comunes
+            if (!validateRequiredSubmit('idTipoCliente', 'tipoClienteError', 'El tipo de cliente')) isValid = false;
+            if (!validateRequiredSubmit('direccion', 'direccionError', 'La dirección')) isValid = false;
+            if (!validateTelefonoSubmit('telefono', 'telefonoError')) isValid = false; // Teléfono es opcional, pero si tiene valor, debe ser de 9 dígitos.
+            if (!validateRequiredSubmit('estado', 'estadoError', 'El estado')) isValid = false;
+
+            // Validaciones específicas según el tipo de cliente
+            if (idTipoCliente === 1) { // Persona Natural
+                if (!validateDniSubmit('dni', 'dniError')) isValid = false;
+                if (!validateNombreApellidosSubmit('nombre', 'nombreError', 'El nombre')) isValid = false;
+                if (!validateNombreApellidosSubmit('apPaterno', 'apPaternoError', 'El apellido paterno')) isValid = false;
+                // apMaterno es opcional, no se valida como requerido en submit, pero si tiene valor, validar formato
+                if ($('#apMaterno').val().trim() !== '' && !validateAlphanumericSubmit('apMaterno', 'apMaternoError', 'El apellido materno', false)) isValid = false;
+
+
+                // Unicidad de DNI
+                const dniUnico = await checkDniUnicoCliente('dni', 'dniError', idCliente ? parseInt(idCliente) : null);
+                if (!dniUnico) isValid = false;
+
+            } else if (idTipoCliente === 2) { // Persona Jurídica
+                if (!validateRucSubmit('ruc', 'rucError')) isValid = false;
+                if (!validateAlphanumericSubmit('razonSocial', 'razonSocialError', 'La razón social', true)) isValid = false;
+                // nombreComercial es opcional, no se valida como requerido en submit, pero si tiene valor, validar formato
+                if ($('#nombreComercial').val().trim() !== '' && !validateAlphanumericSubmit('nombreComercial', 'nombreComercialError', 'El nombre comercial', false)) isValid = false;
+
+
+                // Unicidad de RUC
+                const rucUnico = await checkRucUnicoCliente('ruc', 'rucError', idCliente ? parseInt(idCliente) : null);
+                if (!rucUnico) isValid = false;
+            }
+
+            return isValid;
+        }
+
+
+        // Función para alternar campos visibles según el tipo de cliente
+        function toggleClientFields() {
+            const tipoCliente = parseInt($('#idTipoCliente').val(), 10);
+            clearErrors(); // Limpiar errores al cambiar el tipo de cliente
+
+            if (tipoCliente === 1) { // Persona Natural
+                $('#naturalFields').show();
+                $('#juridicaFields').hide();
+                // Limpiar campos de jurídica si se cambia desde allí
+                $('#ruc').val('');
+                $('#razonSocial').val('');
+                $('#nombreComercial').val('');
+            } else if (tipoCliente === 2) { // Persona Jurídica
+                $('#naturalFields').hide();
+                $('#juridicaFields').show();
+                // Limpiar campos de natural si se cambia desde allí
+                $('#dni').val('');
+                $('#nombre').val('');
+                $('#apPaterno').val('');
+                $('#apMaterno').val('');
+            } else { // Si no se ha seleccionado nada o es inválido
+                $('#naturalFields').hide();
+                $('#juridicaFields').hide();
+                // Limpiar todos los campos de cliente si no hay tipo seleccionado
+                $('#dni').val('');
+                $('#nombre').val('');
+                $('#apPaterno').val('');
+                $('#apMaterno').val('');
+                $('#ruc').val('');
+                $('#razonSocial').val('');
+                $('#nombreComercial').val('');
+            }
+
+            // Adjuntar los escuchadores de validación en tiempo real después de alternar los campos
+            attachRealTimeValidationListeners();
+        }
+
+        // Función para adjuntar todos los escuchadores de validación en tiempo real
+        function attachRealTimeValidationListeners() {
+            // Campos numéricos
+            setupDniInput();
+            setupRucInput();
+            setupTelefonoInput();
+
+            // Campos alfabéticos
+            setupAlphabeticInput('nombre', 'nombreError', 'El nombre');
+            setupAlphabeticInput('apPaterno', 'apPaternoError', 'El apellido paterno');
+            setupAlphabeticInput('apMaterno', 'apMaternoError', 'El apellido materno');
+
+            // Campos alfanuméricos (para Razón Social y Nombre Comercial)
+            setupAlphanumericInput('razonSocial', 'razonSocialError', 'La razón social');
+            setupAlphanumericInput('nombreComercial', 'nombreComercialError', 'El nombre comercial');
+
+            // Dirección (puede tener letras, números, espacios, puntos, comas, etc.)
+            setupAlphanumericInput('direccion', 'direccionError', 'La dirección');
+        }
+
 
         // ===========================================
         // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE CLIENTE
@@ -313,11 +587,11 @@
 
                     // Asegúrate de que el select de tipos de cliente tenga el manejador de cambio
                     $('#idTipoCliente').off('change').on('change', function() {
-                        toggleClientFields(); // Llamar a la función para alternar campos
+                        toggleClientFields(); // Llama a la función para alternar campos
                     });
 
-                    // Llamar a toggleClientFields una vez al cargar el formulario
-                    // para establecer el estado inicial correcto
+                    // Llama a toggleClientFields una vez al cargar el formulario
+                    // para establecer el estado inicial correcto y adjuntar listeners
                     toggleClientFields();
 
                     $('#formCliente').off('submit').on('submit', async function(e) {
@@ -351,15 +625,15 @@
         function guardarClienteAjax() {
             const idCliente = $('#idCliente').val();
             const idTipoCliente = parseInt($('#idTipoCliente').val(), 10);
-            const tipoClienteObj = { idRolCliente: idTipoCliente }; // CAMBIADO: idRolCliente
+            const tipoClienteObj = { idRolCliente: idTipoCliente };
 
             const dataToSend = {
                 idCliente: idCliente === '' ? null : parseInt(idCliente, 10),
-                fechaRegistro: $('#fechaRegistro').val(), // Se pasa tal cual, backend lo manejará
+                fechaRegistro: $('#fechaRegistro').val(),
                 tipoCliente: tipoClienteObj,
                 direccion: $('#direccion').val(),
                 telefono: $('#telefono').val(),
-                estado: parseInt($('#estado').val(), 10) // Estado
+                estado: parseInt($('#estado').val(), 10)
             };
 
             // Añadir campos específicos según el tipo de cliente
@@ -387,6 +661,11 @@
                         cerrarFormularioCliente();
                         recargarListaClientesCompleta();
                     } else {
+                        if (response.errors) {
+                            response.errors.forEach(err => {
+                                displayError(err.field + 'Error', err.defaultMessage);
+                            });
+                        }
                         mostrarNotificacion("error", "Error: " + response.message);
                     }
                 },
@@ -417,7 +696,7 @@
                 if (result.isConfirmed) {
                     console.log("Eliminando Cliente con ID:", id);
                     $.ajax({
-                        type: "GET", // La eliminación es un GET aquí
+                        type: "GET",
                         url: '/clientes/eliminar/' + id,
                         success: function(response) {
                             if (response.status === "success") {
@@ -446,8 +725,6 @@
         // FUNCIONES DE FILTRADO (CLIENT-SIDE Y SERVER-SIDE)
         // ===========================================
 
-        // Esta función se llama al cargar la página y al aplicar filtros
-        // Deberá hacer una llamada AJAX para obtener los datos filtrados del backend
         function recargarListaClientesCompleta() {
             const idTipoCliente = $('#filterTipoCliente').val();
             const searchTerm = $('#searchTermCliente').val();
@@ -467,8 +744,8 @@
                 url: url,
                 dataType: "json",
                 success: function(response) {
-                    allClientes = response; // Actualizar la variable global con los nuevos datos
-                    renderizarTablaCliente(allClientes); // Renderizar directamente con lo que viene del backend
+                    allClientes = response;
+                    renderizarTablaCliente(allClientes);
                 },
                 error: function(xhr, status, error) {
                     console.error("Error al recargar la lista completa de Clientes:", error);
@@ -478,8 +755,6 @@
         }
 
         function aplicarFiltrosCliente() {
-            // Esta función ahora solo llama a recargarListaClientesCompleta(),
-            // que se encargará de obtener los datos filtrados del servidor.
             recargarListaClientesCompleta();
         }
 
@@ -500,9 +775,7 @@
 
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            // La tabla se renderiza inicialmente con los datos que trae el modelo de Spring.
             renderizarTablaCliente(allClientes);
-            // Esto asegura que si hay filtros preestablecidos en la URL, se apliquen al cargar.
             aplicarFiltrosCliente();
         });
 
