@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="viewContent">
+    <div class="modal-header">
+        <h5 class="modal-title" id="viewDocumentoCompraModalLabel">Detalles del Documento de Compra</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body">
+        <div th:if="${documentoCompra != null}">
+            <h4>Información General</h4>
+            <p><strong>ID:</strong> <span th:text="${documentoCompra.idCompra}"></span></p>
+            <p><strong>Fecha:</strong> <span th:text="${#temporals.format(documentoCompra.fechaRegistro, 'dd-MM-yyyy')}"></span></p>
+            <p><strong>Proveedor:</strong> <span th:text="${documentoCompra.proveedor?.razonSocial}"></span></p>
+            <p><strong>Tipo de Documento:</strong> <span th:text="${documentoCompra.tipoDocumento}"></span></p>
+            <p><strong>Número de Documento:</strong> <span th:text="${documentoCompra.numDocumento}"></span></p>
+            <p><strong>Total:</strong> <span th:text="${#numbers.formatCurrency(documentoCompra.total)}"></span></p>
+
+            <hr>
+
+            <h4>Detalle de la Compra</h4>
+            <div th:if="${documentoCompra.detalleCompras != null and not #lists.isEmpty(documentoCompra.detalleCompras)}">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="detalle : ${documentoCompra.detalleCompras}">
+                        <td th:text="${detalle.producto?.nombre}"></td>
+                        <td th:text="${detalle.cantidad}"></td>
+                        <td th:text="${#numbers.formatCurrency(detalle.precioUnitario)}"></td>
+                        <td th:text="${#numbers.formatCurrency(detalle.total)}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div th:unless="${documentoCompra.detalleCompras != null and not #lists.isEmpty(documentoCompra.detalleCompras)}">
+                <p>No hay detalles de compra para este documento.</p>
+            </div>
+        </div>
+        <div th:if="${documentoCompra == null}" class="alert alert-warning">
+            <p th:text="${mensajeError != null ? mensajeError : 'No se pudo cargar la información del documento de compra.'}"></p>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+    </div>
+</div>
+
+</body>
+</html>
