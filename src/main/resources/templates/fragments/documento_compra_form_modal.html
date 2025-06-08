@@ -101,10 +101,10 @@
     </form>
 
     <script th:inline="javascript">
-        /<![CDATA[/
+        /*<![CDATA[*/
         // Volcar los datos del modelo Thymeleaf a variables JavaScript
-        const currentModalProductosData = /[[${productos}]]/ [];
-        const currentModalDocumentoCompraData = /[[${documentoCompra}]]/ null;
+        const currentModalProductosData = /*[[${productos}]]*/ [];
+        const currentModalDocumentoCompraData = /*[[${documentoCompra}]]*/ null;
 
         // Llamar a la función de inicialización global
         if (typeof initializeModalDetails === 'function') {
@@ -121,7 +121,7 @@
                         <td>
                             <select class="form-control" id="producto-${tempIndex}">
                                 <option value="">Seleccione un Producto</option>
-                                ${currentModalProductosData.map(p => <option value="${p.idProducto}" data-precio="${p.precioUnitario}">${p.nombre} (Stock: ${p.stock})</option>).join('')}
+                                ${currentModalProductosData.map(p => `<option value="${p.idProducto}" data-precio="${p.precioUnitario}">${p.nombre} (Stock: ${p.stock})</option>`).join('')}
                             </select>
                             <span class="text-danger" id="productoError-${tempIndex}"></span>
                         </td>
@@ -145,15 +145,15 @@
                 `;
                 detalleComprasContainer.innerHTML = rowHtml;
                 // Adjuntar eventos para la fila temporal de fallback
-                const cantidadInput = document.getElementById(cantidad-${tempIndex});
-                const precioInput = document.getElementById(precioUnitario-${tempIndex});
-                const productoSelect = document.getElementById(producto-${tempIndex});
+                const cantidadInput = document.getElementById(`cantidad-${tempIndex}`);
+                const precioInput = document.getElementById(`precioUnitario-${tempIndex}`);
+                const productoSelect = document.getElementById(`producto-${tempIndex}`);
 
                 if (cantidadInput && precioInput && productoSelect) {
                     const updateFn = () => {
                         const cant = parseFloat(cantidadInput.value) || 0;
                         const prec = parseFloat(precioInput.value) || 0;
-                        document.getElementById(detalleTotalDisplay-${tempIndex}).value = (cant * prec).toFixed(2);
+                        document.getElementById(`detalleTotalDisplay-${tempIndex}`).value = (cant * prec).toFixed(2);
                         window.calculateTotalGeneral();
                     };
                     cantidadInput.addEventListener('input', updateFn);
@@ -181,7 +181,7 @@
         if (!document.getElementById('idCompra').value && !document.getElementById('fechaRegistroDisplay').value) {
             document.getElementById('fechaRegistroDisplay').value = new Date().toISOString().split('T')[0];
         }
-        /]]>/
+        /*]]>*/
     </script>
 </div>
 </body>
