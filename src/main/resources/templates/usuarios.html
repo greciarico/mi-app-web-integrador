@@ -4,15 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Usuarios</title>
-    <!-- Incluye CSS AdminLTE y dependencias -->
     <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
     <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
-    <!-- Más estilos -->
     <script src="/plugins/jquery/jquery.min.js"></script>
     <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/dist/js/adminlte.min.js"></script>
-    <!-- Removido: JS para Moment.js y daterangepicker, ya no son necesarios -->
 </head>
 <body class="hold-transition sidebar-mini">
 <section th:fragment="contenido" class="content">
@@ -29,29 +26,21 @@
                             </a>
                         </div>
                     </div>
-                    <!-- /.card-header -->
                     <div class="card-body">
-                        <!-- BUSCADOR SIMPLIFICADO -->
                         <div class="row mb-3">
-                            <div class="col-md-12"> <!-- Ocupa todo el ancho -->
-                                <div class="input-group">
-                                    <input type="search" id="searchTerm" class="form-control" placeholder="Buscar por nombre, apellido, DNI, correo, estado..."
-                                           onkeyup="aplicarFiltros()"/> <!-- Llama a la función al escribir -->
-                                    <div class="input-group-append">
-                                        <button class="btn btn-default" type="button" onclick="aplicarFiltros()">
-                                            <i class="fas fa-search"></i> Buscar
-                                        </button>
-                                        <!-- Botón de Reportes (solo visual) -->
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporte()">
-                                            <i class="fas fa-file-alt"></i> Generar Reporte
-                                        </button>
-                                    </div>
-                                </div>
+                            <div class="col-md-12"> <div class="input-group">
+                                <input type="search" id="searchTerm" class="form-control" placeholder="Buscar por nombre, apellido, DNI, correo, estado..."
+                                       onkeyup="aplicarFiltros()"/> <div class="input-group-append">
+                                <button class="btn btn-default" type="button" onclick="aplicarFiltros()">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                                <button class="btn btn-secondary ml-2" type="button" onclick="generarReporte()">
+                                    <i class="fas fa-file-alt"></i> Generar Reporte
+                                </button>
+                            </div>
+                            </div>
                             </div>
                         </div>
-                        <!-- FIN BUSCADOR SIMPLIFICADO -->
-
-                        <!-- La tabla se cargará dinámicamente aquí -->
                         <div id="tablaUsuariosContainer">
                             <table id="usuariosTable" class="table table-bordered table-striped">
                                 <thead>
@@ -61,42 +50,29 @@
                                     <th>Apellido Paterno</th>
                                     <th>Apellido Materno</th>
                                     <th>DNI</th>
+                                    <th>Rol</th>
                                     <th>Correo</th>
                                     <th>Celular</th>
-                                    <th>Estado</th> <!-- Título de la columna -->
-                                    <th>Acciones</th>
+                                    <th>Estado</th> <th>Acciones</th>
                                 </tr>
                                 </thead>
                                 <tbody id="usuariosTableBody">
-                                <!-- Contenido de la tabla se generará con JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    <!-- /.card-body -->
                 </div>
-                <!-- /.card -->
             </div>
-            <!-- /.col -->
         </div>
-        <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
-
-    <!-- Modal para el Formulario de Usuario -->
     <div class="modal fade" id="usuarioModal" tabindex="-1" role="dialog" aria-labelledby="usuarioModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div id="modalFormContent">
-                    <!-- El fragmento usuarios_form_modal.html se insertará aquí -->
                 </div>
             </div>
-            <!-- /.modal-content -->
         </div>
-        <!-- /.modal-dialog -->
     </div>
-    <!-- /.modal -->
-
     <script th:inline="javascript">
         /*<![CDATA[*/
 
@@ -105,7 +81,7 @@
         // Usamos 'let' para poder reasignarla después de operaciones CRUD
         let allUsers = /*[[${usuarios}]]*/ [];
 
-        // Función para renderizar la tabla con una lista de usuarios
+       // Función para renderizar la tabla con una lista de usuarios
         function renderizarTabla(usersToDisplay) {
             const tableBody = $('#usuariosTableBody');
             tableBody.empty(); // Limpiar el cuerpo de la tabla antes de añadir nuevos datos
@@ -119,6 +95,10 @@
                 const estadoText = usuario.estado === 1 ? 'Activo' : 'Inactivo';
                 const estadoClass = usuario.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
 
+                // ¡CORRECCIÓN AQUÍ!
+                // Accedemos a 'tipoRol' porque así se llama la propiedad en tu clase RolUsuario.java
+                const rolNombre = usuario.rolUsuario ? usuario.rolUsuario.tipoRol : 'N/A'; // Asegúrate de que exista y usa 'tipoRol'
+
                 const row = `
                     <tr>
                         <td>${usuario.idUsuario}</td>
@@ -126,7 +106,7 @@
                         <td>${usuario.apPaterno}</td>
                         <td>${usuario.apMaterno}</td>
                         <td>${usuario.dni}</td>
-                        <td>${usuario.correo}</td>
+                        <td>${rolNombre}</td> <td>${usuario.correo}</td>
                         <td>${usuario.telefono}</td>
                         <td class="text-center"><span class="${estadoClass}">${estadoText}</span></td>
                         <td>
@@ -163,50 +143,93 @@
 
         function validateNombreApellido(inputElementId, errorElementId, fieldName) {
             const input = $('#' + inputElementId);
-            const value = input.val().trim();
-            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+            let value = input.val();
+            const originalValue = value; // Store original value before cleaning
+            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/; // Allows empty string and only letters
 
-            if (value === "") {
-                displayError(errorElementId, `${fieldName} es obligatorio.`);
-                return false;
+            // Remove any non-alphabetic characters
+            value = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+
+            // Update input value if characters were removed
+            if (value !== originalValue) {
+                input.val(value);
+            }
+
+            if (value.trim() === "") {
+                // If it's just spaces, or empty, clear error and remove invalid class
+                displayError(errorElementId, '');
+                input.removeClass('is-invalid');
+                return true; // Consider valid for real-time if only letters
             } else if (!regex.test(value)) {
+                // This case should ideally not be hit if we are stripping invalid chars,
+                // but keep for robustness if stripping fails for some reason
                 displayError(errorElementId, `${fieldName} solo debe contener letras.`);
                 return false;
+            } else {
+                displayError(errorElementId, ''); // Clear error if valid
+                input.removeClass('is-invalid');
+                return true;
             }
-            input.removeClass('is-invalid');
-            return true;
         }
 
         function validateTelefono(inputElementId, errorElementId) {
             const input = $('#' + inputElementId);
-            const value = input.val().trim();
+            let value = input.val();
+            const originalValue = value; // Store original value before cleaning
             const regex = /^\d{9}$/;
 
-            if (value === "") {
-                displayError(errorElementId, "El teléfono es obligatorio.");
-                return false;
-            } else if (!regex.test(value)) {
-                displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
-                return false;
+            // Remove any non-digit characters and truncate to 9 digits
+            value = value.replace(/\D/g, '').substring(0, 9);
+
+            // Update input value if characters were removed or truncated
+            if (value !== originalValue) {
+                input.val(value);
             }
-            input.removeClass('is-invalid');
-            return true;
+
+            if (value.length > 0 && !regex.test(value)) {
+                displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
+                input.addClass('is-invalid');
+                return false;
+            } else if (value.length === 0) {
+                // If empty, clear error and remove invalid class (will be checked by main validation on submit)
+                displayError(errorElementId, '');
+                input.removeClass('is-invalid');
+                return true;
+            } else {
+                displayError(errorElementId, ''); // Clear error if valid
+                input.removeClass('is-invalid');
+                return true;
+            }
         }
 
         function validateDni(inputElementId, errorElementId) {
             const input = $('#' + inputElementId);
-            const value = input.val().trim();
+            let value = input.val();
+            const originalValue = value; // Store original value before cleaning
             const regex = /^\d{8}$/;
 
-            if (value === "") {
-                displayError(errorElementId, "El DNI es obligatorio.");
-                return false;
-            } else if (!regex.test(value)) {
-                displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
-                return false;
+            // Remove any non-digit characters and truncate to 8 digits
+            value = value.replace(/\D/g, '').substring(0, 8);
+
+            // Update input value if characters were removed or truncated
+            if (value !== originalValue) {
+                input.val(value);
             }
-            input.removeClass('is-invalid');
-            return true;
+
+            if (value.length > 0 && !regex.test(value)) {
+                displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
+                input.addClass('is-invalid');
+                return false;
+            } else if (value.length === 0) {
+                // If empty, clear error and remove invalid class (will be checked by main validation on submit)
+                displayError(errorElementId, '');
+                input.removeClass('is-invalid');
+                return true;
+            } else {
+                displayError(errorElementId, ''); // Clear error if valid
+                input.removeClass('is-invalid');
+                return true;
+            }
         }
 
         function validateCorreo(inputElementId, errorElementId) {
@@ -216,12 +239,15 @@
 
             if (value === "") {
                 input.removeClass('is-invalid');
+                displayError(errorElementId, ''); // Clear error if empty
                 return true;
             } else if (!regex.test(value)) {
                 displayError(errorElementId, "Formato de correo electrónico inválido.");
+                input.addClass('is-invalid');
                 return false;
             }
             input.removeClass('is-invalid');
+            displayError(errorElementId, ''); // Clear error if valid
             return true;
         }
 
@@ -233,18 +259,22 @@
             if (isNewUser) {
                 if (value === "") {
                     displayError(errorElementId, "La contraseña es obligatoria.");
+                    input.addClass('is-invalid');
                     return false;
                 } else if (value.length < minLength) {
                     displayError(errorElementId, `La contraseña debe tener al menos ${minLength} caracteres.`);
+                    input.addClass('is-invalid');
                     return false;
                 }
             } else {
                 if (value.length > 0 && value.length < minLength) {
                     displayError(errorElementId, `La contraseña debe tener al menos ${minLength} caracteres (si se proporciona una nueva).`);
+                    input.addClass('is-invalid');
                     return false;
                 }
             }
             input.removeClass('is-invalid');
+            displayError(errorElementId, '');
             return true;
         }
 
@@ -254,6 +284,7 @@
             const value = dni.val().trim();
 
             if (value.length !== 8) {
+                // If not 8 digits, let the DNI format validation handle it
                 return true;
             }
 
@@ -270,31 +301,37 @@
                 });
                 if (response.exists) {
                     displayError(dniErrorId, "Este DNI ya está registrado.");
+                    $('#' + dniInputId).addClass('is-invalid');
                     return false;
                 }
+                $('#' + dniInputId).removeClass('is-invalid');
+                displayError(dniErrorId, '');
                 return true;
             } catch (error) {
                 console.error("Error al verificar DNI:", error);
                 displayError(dniErrorId, "Error al verificar DNI. Intenta de nuevo.");
+                $('#' + dniInputId).addClass('is-invalid');
                 return false;
             }
         }
 
         // ===========================================
-        // FUNCIÓN PRINCIPAL DE VALIDACIÓN DEL FORMULARIO
+        // FUNCIÓN PRINCIPAL DE VALIDACIÓN DEL FORMULARIO AL ENVIAR
         // ===========================================
 
         async function validarFormulario() {
-            clearErrors();
+            clearErrors(); // Clear all errors before re-validating
 
             let isValid = true;
 
-            if (!validateNombreApellido('nombre', 'nombreError', 'El nombre')) isValid = false;
-            if (!validateNombreApellido('apPaterno', 'apPaternoError', 'El apellido paterno')) isValid = false;
-            if (!validateNombreApellido('apMaterno', 'apMaternoError', 'El apellido materno')) isValid = false;
-            if (!validateTelefono('telefono', 'telefonoError')) isValid = false;
-            if (!validateDni('dni', 'dniError')) isValid = false;
-            if (!validateCorreo('correo', 'correoError')) isValid = false;
+            // Perform final validation checks including emptiness
+            // These will set the errors correctly for submission
+            if (!validateNombreApellidoSubmit('nombre', 'nombreError', 'El nombre')) isValid = false;
+            if (!validateNombreApellidoSubmit('apPaterno', 'apPaternoError', 'El apellido paterno')) isValid = false;
+            if (!validateNombreApellidoSubmit('apMaterno', 'apMaternoError', 'El apellido materno')) isValid = false;
+            if (!validateTelefonoSubmit('telefono', 'telefonoError')) isValid = false;
+            if (!validateDniSubmit('dni', 'dniError')) isValid = false;
+            if (!validateCorreo('correo', 'correoError')) isValid = false; // Correo still uses its general validation
 
             const isNewUser = $('#idUsuario').val() === '';
             if (!validateContrasena('contrasena', isNewUser ? 'contrasenaValidation' : 'contrasenaError', isNewUser)) isValid = false;
@@ -310,6 +347,58 @@
             }
 
             return isValid;
+        }
+
+        // New validation functions for form submission (to ensure fields are not empty)
+        function validateNombreApellidoSubmit(inputElementId, errorElementId, fieldName) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+
+            if (value === "") {
+                displayError(errorElementId, `${fieldName} es obligatorio.`);
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, `${fieldName} solo debe contener letras.`);
+                return false;
+            }
+            input.removeClass('is-invalid');
+            displayError(errorElementId, '');
+            return true;
+        }
+
+        function validateTelefonoSubmit(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{9}$/;
+
+            if (value === "") {
+                displayError(errorElementId, "El teléfono es obligatorio.");
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            displayError(errorElementId, '');
+            return true;
+        }
+
+        function validateDniSubmit(inputElementId, errorElementId) {
+            const input = $('#' + inputElementId);
+            const value = input.val().trim();
+            const regex = /^\d{8}$/;
+
+            if (value === "") {
+                displayError(errorElementId, "El DNI es obligatorio.");
+                return false;
+            } else if (!regex.test(value)) {
+                displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
+                return false;
+            }
+            input.removeClass('is-invalid');
+            displayError(errorElementId, '');
+            return true;
         }
 
         // ===========================================
@@ -329,6 +418,16 @@
                     });
                 } else {
                     console.log("Formulario cargado exitosamente. Contenido:", response.substring(0, 200) + "...");
+                    // Add oninput event listeners for real-time validation after the form is loaded
+                    $('#nombre').on('input', function() { validateNombreApellido('nombre', 'nombreError', 'El nombre'); });
+                    $('#apPaterno').on('input', function() { validateNombreApellido('apPaterno', 'apPaternoError', 'El apellido paterno'); });
+                    $('#apMaterno').on('input', function() { validateNombreApellido('apMaterno', 'apMaternoError', 'El apellido materno'); });
+                    $('#dni').on('input', function() { validateDni('dni', 'dniError'); });
+                    $('#telefono').on('input', function() { validateTelefono('telefono', 'telefonoError'); });
+                    $('#correo').on('input', function() { validateCorreo('correo', 'correoError'); });
+                    $('#contrasena').on('input', function() { validateContrasena('contrasena', $('#idUsuario').val() === '' ? 'contrasenaValidation' : 'contrasenaError', $('#idUsuario').val() === ''); });
+
+
                     $('#formUsuario').off('submit').on('submit', async function(e) {
                         e.preventDefault();
                         const formIsValid = await validarFormulario();
