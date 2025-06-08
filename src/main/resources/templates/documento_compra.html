@@ -4,15 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Documentos de Compra</title>
-    <!-- Incluye CSS AdminLTE y dependencias -->
     <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
     <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
-    <!-- SweetAlert2 para notificaciones -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- jQuery y Bootstrap Bundle (necesarios para AdminLTE) -->
     <script src="/plugins/jquery/jquery.min.js"></script>
     <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <!-- AdminLTE App JS -->
     <script src="/dist/js/adminlte.min.js"></script>
     <style>
         /* Estilos generales para los modales Bootstrap/AdminLTE */
@@ -39,9 +35,7 @@
                             </button>
                         </div>
                     </div>
-                    <!-- /.card-header -->
                     <div class="card-body">
-                        <!-- BUSCADOR SIMPLIFICADO -->
                         <div class="row mb-3">
                             <div class="col-md-12">
                                 <div class="input-group">
@@ -58,9 +52,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- FIN BUSCADOR SIMPLIFICADO -->
-
-                        <!-- Tabla de Documentos de Compra -->
                         <div id="tablaDocumentosCompraContainer" class="table-responsive">
                             <table id="documentosCompraTable" class="table table-bordered table-striped">
                                 <thead>
@@ -75,7 +66,6 @@
                                 </tr>
                                 </thead>
                                 <tbody id="documentosCompraTableBody">
-                                <!-- Los datos se renderizarán aquí con Thymeleaf inicialmente y luego con JavaScript -->
                                 <tr th:each="doc : ${documentosCompra}">
                                     <td th:text="${doc.idCompra}"></td>
                                     <td th:text="${doc.fechaRegistro != null ? #temporals.format(doc.fechaRegistro, 'dd/MM/yyyy') : 'N/A'}"></td>
@@ -85,9 +75,9 @@
                                     <td th:text="${#numbers.formatDecimal(doc.total, 0, 'COMMA', 2, 'POINT')}"></td>
                                     <td>
                                         <div class="btn-group">
-                                            <button type="button" onclick="openFormModal([[${doc.idCompra}]])"
+                                            <button type="button" onclick="openViewModal([[${doc.idCompra}]])"
                                                     class="btn btn-info btn-sm">
-                                                <i class="fas fa-edit"></i> Editar
+                                                <i class="fas fa-eye"></i> Visualizar
                                             </button>
                                             <button type="button" onclick="confirmDelete([[${doc.idCompra}]])"
                                                     class="btn btn-danger btn-sm">
@@ -103,26 +93,24 @@
                             </table>
                         </div>
                     </div>
-                    <!-- /.card-body -->
                 </div>
-                <!-- /.card -->
             </div>
-            <!-- /.col -->
         </div>
-        <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
-
-    <!-- Modal para el formulario de Documento de Compra (Cargado con el fragmento) -->
     <div class="modal fade" id="documentoCompraModal" tabindex="-1" role="dialog" aria-labelledby="documentoCompraModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" id="modalFormContent">
-                <!-- El contenido del formulario se carga aquí via AJAX desde /documento-compra/nuevo o /documento-compra/editar/{id} -->
             </div>
         </div>
     </div>
 
-    <!-- Modal de confirmación de eliminación -->
+    <div class="modal fade" id="viewDocumentoCompraModal" tabindex="-1" role="dialog" aria-labelledby="viewDocumentoCompraModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content" id="modalViewContent">
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm" role="document">
             <div class="modal-content">
@@ -143,19 +131,20 @@
         </div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL CON TODA LA LÓGICA JAVASCRIPT -->
     <script th:inline="javascript">
-        /*<![CDATA[*/
+        /<![CDATA[/
 
         // Variables globales para los datos iniciales y el contador de detalles
-        let allDocumentosCompra = /*[[${documentosCompra}]]*/ [];
-        let allProductosData = /*[[${productos}]]*/ []; // Pasados desde el controlador
-        let allProveedoresData = /*[[${proveedores}]]*/ []; // Pasados desde el controlador
+        let allDocumentosCompra = /[[${documentosCompra}]]/ [];
+        let allProductosData = /[[${productos}]]/ []; // Pasados desde el controlador
+        let allProveedoresData = /[[${proveedores}]]/ []; // Pasados desde el controlador
 
         // Elementos del DOM del modal principal
         const documentoCompraModalElement = $('#documentoCompraModal'); // Usando jQuery para el modal Bootstrap
+        const viewDocumentoCompraModalElement = $('#viewDocumentoCompraModal'); // Nuevo modal para visualizar
         const deleteConfirmModalElement = $('#deleteConfirmModal'); // Usando jQuery
         const modalFormContent = document.getElementById('modalFormContent');
+        const modalViewContent = document.getElementById('modalViewContent'); // Contenido para el modal de visualización
 
         let detalleCount = 0; // Contador para generar IDs únicos para los detalles
         let documentIdToDelete = null; // ID del documento a eliminar
@@ -240,6 +229,10 @@
                     <td>S/ ${totalFormatted}</td>
                     <td>
                         <div class="btn-group">
+                            <button type="button" onclick="openViewModal(${doc.idCompra})"
+                                    class="btn btn-info btn-sm">
+                                <i class="fas fa-eye"></i> Visualizar
+                            </button>
                             <button type="button" onclick="confirmDelete(${doc.idCompra})"
                                     class="btn btn-danger btn-sm">
                                 <i class="fas fa-trash-alt"></i> Eliminar
@@ -295,7 +288,7 @@
             clearErrors(); // Limpiar errores antes de abrir el modal
             detalleCount = 0; // Resetear el contador de detalles cada vez que se abre el modal
 
-            let url = idCompra ? `/documento-compra/editar/${idCompra}` : '/documento-compra/nuevo';
+            let url = idCompra ? /documento-compra/editar/${idCompra} : '/documento-compra/nuevo';
 
             $.ajax({ // Usar jQuery AJAX para cargar el fragmento
                 url: url,
@@ -333,6 +326,36 @@
         }
 
         // ===============================================
+        // LÓGICA DEL MODAL DE VISUALIZACIÓN
+        // ===============================================
+
+        function openViewModal(idCompra) {
+            const url = /documento-compra/ver/${idCompra};
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(html) {
+                    modalViewContent.innerHTML = html; // Cargar el fragmento HTML en el modal de visualización
+                    viewDocumentoCompraModalElement.modal('show'); // Mostrar el modal de visualización
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error al cargar los detalles del documento de compra:', error, xhr.responseText);
+                    showNotification('error', 'No se pudo cargar los detalles. Inténtalo de nuevo.');
+                }
+            });
+        }
+
+        function closeViewModal() {
+            viewDocumentoCompraModalElement.modal('hide');
+            // Limpiar el contenido del modal después de que se haya ocultado completamente
+            viewDocumentoCompraModalElement.on('hidden.bs.modal', function () {
+                modalViewContent.innerHTML = '';
+                viewDocumentoCompraModalElement.off('hidden.bs.modal'); // Remover el listener
+            });
+        }
+
+        // ===============================================
         // LÓGICA DE DETALLES DE COMPRA EN EL FORMULARIO MODAL
         // (Estas funciones deben ser globales para ser accesibles desde el fragmento)
         // ===============================================
@@ -364,7 +387,7 @@
             const detalleDiv = document.createElement('tr'); // Cambiado a <tr> para compatibilidad con la tabla
             detalleDiv.classList.add('detalle-item'); // Mantener la clase para estilos y selección
             detalleDiv.setAttribute('data-index', index);
-            detalleDiv.id = `detalleRow-${index}`; // Añadir un ID para la fila
+            detalleDiv.id = detalleRow-${index}; // Añadir un ID para la fila
 
             let productoOptions = allProductosData.map(p =>
                 `<option value="${p.idProducto}" data-precio="${p.precioUnitario}" ${detalle && detalle.producto && detalle.producto.idProducto === p.idProducto ? 'selected' : ''}>
@@ -413,9 +436,9 @@
             detalleComprasContainer.appendChild(detalleDiv);
 
             // Adjuntar event listeners para la nueva fila
-            const cantidadInput = document.getElementById(`cantidad-${index}`);
-            const precioInput = document.getElementById(`precioUnitario-${index}`);
-            const productoSelect = document.getElementById(`producto-${index}`);
+            const cantidadInput = document.getElementById(cantidad-${index});
+            const precioInput = document.getElementById(precioUnitario-${index});
+            const productoSelect = document.getElementById(producto-${index});
 
             cantidadInput.addEventListener('input', () => updateDetalleTotal(index));
             precioInput.addEventListener('input', () => updateDetalleTotal(index));
@@ -444,10 +467,10 @@
         }
 
         window.updateDetalleTotal = function(index) {
-            const cantidad = parseFloat(document.getElementById(`cantidad-${index}`).value) || 0;
-            const precioUnitario = parseFloat(document.getElementById(`precioUnitario-${index}`).value) || 0;
+            const cantidad = parseFloat(document.getElementById(cantidad-${index}).value) || 0;
+            const precioUnitario = parseFloat(document.getElementById(precioUnitario-${index}).value) || 0;
             const totalDetalle = cantidad * precioUnitario;
-            document.getElementById(`detalleTotalDisplay-${index}`).value = totalDetalle.toFixed(2); // Usar .value para inputs
+            document.getElementById(detalleTotalDisplay-${index}).value = totalDetalle.toFixed(2); // Usar .value para inputs
             calculateTotalGeneral();
         }
 
@@ -509,12 +532,12 @@
             for (const row of detalleRows) {
                 const index = row.getAttribute('data-index');
 
-                const productoSelect = document.getElementById(`producto-${index}`);
-                const cantidadInput = document.getElementById(`cantidad-${index}`);
-                const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
+                const productoSelect = document.getElementById(producto-${index});
+                const cantidadInput = document.getElementById(cantidad-${index});
+                const precioUnitarioInput = document.getElementById(precioUnitario-${index});
 
                 if (!productoSelect.value) {
-                    displayError(`productoError-${index}`, 'Seleccione un producto.');
+                    displayError(productoError-${index}, 'Seleccione un producto.');
                     productoSelect.classList.add('is-invalid');
                     isValid = false;
                 } else {
@@ -523,7 +546,7 @@
 
                 const cantidad = parseFloat(cantidadInput.value);
                 if (isNaN(cantidad) || cantidad <= 0) {
-                    displayError(`cantidadError-${index}`, 'Cantidad > 0.');
+                    displayError(cantidadError-${index}, 'Cantidad > 0.');
                     cantidadInput.classList.add('is-invalid');
                     isValid = false;
                 } else {
@@ -532,7 +555,7 @@
 
                 const precio = parseFloat(precioUnitarioInput.value);
                 if (isNaN(precio) || precio < 0) {
-                    displayError(`precioUnitarioError-${index}`, 'Precio >= 0.');
+                    displayError(precioUnitarioError-${index}, 'Precio >= 0.');
                     precioUnitarioInput.classList.add('is-invalid');
                     isValid = false;
                 } else {
@@ -563,11 +586,11 @@
             document.querySelectorAll('.detalle-item').forEach(detalleDiv => {
                 const index = detalleDiv.getAttribute('data-index');
                 detallesCompras.push({
-                    idDetalleCompra: detalleDiv.querySelector(`input[name="detalleCompras[${index}].idDetalleCompra"]`).value || null,
-                    producto: { idProducto: parseInt(document.getElementById(`producto-${index}`).value) },
-                    cantidad: parseInt(document.getElementById(`cantidad-${index}`).value),
-                    precioUnitario: parseFloat(document.getElementById(`precioUnitario-${index}`).value),
-                    total: parseFloat(document.getElementById(`detalleTotalDisplay-${index}`).value)
+                    idDetalleCompra: detalleDiv.querySelector(input[name="detalleCompras[${index}].idDetalleCompra"]).value || null,
+                    producto: { idProducto: parseInt(document.getElementById(producto-${index}).value) },
+                    cantidad: parseInt(document.getElementById(cantidad-${index}).value),
+                    precioUnitario: parseFloat(document.getElementById(precioUnitario-${index}).value),
+                    total: parseFloat(document.getElementById(detalleTotalDisplay-${index}).value)
                 });
             });
 
@@ -623,7 +646,7 @@
 
         document.getElementById('confirmDeleteButton').addEventListener('click', function() {
             if (documentIdToDelete) {
-                fetch(`/documento-compra/eliminar/${documentIdToDelete}`)
+                fetch(/documento-compra/eliminar/${documentIdToDelete})
                     .then(response => {
                         if (!response.ok) {
                             return response.json().then(err => { throw new Error(err.message || 'Error al eliminar el documento de compra.'); });
@@ -650,7 +673,7 @@
             recargarListaDocumentosCompraCompleta();
         });
 
-        /*]]>*/
+        /]]>/
     </script>
 </section>
 </body>
