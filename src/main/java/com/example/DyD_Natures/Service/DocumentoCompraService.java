@@ -186,35 +186,18 @@ public class DocumentoCompraService {
         }
         DocumentoCompra documento = documentoOpt.get();
 
-        System.out.println("DEBUG: Iniciando eliminación para Documento de Compra ID: " + id);
-
         // Revertir el stock de los productos de los detalles de compra
-        // Forzar la carga de los detalles si son LAZY. Al estar en @Transactional, esto funciona.
-        // Copiar la lista para evitar posibles ConcurrentModificationException al recorrerla
-        // si la eliminación en cascada ocurre antes de lo esperado (aunque no debería con delete al final).
         if (documento.getDetalleCompras() != null && !documento.getDetalleCompras().isEmpty()) {
-            // Asegurarse de que los detalles estén cargados. Si son LAZY y no EAGER.
-            // Para FetchType.LAZY en detalleCompras y en producto de DetalleCompra:
-            documento.getDetalleCompras().size(); // Fuerza la carga de la colección
-            for (DetalleCompra detalle : new ArrayList<>(documento.getDetalleCompras())) { // Itera sobre una copia
+            documento.getDetalleCompras().size(); // Forzar la carga de la colección si es LAZY
+            for (DetalleCompra detalle : new ArrayList<>(documento.getDetalleCompras())) {
                 if (detalle.getProducto() != null) {
-                    // Forzar la carga del producto si es LAZY.
-                    // Para FetchType.LAZY en Producto dentro de DetalleCompra:
-                    detalle.getProducto().getIdProducto(); // O cualquier otro getter para acceder al proxy
-                    System.out.println("DEBUG: Revertiendo stock para Producto ID: " + detalle.getProducto().getIdProducto() + " con cantidad: " + detalle.getCantidad());
-                    // LLAMA CON CANTIDAD NEGATIVA PARA RESTAR EL STOCK
-                    updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad());
-                } else {
-                    System.err.println("ADVERTENCIA: Detalle de compra (ID: " + detalle.getIdDetalleCompra() + ") tiene un producto nulo. No se puede revertir el stock.");
+                    detalle.getProducto().getIdProducto(); // Forzar la carga del producto si es LAZY
+                    updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad()); // LLAMA CON CANTIDAD NEGATIVA PARA RESTAR EL STOCK
                 }
             }
-        } else {
-            System.out.println("DEBUG: Documento de Compra ID: " + id + " no tiene detalles de compra para revertir stock.");
         }
 
-        // Elimina el documento (y sus detalles por cascada y orphanRemoval si están configurados así en la entidad)
         documentoCompraRepository.delete(documento);
-        System.out.println("DEBUG: Documento de Compra ID: " + id + " y sus detalles eliminados exitosamente.");
     }
 
     /**
@@ -225,13 +208,11 @@ public class DocumentoCompraService {
      * @throws RuntimeException si el stock se vuelve negativo después de la operación de resta.
      */
     private void updateProductStock(Integer idProducto, Integer cantidadChange) {
-        // Usar findById() para asegurar que obtenemos una entidad gestionada por el contexto de persistencia
-        // y para lanzar EntityNotFoundException si no se encuentra.
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new EntityNotFoundException("Producto con ID " + idProducto + " no encontrado para actualizar stock."));
 
         int currentStock = producto.getStock();
-        int newStock = currentStock + cantidadChange; // Ahora cantidadChange puede ser positiva o negativa
+        int newStock = currentStock + cantidadChange;
 
         // Validar stock negativo SOLO si la operación es una RESTA (cantidadChange < 0)
         if (cantidadChange < 0 && newStock < 0) {
@@ -241,7 +222,6 @@ public class DocumentoCompraService {
         }
 
         producto.setStock(newStock);
-        productoRepository.save(producto); // Persiste el cambio de stock
-        System.out.println("DEBUG: Stock de producto '" + producto.getNombre() + "' (ID: " + idProducto + ") actualizado de " + currentStock + " a " + newStock);
-    }
+        productoRepository.save(producto);
+    }
 }
