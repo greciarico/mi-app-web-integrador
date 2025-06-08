@@ -46,7 +46,7 @@ public class DocumentoCompraController {
             model.addAttribute("productos", productoService.listarProductosActivos());
             return "documento_compra";
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace(); // Eliminado
             model.addAttribute("errorMessage", "Error al cargar la página de Documentos de Compra: " + e.getMessage());
             return "error";
         }
@@ -144,6 +144,48 @@ public class DocumentoCompraController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    /**
+     * Elimina un DocumentoCompra y sus DetalleCompra.
+     * @param id El ID del documento de compra.
+     * @return ResponseEntity con el resultado.
+     */
+    @GetMapping("/eliminar/{id}") // Manteniendo GET como lo tienes para facilidad de prueba
+    public ResponseEntity<Map<String, String>> eliminarDocumentoCompra(@PathVariable("id") Integer id) {
+        Map<String, String> response = new HashMap<>();
+        try {
+            documentoCompraService.eliminarDocumentoCompra(id);
+            response.put("status", "success");
+            response.put("message", "Documento de Compra eliminado exitosamente y stock de productos revertido!");
+            return ResponseEntity.ok(response); // 200 OK
+        } catch (EntityNotFoundException e) {
+            // Este catch es para cuando el documento o un producto asociado no se encuentra
+            // System.err.println("ERROR al eliminar (recurso no encontrado): " + e.getMessage()); // Eliminado
+            response.put("status", "error");
+            response.put("message", "Error al eliminar el Documento de Compra: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response); // 404 Not Found
+        } catch (RuntimeException e) {
+            // Este catch es para RuntimeException, como la que lanzarías por "stock insuficiente"
+            // System.err.println("ERROR al eliminar (problema de lógica de negocio): " + e.getMessage()); // Eliminado
+            response.put("status", "error");
+            response.put("message", "Error al eliminar el Documento de Compra: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response); // 409 Conflict o 400 Bad Request
+        } catch (Exception e) {
+            // Este catch es para cualquier otra excepción inesperada
+            // e.printStackTrace(); // Eliminado
+            // System.err.println("ERROR interno inesperado al eliminar el Documento de Compra: " + e.getMessage()); // Eliminado
+            response.put("status", "error");
+            response.put("message", "Error interno al eliminar el Documento de Compra: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response); // 500 Internal Server Error
+        }
+    }
+
+    /**
+     * Muestra los detalles de un documento de compra específico.
+     * @param id El ID del documento de compra a visualizar.
+     * @param model El modelo para pasar datos a la vista.
+     * @return El nombre de la vista o fragmento para mostrar los detalles.
+     */
     @GetMapping("/ver/{id}")
     public String verDocumentoCompra(@PathVariable Integer id, Model model) {
         try {
@@ -152,40 +194,40 @@ public class DocumentoCompraController {
                 DocumentoCompra documentoCompra = documentoOpt.get();
 
                 // --- PUNTOS CLAVE PARA IMPRIMIR EN CONSOLA Y DEPURAR ---
-                System.out.println("--- DEBUG: INICIO DE verDocumentoCompra ---");
-                System.out.println("ID recibido: " + id);
-                System.out.println("¿Documento encontrado?: " + documentoOpt.isPresent());
-                if (documentoOpt.isPresent()) {
-                    System.out.println("Documento ID de la compra: " + documentoCompra.getIdCompra());
-                    System.out.println("Fecha de Registro: " + documentoCompra.getFechaRegistro()); // Verifica si es null
-                    System.out.println("Total de la compra: " + documentoCompra.getTotal()); // Verifica si es null o 0
+                // System.out.println("--- DEBUG: INICIO DE verDocumentoCompra ---"); // Eliminado
+                // System.out.println("ID recibido: " + id); // Eliminado
+                // System.out.println("¿Documento encontrado?: " + documentoOpt.isPresent()); // Eliminado
+                if (documentoOpt.isPresent()) { // Esta comprobación es redundante aquí, ya que el isPresent() es previo
+                    // System.out.println("Documento ID de la compra: " + documentoCompra.getIdCompra()); // Eliminado
+                    // System.out.println("Fecha de Registro: " + documentoCompra.getFechaRegistro()); // Eliminado
+                    // System.out.println("Total de la compra: " + documentoCompra.getTotal()); // Eliminado
 
                     // Verificar Proveedor
                     if (documentoCompra.getProveedor() != null) {
-                        System.out.println("Proveedor cargado: " + documentoCompra.getProveedor().getRazonSocial());
+                        // System.out.println("Proveedor cargado: " + documentoCompra.getProveedor().getRazonSocial()); // Eliminado
                     } else {
-                        System.out.println("¡ATENCIÓN! Proveedor es NULL para el documento ID: " + documentoCompra.getIdCompra());
+                        // System.out.println("¡ATENCIÓN! Proveedor es NULL para el documento ID: " + documentoCompra.getIdCompra()); // Eliminado
                     }
 
                     // Verificar DetalleCompras
                     if (documentoCompra.getDetalleCompras() != null && !documentoCompra.getDetalleCompras().isEmpty()) {
-                        System.out.println("Número de detalles de compra: " + documentoCompra.getDetalleCompras().size());
+                        // System.out.println("Número de detalles de compra: " + documentoCompra.getDetalleCompras().size()); // Eliminado
                         documentoCompra.getDetalleCompras().forEach(detalle -> {
-                            System.out.println("  - Detalle ID: " + detalle.getIdDetalleCompra() +
-                                    ", Cantidad: " + detalle.getCantidad() +
-                                    ", Precio Unitario: " + detalle.getPrecioUnitario() +
-                                    ", SubTotal (del detalle): " + detalle.getTotal()); // Si es total en detalle
+                            // System.out.println("  - Detalle ID: " + detalle.getIdDetalleCompra() + // Eliminado
+                            //        ", Cantidad: " + detalle.getCantidad() + // Eliminado
+                            //        ", Precio Unitario: " + detalle.getPrecioUnitario() + // Eliminado
+                            //        ", SubTotal (del detalle): " + detalle.getTotal()); // Eliminado
                             if (detalle.getProducto() != null) {
-                                System.out.println("    - Producto en detalle: " + detalle.getProducto().getNombre());
+                                // System.out.println("    - Producto en detalle: " + detalle.getProducto().getNombre()); // Eliminado
                             } else {
-                                System.out.println("    - ¡ATENCIÓN! Producto es NULL en el detalle ID: " + detalle.getIdDetalleCompra());
+                                // System.out.println("    - ¡ATENCIÓN! Producto es NULL en el detalle ID: " + detalle.getIdDetalleCompra()); // Eliminado
                             }
                         });
                     } else {
-                        System.out.println("¡ATENCIÓN! La lista de detalles de compra es NULL o está VACÍA.");
+                        // System.out.println("¡ATENCIÓN! La lista de detalles de compra es NULL o está VACÍA."); // Eliminado
                     }
                 }
-                System.out.println("--- DEBUG: FIN DE verDocumentoCompra ---");
+                // System.out.println("--- DEBUG: FIN DE verDocumentoCompra ---"); // Eliminado
                 // --- FIN PUNTOS CLAVE ---
 
                 model.addAttribute("documentoCompra", documentoCompra);
@@ -193,16 +235,16 @@ public class DocumentoCompraController {
             } else {
                 // Esto se ejecutaría si documentoOpt.isEmpty()
                 model.addAttribute("mensajeError", "Documento de Compra no encontrado para el ID: " + id);
-                System.err.println("ERROR: Documento de Compra con ID " + id + " no encontrado.");
+                // System.err.println("ERROR: Documento de Compra con ID " + id + " no encontrado."); // Eliminado
                 // Retornar el mismo fragmento para que muestre el mensaje de error dentro del modal
                 return "fragments/documento_compra_detalle_modal :: viewContent";
             }
         } catch (Exception e) {
-            e.printStackTrace(); // Imprime la excepción completa en la consola
+            // e.printStackTrace(); // Eliminado
             model.addAttribute("mensajeError", "Error interno al cargar los detalles del Documento de Compra: " + e.getMessage());
-            System.err.println("EXCEPCIÓN al cargar detalles de Documento de Compra: " + e.getMessage());
+            // System.err.println("EXCEPCIÓN al cargar detalles de Documento de Compra: " + e.getMessage()); // Eliminado
             // Retornar el mismo fragmento para que muestre el mensaje de error dentro del modal
             return "fragments/documento_compra_detalle_modal :: viewContent";
-        }
-    }
+        }
+    }
 }
