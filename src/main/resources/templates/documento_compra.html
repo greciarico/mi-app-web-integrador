@@ -132,12 +132,12 @@
     </div>
 
     <script th:inline="javascript">
-        /<![CDATA[/
+        /*<![CDATA[*/
 
         // Variables globales para los datos iniciales y el contador de detalles
-        let allDocumentosCompra = /[[${documentosCompra}]]/ [];
-        let allProductosData = /[[${productos}]]/ []; // Pasados desde el controlador
-        let allProveedoresData = /[[${proveedores}]]/ []; // Pasados desde el controlador
+        let allDocumentosCompra = /*[[${documentosCompra}]]*/ [];
+        let allProductosData = /*[[${productos}]]*/ []; // Pasados desde el controlador
+        let allProveedoresData = /*[[${proveedores}]]*/ []; // Pasados desde el controlador
 
         // Elementos del DOM del modal principal
         const documentoCompraModalElement = $('#documentoCompraModal'); // Usando jQuery para el modal Bootstrap
@@ -288,7 +288,7 @@
             clearErrors(); // Limpiar errores antes de abrir el modal
             detalleCount = 0; // Resetear el contador de detalles cada vez que se abre el modal
 
-            let url = idCompra ? /documento-compra/editar/${idCompra} : '/documento-compra/nuevo';
+            let url = idCompra ? `/documento-compra/editar/${idCompra}` : '/documento-compra/nuevo';
 
             $.ajax({ // Usar jQuery AJAX para cargar el fragmento
                 url: url,
@@ -330,7 +330,7 @@
         // ===============================================
 
         function openViewModal(idCompra) {
-            const url = /documento-compra/ver/${idCompra};
+            const url = `/documento-compra/ver/${idCompra}`;
 
             $.ajax({
                 url: url,
@@ -387,7 +387,7 @@
             const detalleDiv = document.createElement('tr'); // Cambiado a <tr> para compatibilidad con la tabla
             detalleDiv.classList.add('detalle-item'); // Mantener la clase para estilos y selección
             detalleDiv.setAttribute('data-index', index);
-            detalleDiv.id = detalleRow-${index}; // Añadir un ID para la fila
+            detalleDiv.id = `detalleRow-${index}`; // Añadir un ID para la fila
 
             let productoOptions = allProductosData.map(p =>
                 `<option value="${p.idProducto}" data-precio="${p.precioUnitario}" ${detalle && detalle.producto && detalle.producto.idProducto === p.idProducto ? 'selected' : ''}>
@@ -436,9 +436,9 @@
             detalleComprasContainer.appendChild(detalleDiv);
 
             // Adjuntar event listeners para la nueva fila
-            const cantidadInput = document.getElementById(cantidad-${index});
-            const precioInput = document.getElementById(precioUnitario-${index});
-            const productoSelect = document.getElementById(producto-${index});
+            const cantidadInput = document.getElementById(`cantidad-${index}`);
+            const precioInput = document.getElementById(`precioUnitario-${index}`);
+            const productoSelect = document.getElementById(`producto-${index}`);
 
             cantidadInput.addEventListener('input', () => updateDetalleTotal(index));
             precioInput.addEventListener('input', () => updateDetalleTotal(index));
@@ -467,10 +467,10 @@
         }
 
         window.updateDetalleTotal = function(index) {
-            const cantidad = parseFloat(document.getElementById(cantidad-${index}).value) || 0;
-            const precioUnitario = parseFloat(document.getElementById(precioUnitario-${index}).value) || 0;
+            const cantidad = parseFloat(document.getElementById(`cantidad-${index}`).value) || 0;
+            const precioUnitario = parseFloat(document.getElementById(`precioUnitario-${index}`).value) || 0;
             const totalDetalle = cantidad * precioUnitario;
-            document.getElementById(detalleTotalDisplay-${index}).value = totalDetalle.toFixed(2); // Usar .value para inputs
+            document.getElementById(`detalleTotalDisplay-${index}`).value = totalDetalle.toFixed(2); // Usar .value para inputs
             calculateTotalGeneral();
         }
 
@@ -532,12 +532,12 @@
             for (const row of detalleRows) {
                 const index = row.getAttribute('data-index');
 
-                const productoSelect = document.getElementById(producto-${index});
-                const cantidadInput = document.getElementById(cantidad-${index});
-                const precioUnitarioInput = document.getElementById(precioUnitario-${index});
+                const productoSelect = document.getElementById(`producto-${index}`);
+                const cantidadInput = document.getElementById(`cantidad-${index}`);
+                const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
 
                 if (!productoSelect.value) {
-                    displayError(productoError-${index}, 'Seleccione un producto.');
+                    displayError(`productoError-${index}`, 'Seleccione un producto.');
                     productoSelect.classList.add('is-invalid');
                     isValid = false;
                 } else {
@@ -546,7 +546,7 @@
 
                 const cantidad = parseFloat(cantidadInput.value);
                 if (isNaN(cantidad) || cantidad <= 0) {
-                    displayError(cantidadError-${index}, 'Cantidad > 0.');
+                    displayError(`cantidadError-${index}`, 'Cantidad > 0.');
                     cantidadInput.classList.add('is-invalid');
                     isValid = false;
                 } else {
@@ -555,7 +555,7 @@
 
                 const precio = parseFloat(precioUnitarioInput.value);
                 if (isNaN(precio) || precio < 0) {
-                    displayError(precioUnitarioError-${index}, 'Precio >= 0.');
+                    displayError(`precioUnitarioError-${index}`, 'Precio >= 0.');
                     precioUnitarioInput.classList.add('is-invalid');
                     isValid = false;
                 } else {
@@ -586,11 +586,11 @@
             document.querySelectorAll('.detalle-item').forEach(detalleDiv => {
                 const index = detalleDiv.getAttribute('data-index');
                 detallesCompras.push({
-                    idDetalleCompra: detalleDiv.querySelector(input[name="detalleCompras[${index}].idDetalleCompra"]).value || null,
-                    producto: { idProducto: parseInt(document.getElementById(producto-${index}).value) },
-                    cantidad: parseInt(document.getElementById(cantidad-${index}).value),
-                    precioUnitario: parseFloat(document.getElementById(precioUnitario-${index}).value),
-                    total: parseFloat(document.getElementById(detalleTotalDisplay-${index}).value)
+                    idDetalleCompra: detalleDiv.querySelector(`input[name="detalleCompras[${index}].idDetalleCompra"]`).value || null,
+                    producto: { idProducto: parseInt(document.getElementById(`producto-${index}`).value) },
+                    cantidad: parseInt(document.getElementById(`cantidad-${index}`).value),
+                    precioUnitario: parseFloat(document.getElementById(`precioUnitario-${index}`).value),
+                    total: parseFloat(document.getElementById(`detalleTotalDisplay-${index}`).value)
                 });
             });
 
@@ -646,7 +646,7 @@
 
         document.getElementById('confirmDeleteButton').addEventListener('click', function() {
             if (documentIdToDelete) {
-                fetch(/documento-compra/eliminar/${documentIdToDelete})
+                fetch(`/documento-compra/eliminar/${documentIdToDelete}`)
                     .then(response => {
                         if (!response.ok) {
                             return response.json().then(err => { throw new Error(err.message || 'Error al eliminar el documento de compra.'); });
@@ -673,7 +673,7 @@
             recargarListaDocumentosCompraCompleta();
         });
 
-        /]]>/
+        /*]]>*/
     </script>
 </section>
 </body>
