@@ -5,6 +5,7 @@ import com.example.DyD_Natures.Model.DocumentoCompra;
 import com.example.DyD_Natures.Model.Producto;
 import com.example.DyD_Natures.Repository.DocumentoCompraRepository;
 import com.example.DyD_Natures.Repository.ProductoRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +57,8 @@ public class DocumentoCompraService {
      * @param id El ID del documento de compra.
      * @return Un Optional que contiene el DocumentoCompra si se encuentra, o vacío si no.
      */
-    @Transactional // También es crucial que este método sea transaccional para cargar relaciones LAZY
+    @Transactional(readOnly = true)
+    // También es crucial que este método sea transaccional para cargar relaciones LAZY
     public Optional<DocumentoCompra> obtenerDocumentoCompraPorId(Integer id) {
         Optional<DocumentoCompra> documentoOpt = documentoCompraRepository.findById(id);
         documentoOpt.ifPresent(doc -> {
@@ -173,45 +175,73 @@ public class DocumentoCompraService {
     /**
      * Elimina un DocumentoCompra y sus DetalleCompra asociados, revirtiendo el stock de los productos.
      * @param id El ID del documento de compra a eliminar.
-     * @throws RuntimeException Si el documento o sus productos no se encuentran.
+     * @throws EntityNotFoundException Si el documento de compra no se encuentra.
+     * @throws RuntimeException Si un producto asociado no se encuentra o el stock se volvería negativo.
      */
-    @Transactional
+    @Transactional // Asegura que toda la operación sea atómica
     public void eliminarDocumentoCompra(Integer id) {
         Optional<DocumentoCompra> documentoOpt = documentoCompraRepository.findById(id);
         if (documentoOpt.isEmpty()) {
-            throw new RuntimeException("Documento de Compra no encontrado con ID: " + id);
+            throw new EntityNotFoundException("Documento de Compra no encontrado con ID: " + id);
         }
         DocumentoCompra documento = documentoOpt.get();
 
+        System.out.println("DEBUG: Iniciando eliminación para Documento de Compra ID: " + id);
+
         // Revertir el stock de los productos de los detalles de compra
-        // Forzar la carga de los detalles antes de acceder a ellos
-        if (documento.getDetalleCompras() != null) {
-            documento.getDetalleCompras().size(); // Inicializa la colección LAZY
-            for (DetalleCompra detalle : new ArrayList<>(documento.getDetalleCompras())) { // Copia para evitar ConcurrentModificationException
+        // Forzar la carga de los detalles si son LAZY. Al estar en @Transactional, esto funciona.
+        // Copiar la lista para evitar posibles ConcurrentModificationException al recorrerla
+        // si la eliminación en cascada ocurre antes de lo esperado (aunque no debería con delete al final).
+        if (documento.getDetalleCompras() != null && !documento.getDetalleCompras().isEmpty()) {
+            // Asegurarse de que los detalles estén cargados. Si son LAZY y no EAGER.
+            // Para FetchType.LAZY en detalleCompras y en producto de DetalleCompra:
+            documento.getDetalleCompras().size(); // Fuerza la carga de la colección
+            for (DetalleCompra detalle : new ArrayList<>(documento.getDetalleCompras())) { // Itera sobre una copia
                 if (detalle.getProducto() != null) {
-                    detalle.getProducto().getNombre(); // Inicializa el producto LAZY
-                    updateProductStock(detalle.getProducto().getIdProducto(), detalle.getCantidad()); // Revertir sumando la cantidad
+                    // Forzar la carga del producto si es LAZY.
+                    // Para FetchType.LAZY en Producto dentro de DetalleCompra:
+                    detalle.getProducto().getIdProducto(); // O cualquier otro getter para acceder al proxy
+                    System.out.println("DEBUG: Revertiendo stock para Producto ID: " + detalle.getProducto().getIdProducto() + " con cantidad: " + detalle.getCantidad());
+                    // LLAMA CON CANTIDAD NEGATIVA PARA RESTAR EL STOCK
+                    updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad());
+                } else {
+                    System.err.println("ADVERTENCIA: Detalle de compra (ID: " + detalle.getIdDetalleCompra() + ") tiene un producto nulo. No se puede revertir el stock.");
                 }
             }
+        } else {
+            System.out.println("DEBUG: Documento de Compra ID: " + id + " no tiene detalles de compra para revertir stock.");
         }
-        documentoCompraRepository.delete(documento); // Elimina el documento (y sus detalles por cascada y orphanRemoval)
+
+        // Elimina el documento (y sus detalles por cascada y orphanRemoval si están configurados así en la entidad)
+        documentoCompraRepository.delete(documento);
+        System.out.println("DEBUG: Documento de Compra ID: " + id + " y sus detalles eliminados exitosamente.");
     }
 
     /**
-     * Actualiza el stock de un producto.
+     * Actualiza el stock de un producto sumando o restando una cantidad.
      * @param idProducto El ID del producto.
-     * @param cantidadChange La cantidad a añadir (positiva) o restar (negativa) del stock.
-     * @throws RuntimeException si el producto no se encuentra o el stock se vuelve negativo.
+     * @param cantidadChange La cantidad a cambiar del stock. Positiva para sumar, negativa para restar.
+     * @throws EntityNotFoundException si el producto no se encuentra.
+     * @throws RuntimeException si el stock se vuelve negativo después de la operación de resta.
      */
     private void updateProductStock(Integer idProducto, Integer cantidadChange) {
+        // Usar findById() para asegurar que obtenemos una entidad gestionada por el contexto de persistencia
+        // y para lanzar EntityNotFoundException si no se encuentra.
         Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new RuntimeException("Producto con ID " + idProducto + " no encontrado para actualizar stock."));
+                .orElseThrow(() -> new EntityNotFoundException("Producto con ID " + idProducto + " no encontrado para actualizar stock."));
 
-        int newStock = producto.getStock() + cantidadChange;
-        if (newStock < 0) {
-            throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre() + ". Stock actual: " + producto.getStock() + ", intento de reducir en: " + (-cantidadChange));
+        int currentStock = producto.getStock();
+        int newStock = currentStock + cantidadChange; // Ahora cantidadChange puede ser positiva o negativa
+
+        // Validar stock negativo SOLO si la operación es una RESTA (cantidadChange < 0)
+        if (cantidadChange < 0 && newStock < 0) {
+            throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre() +
+                    ". Stock actual: " + currentStock + ", intento de reducir en: " + (-cantidadChange) +
+                    ". El stock resultante sería: " + newStock);
         }
+
         producto.setStock(newStock);
-        productoRepository.save(producto);
-    }
+        productoRepository.save(producto); // Persiste el cambio de stock
+        System.out.println("DEBUG: Stock de producto '" + producto.getNombre() + "' (ID: " + idProducto + ") actualizado de " + currentStock + " a " + newStock);
+    }
 }
