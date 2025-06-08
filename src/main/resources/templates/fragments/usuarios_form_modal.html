@@ -15,43 +15,43 @@
 
             <div class="form-group">
                 <label for="nombre">Nombre:</label>
-                <input type="text" id="nombre" th:field="*{nombre}" required class="form-control"/>
+                <input type="text" id="nombre" th:field="*{nombre}" placeholder="Nombre Usuario" required class="form-control"/>
                 <small id="nombreError" class="text-danger"></small>
             </div>
 
             <div class="form-group">
                 <label for="apPaterno">Apellido Paterno:</label>
-                <input type="text" id="apPaterno" th:field="*{apPaterno}" required class="form-control"/>
+                <input type="text" id="apPaterno" th:field="*{apPaterno}" placeholder="Apellido Paterno Usuario" required class="form-control"/>
                 <small id="apPaternoError" class="text-danger"></small>
             </div>
 
             <div class="form-group">
                 <label for="apMaterno">Apellido Materno:</label>
-                <input type="text" id="apMaterno" th:field="*{apMaterno}" required class="form-control"/>
+                <input type="text" id="apMaterno" th:field="*{apMaterno}" placeholder="Apellido Materno Usuario" required class="form-control"/>
                 <small id="apMaternoError" class="text-danger"></small>
             </div>
 
             <div class="form-group">
-                <label for="telefono">Teléfono:</label>
-                <input type="number" id="telefono" th:field="*{telefono}" required class="form-control"/>
+                <label for="telefono">Celular:</label>
+                <input type="number" id="telefono" th:field="*{telefono}" placeholder="Numero Celular" required class="form-control"/>
                 <small id="telefonoError" class="text-danger"></small>
             </div>
 
             <div class="form-group">
                 <label for="dni">DNI:</label>
-                <input type="number" id="dni" th:field="*{dni}" required class="form-control"/>
+                <input type="number" id="dni" th:field="*{dni}" placeholder="Acceso de Usuario" required class="form-control"/>
                 <small id="dniError" class="text-danger"></small>
             </div>
 
             <div class="form-group">
                 <label for="correo">Correo:</label>
-                <input type="email" id="correo" th:field="*{correo}" class="form-control"/>
+                <input type="email" id="correo" th:field="*{correo}" placeholder="Correo Electronico(Opcional)" class="form-control"/>
                 <small id="correoError" class="text-danger"></small>
             </div>
 
             <div class="form-group">
                 <label for="contrasena">Contraseña:</label>
-                <input type="password" id="contrasena" th:field="*{contrasena}" th:required="${usuario.idUsuario == null}" class="form-control"/>
+                <input type="password" id="contrasena" th:field="*{contrasena}" th:required="${usuario.idUsuario == null}" placeholder="Contraseña de Usuario" class="form-control"/>
                 <small id="contrasenaError" class="text-muted" th:if="${usuario.idUsuario != null}">Dejar en blanco para mantener la contraseña actual.</small>
                 <small id="contrasenaValidation" class="text-danger" th:if="${usuario.idUsuario == null}"></small>
             </div>
