@@ -144,48 +144,6 @@ public class DocumentoCompraController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
-    /**
-     * Elimina un DocumentoCompra y sus DetalleCompra.
-     * @param id El ID del documento de compra.
-     * @return ResponseEntity con el resultado.
-     */
-    @GetMapping("/eliminar/{id}") // Manteniendo GET como lo tienes para facilidad de prueba
-    public ResponseEntity<Map<String, String>> eliminarDocumentoCompra(@PathVariable("id") Integer id) {
-        Map<String, String> response = new HashMap<>();
-        try {
-            documentoCompraService.eliminarDocumentoCompra(id);
-            response.put("status", "success");
-            response.put("message", "Documento de Compra eliminado exitosamente y stock de productos revertido!");
-            return ResponseEntity.ok(response); // 200 OK
-        } catch (EntityNotFoundException e) {
-            // Este catch es para cuando el documento o un producto asociado no se encuentra
-            System.err.println("ERROR al eliminar (recurso no encontrado): " + e.getMessage());
-            response.put("status", "error");
-            response.put("message", "Error al eliminar el Documento de Compra: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response); // 404 Not Found
-        } catch (RuntimeException e) {
-            // Este catch es para RuntimeException, como la que lanzarías por "stock insuficiente"
-            System.err.println("ERROR al eliminar (problema de lógica de negocio): " + e.getMessage());
-            response.put("status", "error");
-            response.put("message", "Error al eliminar el Documento de Compra: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(response); // 409 Conflict o 400 Bad Request
-        } catch (Exception e) {
-            // Este catch es para cualquier otra excepción inesperada
-            e.printStackTrace(); // Imprimir la traza completa para depuración
-            System.err.println("ERROR interno inesperado al eliminar el Documento de Compra: " + e.getMessage());
-            response.put("status", "error");
-            response.put("message", "Error interno al eliminar el Documento de Compra: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response); // 500 Internal Server Error
-        }
-    }
-
-    /**
-     * Muestra los detalles de un documento de compra específico.
-     * @param id El ID del documento de compra a visualizar.
-     * @param model El modelo para pasar datos a la vista.
-     * @return El nombre de la vista o fragmento para mostrar los detalles.
-     */
     @GetMapping("/ver/{id}")
     public String verDocumentoCompra(@PathVariable Integer id, Model model) {
         try {
