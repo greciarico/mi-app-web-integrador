@@ -1,11 +1,11 @@
 package com.example.DyD_Natures.Controller;
 
-import com.example.DyD_Natures.Model.Usuario; // Importa la clase Usuario
+import com.example.DyD_Natures.Model.Usuario;
 import com.example.DyD_Natures.Service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication; // Importa Authentication
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model; // Importa Model
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 
@@ -27,7 +27,7 @@ public class DashboardController {
                 model.addAttribute("currentUser", usuario);
             });
         }
-        return "layout";  // tu archivo layout.html
+        return "layout";
     }
 }
 
