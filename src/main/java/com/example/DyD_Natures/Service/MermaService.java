@@ -3,8 +3,8 @@ package com.example.DyD_Natures.Service;
 import com.example.DyD_Natures.Model.Merma;
 import com.example.DyD_Natures.Model.Producto;
 import com.example.DyD_Natures.Repository.MermaRepository;
-import com.example.DyD_Natures.Repository.ProductoRepository; // Necesario para actualizar el producto
-import jakarta.transaction.Transactional; // Importante para manejar transacciones de forma segura
+import com.example.DyD_Natures.Repository.ProductoRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
