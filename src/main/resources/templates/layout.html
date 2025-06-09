@@ -269,7 +269,10 @@
                   } else if (url === '/documento-compra' && typeof recargarListaDocumentosCompraCompleta === 'function') {
                       console.log("Detectado retorno a /documento-compra. Iniciando recarga de datos.");
                       recargarListaDocumentosCompraCompleta();
-                  }
+                  } else if (window.recargarListaVentasCompleta && url === '/ventas') { // ¡NUEVA LÍNEA!
+                  console.log("Detected return to /ventas. Initiating data reload.");
+                  window.recargarListaVentasCompleta();
+                  }
 
               }, 50); // Retraso de 50 milisegundos
           }
