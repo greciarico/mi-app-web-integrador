@@ -122,7 +122,6 @@ public class ClienteService {
         }
     }
 
-    // NUEVO: Métodos para verificar unicidad de DNI y RUC expuestos por el servicio
     public boolean existsByDniExcludingCurrent(String dni, Integer idCliente) {
         return clienteRepository.existsByDniAndIdClienteIsNot(dni, idCliente);
     }
@@ -131,7 +130,6 @@ public class ClienteService {
         return clienteRepository.existsByRucAndIdClienteIsNot(ruc, idCliente);
     }
 
-    // Si también necesitas verificar para nuevos registros sin exclusión de ID
     public boolean existsByDni(String dni) {
         return clienteRepository.existsByDni(dni);
     }
