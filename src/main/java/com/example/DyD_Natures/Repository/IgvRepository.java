@@ -21,7 +21,4 @@ public interface IgvRepository extends JpaRepository<Igv, Integer> {
      */
     @Query("SELECT i FROM Igv i WHERE i.estado <> :estadoExcluido")
     List<Igv> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido);
-
-    // Si tuvieras un campo único para IGV (ej. version o fecha única), lo añadirías aquí.
-    // Por ahora, no hay validación de unicidad para el valor del IGV en sí, solo por ID.
 }
