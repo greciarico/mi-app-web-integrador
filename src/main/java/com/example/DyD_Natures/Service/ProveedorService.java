@@ -20,7 +20,7 @@ public class ProveedorService {
      * @return Lista de proveedores activos/inactivos (no eliminados).
      */
     public List<Proveedor> listarProveedoresActivos() {
-        return proveedorRepository.findByEstadoExcluding((byte) 2); // Usa el método con @Query y pasa un Byte
+        return proveedorRepository.findByEstadoExcluding((byte) 2);
     }
 
     /**
@@ -49,7 +49,7 @@ public class ProveedorService {
     public Proveedor guardarProveedor(Proveedor proveedor) {
         if (proveedor.getIdProveedor() == null) {
             proveedor.setFechaRegistro(LocalDate.now()); // Establecer fecha de registro para nuevos
-            proveedor.setEstado((byte) 1); // Nuevo proveedor por defecto es Activo (Byte)
+            proveedor.setEstado((byte) 1); // Nuevo proveedor por defecto es Activo
         } else { // Si es una edición, mantener la fecha de registro existente
             Optional<Proveedor> existingProveedorOpt = proveedorRepository.findById(proveedor.getIdProveedor());
             existingProveedorOpt.ifPresent(existingProveedor -> proveedor.setFechaRegistro(existingProveedor.getFechaRegistro()));
