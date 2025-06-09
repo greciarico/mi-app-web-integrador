@@ -34,7 +34,7 @@ public class UsuarioService {
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
-            usuario.setEstado((byte) 2);  // Cambiar estado a 2 = eliminado
+            usuario.setEstado((byte) 2);
             usuarioRepository.save(usuario);
         }
     }
