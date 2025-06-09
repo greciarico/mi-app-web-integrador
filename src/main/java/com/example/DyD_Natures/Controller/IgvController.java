@@ -51,7 +51,6 @@ public class IgvController {
         return "fragments/igv_form_modal :: formContent";
     }
 
-    // CAMBIO CLAVE: Ahora acepta @RequestBody para el JSON del frontend
     @PostMapping("/guardar")
     @ResponseBody
     public ResponseEntity<Map<String, String>> guardarIgv(@RequestBody Igv igv) {
@@ -63,11 +62,9 @@ public class IgvController {
                 response.put("message", "El valor del IGV es obligatorio y debe ser mayor que cero.");
                 return ResponseEntity.badRequest().body(response);
             }
-            // Asegurarse de que el BigDecimal tenga la escala correcta (2 decimales)
-            // Esto es importante si el frontend envía un float que no es exactamente .XX
+            
             igv.setIgv(igv.getIgv().setScale(2, BigDecimal.ROUND_HALF_UP));
 
-            // Si es nuevo, establecer estado y fecha de registro
             if (igv.getIdIgv() == null) {
                 igv.setEstado((byte) 1); // Por defecto Activo (Byte)
                 igv.setFechaRegistro(LocalDate.now());
