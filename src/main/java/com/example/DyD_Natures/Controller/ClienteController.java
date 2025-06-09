@@ -121,7 +121,6 @@ public class ClienteController {
     public ResponseEntity<Map<String, Boolean>> checkDni(@RequestParam String dni,
                                                          @RequestParam(required = false) Integer idCliente) {
         Map<String, Boolean> response = new HashMap<>();
-        // CAMBIADO: Llamar al método expuesto por el servicio
         boolean exists = clienteService.existsByDniExcludingCurrent(dni, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
@@ -138,7 +137,6 @@ public class ClienteController {
     public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
                                                          @RequestParam(required = false) Integer idCliente) {
         Map<String, Boolean> response = new HashMap<>();
-        // CAMBIADO: Llamar al método expuesto por el servicio
         boolean exists = clienteService.existsByRucExcludingCurrent(ruc, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
