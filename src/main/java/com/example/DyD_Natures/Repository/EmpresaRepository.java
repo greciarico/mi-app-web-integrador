@@ -28,7 +28,7 @@ public interface EmpresaRepository extends JpaRepository<Empresa, Integer> {
      * Esto es útil para la validación al editar una empresa.
      * @param ruc El número de RUC a verificar.
      * @param idEmpresa El ID de la empresa a excluir de la búsqueda.
-     * @return true si existe otra empresa con ese RUC (diferente al idEmpresa proporcionado), false en caso contrario.
+     * @return true si existe otra empresa con ese RUC, false en caso contrario.
      */
     boolean existsByRucAndIdEmpresaIsNot(String ruc, Integer idEmpresa);
 }
