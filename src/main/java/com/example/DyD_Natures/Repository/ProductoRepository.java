@@ -11,14 +11,12 @@ import java.util.Optional;
 
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Integer> {
-    // REMOVIDO: List<Producto> findByEstadoNot(Integer estado); // Ya no se usará este método derivado
 
-    // NUEVO: Método con @Query explícita para evitar el problema de traducción de Hibernate con Byte y NOT
     // Esta consulta es equivalente a "where estado != 2"
     @Query("SELECT p FROM Producto p WHERE p.estado <> :estadoExcluido")
-    List<Producto> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido); // El parámetro es Byte
+    List<Producto> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido);
 
-    // Método para buscar un producto por nombre (ej. para validación de unicidad)
+    // Método para buscar un producto por nombre
     Optional<Producto> findByNombre(String nombre);
 
     // Método para verificar si un producto existe por nombre, excluyendo un ID
