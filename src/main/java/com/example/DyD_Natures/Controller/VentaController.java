@@ -29,11 +29,11 @@ public class VentaController {
     private VentaService ventaService;
 
     @Autowired
-    private ClienteService clienteService; // Para cargar clientes en formularios
+    private ClienteService clienteService;
     @Autowired
-    private ProductoService productoService; // Para cargar productos en formularios
+    private ProductoService productoService;
     @Autowired
-    private IgvService igvService; // Para cargar IGV en formularios
+    private IgvService igvService;
 
     /**
      * Muestra la vista principal de Ventas.
@@ -44,10 +44,8 @@ public class VentaController {
     public String listarVentas(Model model) {
         try {
             model.addAttribute("ventas", ventaService.listarVentas());
-            // No cargamos productos, clientes, IGV aquí directamente, se harán por AJAX en el modal
             return "venta";
         } catch (Exception e) {
-            // Se ha eliminado e.printStackTrace() y System.out.println
             model.addAttribute("errorMessage", "Error al cargar la página de Ventas: " + e.getMessage());
             return "error";
         }
@@ -72,13 +70,9 @@ public class VentaController {
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         Venta venta = new Venta();
-        // Inicializar las relaciones para evitar NPE en Thymeleaf en el formulario
         venta.setCliente(new Cliente());
         venta.setIgvEntity(new Igv());
         venta.setDetalleVentas(new ArrayList<>());
-        // En una app real, el usuario debería obtenerse del contexto de seguridad
-        // venta.setUsuario(new Usuario()); // No es necesario inicializar aquí para el formulario
-
         model.addAttribute("venta", venta);
         model.addAttribute("clientes", clienteService.listarTodosLosClientesActivos());
         model.addAttribute("productos", productoService.listarProductosActivos());
@@ -99,7 +93,6 @@ public class VentaController {
 
         if (ventaOpt.isPresent()) {
             venta = ventaOpt.get();
-            // Asegúrate de que las relaciones no sean nulas para el formulario
             if (venta.getCliente() == null) venta.setCliente(new Cliente());
             if (venta.getIgvEntity() == null) venta.setIgvEntity(new Igv());
             if (venta.getDetalleVentas() == null) venta.setDetalleVentas(new ArrayList<>());
@@ -161,10 +154,7 @@ public class VentaController {
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", "Error interno al guardar la Venta: " + e.getMessage());
-            // Se ha eliminado e.printStackTrace()
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
-    // NO HAY MÉTODO DE ELIMINAR PARA VENTAS SEGÚN LOS REQUISITOS
 }
