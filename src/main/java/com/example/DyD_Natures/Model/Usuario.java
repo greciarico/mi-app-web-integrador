@@ -48,8 +48,6 @@ public class Usuario {
     public Usuario() {
     }
 
-    // Getters y setters
-
     public Integer getIdUsuario() {
         return idUsuario;
     }
