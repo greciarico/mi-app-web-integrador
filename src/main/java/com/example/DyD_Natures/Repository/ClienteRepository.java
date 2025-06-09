@@ -33,7 +33,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
      * @return Lista de clientes filtrados.
      */
     @Query("SELECT c FROM Cliente c WHERE " +
-            "( :idRolCliente IS NULL OR c.tipoCliente.idRolCliente = :idRolCliente ) AND " + // CAMBIADO: c.tipoCliente.idRolCliente
+            "( :idRolCliente IS NULL OR c.tipoCliente.idRolCliente = :idRolCliente ) AND " +
             "( :searchTerm IS NULL OR :searchTerm = '' OR " +
             "  LOWER(c.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "  LOWER(c.apPaterno) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -42,11 +42,11 @@ public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
             "  LOWER(c.ruc) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "  LOWER(c.razonSocial) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "  LOWER(c.nombreComercial) LIKE LOWER(CONCAT('%', :searchTerm, '%')) ) AND " +
-            "c.estado <> 2") // Excluir clientes con estado 2 (eliminado lógicamente)
+            "c.estado <> 2")
     List<Cliente> findFilteredClientes(
-            @Param("idRolCliente") Integer idRolCliente, // CAMBIADO: idRolCliente
+            @Param("idRolCliente") Integer idRolCliente,
             @Param("searchTerm") String searchTerm);
 
-    // Método para obtener clientes que no tienen estado 2 (eliminado lógicamente)
+    // Método para obtener clientes que no tienen estado 2 
     List<Cliente> findByEstadoIsNot(Byte estado);
 }
