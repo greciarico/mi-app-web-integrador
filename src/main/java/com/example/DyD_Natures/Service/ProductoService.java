@@ -29,7 +29,6 @@ public class ProductoService {
      * @return Lista de productos activos/inactivos (no eliminados).
      */
     public List<Producto> listarProductosActivos() {
-        // CAMBIO CLAVE AQUÍ: Llamar al nuevo método con @Query y pasar un Byte
         return productoRepository.findByEstadoExcluding((byte) 2);
     }
 
@@ -51,7 +50,7 @@ public class ProductoService {
      */
     public Producto guardarProducto(Producto producto) {
         if (producto.getIdProducto() == null) {
-            producto.setEstado((byte) 1); // Nuevo producto por defecto es Activo (Byte)
+            producto.setEstado((byte) 1); // Nuevo producto por defecto es Activo
             producto.setFechaRegistro(LocalDate.now()); // Establecer fecha de registro si es nuevo
         }
         return productoRepository.save(producto);
@@ -65,7 +64,7 @@ public class ProductoService {
         Optional<Producto> productoOpt = productoRepository.findById(id);
         if (productoOpt.isPresent()) {
             Producto producto = productoOpt.get();
-            producto.setEstado((byte) 2); // Cambiar estado a 2 = eliminado lógicamente (Byte)
+            producto.setEstado((byte) 2); // Cambiar estado a 2 = eliminado lógicamente
             productoRepository.save(producto);
         }
     }
