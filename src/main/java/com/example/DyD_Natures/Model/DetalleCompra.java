@@ -2,7 +2,7 @@ package com.example.DyD_Natures.Model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import com.fasterxml.jackson.annotation.JsonBackReference; // Importar
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "detalle_compra")
@@ -13,8 +13,6 @@ public class DetalleCompra {
     @Column(name = "id_detalle_compra", nullable = false)
     private Integer idDetalleCompra;
 
-    // AÑADIDO: @JsonBackReference para manejar la referencia bidireccional
-    // Esta es la "parte trasera" de la relación, que Jackson va a ignorar para evitar bucles.
     @JsonBackReference
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_compra", nullable = false,
