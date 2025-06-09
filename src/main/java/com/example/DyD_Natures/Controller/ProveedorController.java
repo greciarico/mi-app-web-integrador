@@ -9,14 +9,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.time.LocalDate; // Asegúrate de que esta importación esté presente si usas LocalDate
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Controller
-@RequestMapping("/proveedores") // ¡CAMBIO AQUÍ! Ruta base ahora es /proveedores
+@RequestMapping("/proveedores")
 public class ProveedorController {
 
     @Autowired
@@ -48,7 +48,8 @@ public class ProveedorController {
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         model.addAttribute("proveedor", new Proveedor());
-        return "fragments/proveedores_form_modal :: formContent"; // Asumiendo un fragmento para el formulario
+        // Asegúrate de que este fragmento existe y es correcto
+        return "fragments/proveedores_form_modal :: formContent";
     }
 
     @GetMapping("/editar/{id}")
@@ -56,21 +57,30 @@ public class ProveedorController {
         Optional<Proveedor> proveedorOpt = proveedorService.obtenerProveedorPorId(id);
         if (proveedorOpt.isPresent()) {
             model.addAttribute("proveedor", proveedorOpt.get());
+            // Asegúrate de que este fragmento existe y es correcto
             return "fragments/proveedores_form_modal :: formContent";
         }
-        model.addAttribute("proveedor", new Proveedor()); // En caso de no encontrarlo
+        // En caso de no encontrarlo, puedes redirigir a un error o crear uno nuevo vacío
+        model.addAttribute("proveedor", new Proveedor());
         return "fragments/proveedores_form_modal :: formContent";
     }
 
+    /**
+     * Guarda un proveedor nuevo o actualiza uno existente.
+     * Recibe los datos del proveedor como un objeto JSON en el cuerpo de la solicitud.
+     * @param proveedor El objeto Proveedor recibido del frontend (JSON).
+     * @return ResponseEntity con el estado de la operación y un mensaje.
+     */
     @PostMapping("/guardar")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> guardarProveedor(@ModelAttribute Proveedor proveedor) {
+    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) { // <--- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones básicas
+            // Validaciones básicas (estas validaciones ahora deberían recibir los datos correctos del JSON)
             if (proveedor.getRuc() == null || proveedor.getRuc().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "El RUC es obligatorio.");
+                // Puedes añadir un HttpStatus.BAD_REQUEST para indicar un error de cliente
                 return ResponseEntity.badRequest().body(response);
             }
             if (proveedor.getNombreComercial() == null || proveedor.getNombreComercial().isEmpty()) {
@@ -95,37 +105,49 @@ public class ProveedorController {
             if (existingProveedorByRuc.isPresent() && (proveedor.getIdProveedor() == null || !existingProveedorByRuc.get().getIdProveedor().equals(proveedor.getIdProveedor()))) {
                 response.put("status", "error");
                 response.put("message", "El RUC ya está registrado.");
-                return ResponseEntity.badRequest().body(response);
+                return ResponseEntity.badRequest().body(response); // O HttpStatus.CONFLICT (409) para indicar duplicado
             }
 
+            // Si las validaciones pasan, procede a guardar
             proveedorService.guardarProveedor(proveedor);
             response.put("status", "success");
             response.put("message", "Proveedor guardado exitosamente!");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            // Captura cualquier otra excepción inesperada
             response.put("status", "error");
             response.put("message", "Error al guardar el proveedor: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    @GetMapping("/eliminar/{id}")
+    /**
+     * Realiza una eliminación lógica (cambio de estado) de un proveedor.
+     * @param id El ID del proveedor a inactivar.
+     * @return ResponseEntity con el estado de la operación y un mensaje.
+     */
+    @PostMapping("/inactivar/{id}") // Cambiado a POST, como lo usas en el frontend para inactivar
     @ResponseBody
-    public ResponseEntity<Map<String, String>> eliminarProveedor(@PathVariable("id") Integer id) {
+    public ResponseEntity<Map<String, String>> inactivarProveedor(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
         try {
-            proveedorService.eliminarProveedor(id); // Llama al método de soft delete
+            proveedorService.eliminarProveedor(id); // Este método ya cambia el estado a 2 (inactivo/eliminado lógico)
             response.put("status", "success");
-            response.put("message", "Proveedor eliminado exitosamente!");
+            response.put("message", "Proveedor inactivado exitosamente!");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("message", "Error al eliminar el proveedor: " + e.getMessage());
+            response.put("message", "Error al inactivar el proveedor: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    // Endpoint para verificar la unicidad del RUC
+    /**
+     * Endpoint para verificar la unicidad del RUC.
+     * @param ruc El número de RUC a verificar.
+     * @param idProveedor El ID del proveedor a excluir de la búsqueda (null para nuevas creaciones).
+     * @return ResponseEntity con un mapa que indica si el RUC ya existe.
+     */
     @GetMapping("/checkRuc")
     @ResponseBody
     public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
@@ -136,4 +158,3 @@ public class ProveedorController {
         return ResponseEntity.ok(response);
     }
 }
-
