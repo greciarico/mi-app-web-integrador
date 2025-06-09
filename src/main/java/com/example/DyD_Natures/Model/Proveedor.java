@@ -38,11 +38,8 @@ public class Proveedor {
     @Column(name = "estado", nullable = false)
     private Byte estado = 1;
 
-    // Constructor vacío para JPA
     public Proveedor() {
     }
-
-    // Getters y setters
 
     public Integer getIdProveedor() {
         return idProveedor;
