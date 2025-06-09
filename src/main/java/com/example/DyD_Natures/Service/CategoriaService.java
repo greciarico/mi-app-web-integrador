@@ -19,7 +19,6 @@ public class CategoriaService {
      * @return Lista de categorías activas/inactivas (no eliminadas).
      */
     public List<Categoria> listarCategoriasActivas() {
-        // CAMBIO CLAVE AQUÍ: Llama al nuevo método y pasa un Byte
         return categoriaRepository.findByEstadoExcluding((byte) 2);
     }
 
@@ -40,7 +39,7 @@ public class CategoriaService {
      */
     public Categoria guardarCategoria(Categoria categoria) {
         if (categoria.getIdCategoria() == null) {
-            categoria.setEstado((byte) 1); // Nuevo por defecto es Activo (Byte)
+            categoria.setEstado((byte) 1);
         }
         return categoriaRepository.save(categoria);
     }
@@ -53,7 +52,7 @@ public class CategoriaService {
         Optional<Categoria> categoriaOpt = categoriaRepository.findById(id);
         if (categoriaOpt.isPresent()) {
             Categoria categoria = categoriaOpt.get();
-            categoria.setEstado((byte) 2); // CAMBIO CLAVE: Establece el estado a 2 (eliminado lógicamente)
+            categoria.setEstado((byte) 2);
             categoriaRepository.save(categoria);
         }
     }
