@@ -11,7 +11,7 @@ public class LoginController {
 
     @GetMapping("/login")
     public String mostrarLogin() {
-        return "login";  // templates/login.html
+        return "login";
     }
 
 }
