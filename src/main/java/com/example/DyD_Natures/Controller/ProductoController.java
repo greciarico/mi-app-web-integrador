@@ -22,10 +22,6 @@ public class ProductoController {
 
     @Autowired
     private ProductoService productoService;
-
-    // @Autowired
-    // private CategoriaService categoriaService; // Descomentar si usas un servicio separado para Categoría
-
     /**
      * Muestra la vista principal de productos.
      * Carga los productos activos/inactivos (no eliminados) para que el JavaScript los filtre.
@@ -109,9 +105,8 @@ public class ProductoController {
             }
 
 
-            // Cargar la entidad Categoria completa si solo viene el ID del formulario
             if (producto.getCategoria() != null && producto.getCategoria().getIdCategoria() != null) {
-                Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(producto.getCategoria().getIdCategoria()); // O categoriaService.obtenerCategoriaPorId
+                Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(producto.getCategoria().getIdCategoria());
                 if (categoriaOpt.isPresent()) {
                     producto.setCategoria(categoriaOpt.get());
                 } else {
