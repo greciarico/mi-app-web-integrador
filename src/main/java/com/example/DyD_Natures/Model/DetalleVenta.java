@@ -1,7 +1,9 @@
 package com.example.DyD_Natures.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference; // Importar JsonBackReference
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Entity
 @Table(name = "detalle_venta")
@@ -12,12 +14,15 @@ public class DetalleVenta {
     @Column(name = "id_detalle_venta", nullable = false)
     private Integer idDetalleVenta;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    // CRÍTICO: @JsonBackReference para la parte "hija" de la relación
+    // CRÍTICO: FetchType.LAZY para evitar carga innecesaria y StackOverflowError
+    @JsonBackReference
+    @ManyToOne(fetch = FetchType.LAZY) // DEBE ser LAZY aquí
     @JoinColumn(name = "id_venta", nullable = false,
             foreignKey = @ForeignKey(name = "fk_detalle_venta_venta1"))
     private Venta venta;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER) // Se mantiene EAGER para Producto (opcional, pero común)
     @JoinColumn(name = "id_producto", nullable = false,
             foreignKey = @ForeignKey(name = "fk_detalle_venta_producto1"))
     private Producto producto;
@@ -31,56 +36,45 @@ public class DetalleVenta {
     @Column(name = "total", nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    // CONSTRUCTOR VACÍO (ESENCIAL PARA JACKSON)
     public DetalleVenta() {
     }
 
-    public Integer getIdDetalleVenta() {
-        return idDetalleVenta;
-    }
-
-    public void setIdDetalleVenta(Integer idDetalleVenta) {
+    // CONSTRUCTOR CON PARÁMETROS (opcional, pero útil)
+    public DetalleVenta(Integer idDetalleVenta, Venta venta, Producto producto, Integer cantidad, BigDecimal precioUnitario, BigDecimal total) {
         this.idDetalleVenta = idDetalleVenta;
-    }
-
-    public Venta getVenta() {
-        return venta;
-    }
-
-    public void setVenta(Venta venta) {
         this.venta = venta;
-    }
-
-    public Producto getProducto() {
-        return producto;
-    }
-
-    public void setProducto(Producto producto) {
         this.producto = producto;
-    }
-
-    public Integer getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(Integer cantidad) {
         this.cantidad = cantidad;
-    }
-
-    public BigDecimal getPrecioUnitario() {
-        return precioUnitario;
-    }
-
-    public void setPrecioUnitario(BigDecimal precioUnitario) {
         this.precioUnitario = precioUnitario;
-    }
-
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
         this.total = total;
     }
+
+    // --- GETTERS Y SETTERS ---
+
+    public Integer getIdDetalleVenta() { return idDetalleVenta; }
+    public void setIdDetalleVenta(Integer idDetalleVenta) { this.idDetalleVenta = idDetalleVenta; }
+    public Venta getVenta() { return venta; }
+    public void setVenta(Venta venta) { this.venta = venta; }
+    public Producto getProducto() { return producto; }
+    public void setProducto(Producto producto) { this.producto = producto; }
+    public Integer getCantidad() { return cantidad; }
+    public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
+    public BigDecimal getPrecioUnitario() { return precioUnitario; }
+    public void setPrecioUnitario(BigDecimal precioUnitario) { this.precioUnitario = precioUnitario; }
+    public BigDecimal getTotal() { return total; }
+    public void setTotal(BigDecimal total) { this.total = total; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DetalleVenta that = (DetalleVenta) o;
+        return Objects.equals(idDetalleVenta, that.idDetalleVenta);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(idDetalleVenta);
+    }
 }
-
-
