@@ -9,7 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate; // Asegúrate de que esta importación esté presente si usas LocalDate
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +31,7 @@ public class ProveedorController {
     @GetMapping
     public String listarProveedores(Model model) {
         model.addAttribute("proveedores", proveedorService.listarProveedoresActivos());
-        return "proveedores"; // Asegúrate de que esto apunta a tu archivo proveedores.html
+        return "proveedores";
     }
 
     /**
@@ -48,7 +48,6 @@ public class ProveedorController {
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         model.addAttribute("proveedor", new Proveedor());
-        // Asegúrate de que este fragmento existe y es correcto
         return "fragments/proveedores_form_modal :: formContent";
     }
 
@@ -57,10 +56,8 @@ public class ProveedorController {
         Optional<Proveedor> proveedorOpt = proveedorService.obtenerProveedorPorId(id);
         if (proveedorOpt.isPresent()) {
             model.addAttribute("proveedor", proveedorOpt.get());
-            // Asegúrate de que este fragmento existe y es correcto
             return "fragments/proveedores_form_modal :: formContent";
         }
-        // En caso de no encontrarlo, puedes redirigir a un error o crear uno nuevo vacío
         model.addAttribute("proveedor", new Proveedor());
         return "fragments/proveedores_form_modal :: formContent";
     }
@@ -73,14 +70,13 @@ public class ProveedorController {
      */
     @PostMapping("/guardar")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) { // <--- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
+    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones básicas (estas validaciones ahora deberían recibir los datos correctos del JSON)
+            // Validaciones básicas
             if (proveedor.getRuc() == null || proveedor.getRuc().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "El RUC es obligatorio.");
-                // Puedes añadir un HttpStatus.BAD_REQUEST para indicar un error de cliente
                 return ResponseEntity.badRequest().body(response);
             }
             if (proveedor.getNombreComercial() == null || proveedor.getNombreComercial().isEmpty()) {
@@ -98,14 +94,12 @@ public class ProveedorController {
                 response.put("message", "La Dirección es obligatoria.");
                 return ResponseEntity.badRequest().body(response);
             }
-            // Puedes añadir más validaciones para teléfono y correo si son obligatorios en tu negocio
-
             // Validación de RUC único
             Optional<Proveedor> existingProveedorByRuc = proveedorService.obtenerProveedorPorRuc(proveedor.getRuc());
             if (existingProveedorByRuc.isPresent() && (proveedor.getIdProveedor() == null || !existingProveedorByRuc.get().getIdProveedor().equals(proveedor.getIdProveedor()))) {
                 response.put("status", "error");
                 response.put("message", "El RUC ya está registrado.");
-                return ResponseEntity.badRequest().body(response); // O HttpStatus.CONFLICT (409) para indicar duplicado
+                return ResponseEntity.badRequest().body(response);
             }
 
             // Si las validaciones pasan, procede a guardar
@@ -126,7 +120,7 @@ public class ProveedorController {
      * @param id El ID del proveedor a inactivar.
      * @return ResponseEntity con el estado de la operación y un mensaje.
      */
-    @PostMapping("/inactivar/{id}") // Cambiado a POST, como lo usas en el frontend para inactivar
+    @PostMapping("/inactivar/{id}")
     @ResponseBody
     public ResponseEntity<Map<String, String>> inactivarProveedor(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
