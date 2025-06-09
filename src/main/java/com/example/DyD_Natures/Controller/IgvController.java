@@ -56,7 +56,6 @@ public class IgvController {
     public ResponseEntity<Map<String, String>> guardarIgv(@RequestBody Igv igv) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones de negocio en el backend (se recomienda hacerlas aquí también)
             if (igv.getIgv() == null || igv.getIgv().compareTo(BigDecimal.ZERO) <= 0) {
                 response.put("status", "error");
                 response.put("message", "El valor del IGV es obligatorio y debe ser mayor que cero.");
@@ -66,9 +65,9 @@ public class IgvController {
             igv.setIgv(igv.getIgv().setScale(2, BigDecimal.ROUND_HALF_UP));
 
             if (igv.getIdIgv() == null) {
-                igv.setEstado((byte) 1); // Por defecto Activo (Byte)
+                igv.setEstado((byte) 1);
                 igv.setFechaRegistro(LocalDate.now());
-            } else { // Si es edición, mantener la fecha de registro existente
+            } else { 
                 Optional<Igv> existingIgvOpt = igvService.obtenerIgvPorId(igv.getIdIgv());
                 existingIgvOpt.ifPresent(existingIgv -> igv.setFechaRegistro(existingIgv.getFechaRegistro()));
             }
