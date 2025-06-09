@@ -32,8 +32,6 @@ public class VentaService {
     @Autowired
     private IgvRepository igvRepository;
 
-    // --- Métodos de Lectura ---
-
     @Transactional(readOnly = true)
     public List<Venta> listarVentas() {
         List<Venta> ventas = ventaRepository.findAll();
@@ -46,7 +44,7 @@ public class VentaService {
         return ventaOpt;
     }
 
-    // --- Método de Guardado / Actualización (CRÍTICO) ---
+    // --- Método de Guardado / Actualización 
 
     @Transactional
     public Venta guardarVenta(Venta ventaForm) {
@@ -121,7 +119,6 @@ public class VentaService {
                 throw new IllegalArgumentException("Detalle de venta inválido: Cantidad debe ser mayor a 0.");
             }
 
-            // CORREGIDO: 'incomingDetlle' a 'incomingDetalle'
             Producto productoExistente = productoRepository.findById(incomingDetalle.getProducto().getIdProducto())
                     .orElseThrow(() -> new RuntimeException("Producto con ID " + incomingDetalle.getProducto().getIdProducto() + " no encontrado."));
 
