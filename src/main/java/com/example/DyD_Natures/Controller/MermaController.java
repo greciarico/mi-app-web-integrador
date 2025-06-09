@@ -3,7 +3,7 @@ package com.example.DyD_Natures.Controller;
 import com.example.DyD_Natures.Model.Merma;
 import com.example.DyD_Natures.Model.Producto;
 import com.example.DyD_Natures.Service.MermaService;
-import com.example.DyD_Natures.Service.ProductoService; // Para obtener productos para el dropdown
+import com.example.DyD_Natures.Service.ProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,14 +18,14 @@ import java.util.Map;
 import java.util.Optional;
 
 @Controller
-@RequestMapping("/merma") // CAMBIADO: Ruta base para Merma ahora es /merma
+@RequestMapping("/merma")
 public class MermaController {
 
     @Autowired
     private MermaService mermaService;
 
     @Autowired
-    private ProductoService productoService; // Para poblar el select de productos
+    private ProductoService productoService;
 
     /**
      * Muestra la vista principal de Merma.
@@ -35,7 +35,7 @@ public class MermaController {
     @GetMapping
     public String listarMermas(Model model) {
         model.addAttribute("mermas", mermaService.listarMermas());
-        return "merma"; // Asegúrate de que esto apunta a tu archivo merma.html
+        return "merma";
     }
 
     /**
@@ -63,8 +63,8 @@ public class MermaController {
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         model.addAttribute("merma", new Merma());
-        model.addAttribute("productos", productoService.listarProductosActivos()); // Productos para el select
-        return "fragments/merma_form_modal :: formContent"; // Asumiendo un fragmento para el formulario
+        model.addAttribute("productos", productoService.listarProductosActivos());
+        return "fragments/merma_form_modal :: formContent";
     }
 
     @GetMapping("/editar/{id}")
@@ -73,9 +73,9 @@ public class MermaController {
         if (mermaOpt.isPresent()) {
             model.addAttribute("merma", mermaOpt.get());
         } else {
-            model.addAttribute("merma", new Merma()); // En caso de no encontrarlo
+            model.addAttribute("merma", new Merma());
         }
-        model.addAttribute("productos", productoService.listarProductosActivos()); // Productos para el select
+        model.addAttribute("productos", productoService.listarProductosActivos());
         return "fragments/merma_form_modal :: formContent";
     }
 
@@ -96,16 +96,14 @@ public class MermaController {
                 return ResponseEntity.badRequest().body(response);
             }
             // La fecha de registro se establecerá automáticamente en el servicio para nuevos registros.
-            // La descripción es opcional.
-
             mermaService.guardarMerma(merma);
             response.put("status", "success");
             response.put("message", "Registro de Merma guardado exitosamente y stock del producto actualizado!");
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) { // Captura las excepciones de stock insuficiente, etc.
+        } catch (RuntimeException e) {
             response.put("status", "error");
             response.put("message", "Error al guardar el registro de Merma: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response); // BAD_REQUEST para errores de negocio
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", "Error interno al guardar el registro de Merma: " + e.getMessage());
@@ -118,7 +116,7 @@ public class MermaController {
     public ResponseEntity<Map<String, String>> eliminarMerma(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
         try {
-            mermaService.eliminarMerma(id); // Llama al método de eliminación física y reposición de stock
+            mermaService.eliminarMerma(id);
             response.put("status", "success");
             response.put("message", "Registro de Merma eliminado exitosamente y stock del producto repuesto!");
             return ResponseEntity.ok(response);
