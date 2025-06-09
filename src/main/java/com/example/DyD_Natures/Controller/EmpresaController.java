@@ -25,7 +25,6 @@ public class EmpresaController {
     public String mostrarInformacionEmpresa(Model model) {
         Optional<Empresa> empresaOpt = empresaService.obtenerInformacionEmpresa();
         Empresa empresa = empresaOpt.orElse(new Empresa()); // Si no existe, crea una nueva instancia
-        // CAMBIO CLAVE: Si es una nueva empresa, inicializa fechaRegistro aquí para el frontend
         if (empresa.getIdEmpresa() == null) {
             empresa.setFechaRegistro(LocalDate.now()); // Establece la fecha actual por defecto
         }
@@ -43,7 +42,6 @@ public class EmpresaController {
     public String mostrarFormularioEmpresa(Model model) {
         Optional<Empresa> empresaOpt = empresaService.obtenerInformacionEmpresa();
         Empresa empresa = empresaOpt.orElse(new Empresa());
-        // CAMBIO CLAVE: Si es una nueva empresa, inicializa fechaRegistro aquí para el fragmento del formulario
         if (empresa.getIdEmpresa() == null) {
             empresa.setFechaRegistro(LocalDate.now()); // Asegura que siempre haya una fecha para el th:value
         }
