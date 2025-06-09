@@ -53,8 +53,6 @@ public class Cliente {
     public Cliente() {
     }
 
-    // Getters y setters
-
     public Integer getIdCliente() {
         return idCliente;
     }
