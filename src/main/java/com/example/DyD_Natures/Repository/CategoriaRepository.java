@@ -2,8 +2,8 @@ package com.example.DyD_Natures.Repository;
 
 import com.example.DyD_Natures.Model.Categoria;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query; // Importar
-import org.springframework.data.repository.query.Param; // Importar
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,7 +12,6 @@ import java.util.Optional;
 @Repository
 public interface CategoriaRepository extends JpaRepository<Categoria, Integer> {
 
-    // CAMBIO CLAVE AQUÍ: Usamos @Query explícita para evitar problemas con Byte y "NOT"
     @Query("SELECT c FROM Categoria c WHERE c.estado <> :estadoExcluido")
     List<Categoria> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido);
 
