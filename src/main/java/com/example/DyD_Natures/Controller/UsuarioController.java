@@ -40,17 +40,15 @@ public class UsuarioController {
     @GetMapping
     public String listarUsuarios(Model model) {
         model.addAttribute("usuarios", usuarioService.listarUsuariosActivos());
-        model.addAttribute("roles", rolUsuarioService.listarRoles()); // Necesario para el modal incluso si no se muestra inicialmente
-        return "usuarios"; // Devuelve la vista principal usuarios.html
+        model.addAttribute("roles", rolUsuarioService.listarRoles());
+        return "usuarios";
     }
 
     @GetMapping("/all")
     @ResponseBody
     public List<Usuario> getAllUsersJson() {
-        return usuarioService.listarUsuariosActivos(); // Asegúrate de llamar a este método
+        return usuarioService.listarUsuariosActivos();
     }
-
-
     /**
      * Muestra el formulario para crear un nuevo usuario.
      * Devuelve solo el fragmento del formulario para ser cargado vía AJAX en el modal.
@@ -60,7 +58,7 @@ public class UsuarioController {
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         Usuario usuario = new Usuario();
-        usuario.setRolUsuario(new RolUsuario()); // Inicializa rolUsuario para evitar NPE
+        usuario.setRolUsuario(new RolUsuario());
         model.addAttribute("usuario", usuario);
         model.addAttribute("roles", rolUsuarioService.listarRoles());
         // Devuelve el fragmento del formulario dentro del modal
@@ -83,8 +81,6 @@ public class UsuarioController {
             // Devuelve el fragmento del formulario dentro del modal
             return "fragments/usuarios_form_modal :: formContent";
         }
-        // Si el usuario no se encuentra, puedes devolver un fragmento de error o manejarlo en el JS del cliente
-        // Por ahora, devolvemos un formulario vacío con un mensaje de error (esto es una simplificación)
         model.addAttribute("usuario", new Usuario());
         model.addAttribute("roles", rolUsuarioService.listarRoles());
         model.addAttribute("mensajeError", "Usuario no encontrado.");
@@ -102,10 +98,6 @@ public class UsuarioController {
     public ResponseEntity<Map<String, String>> guardarUsuario(@ModelAttribute Usuario usuario) {
         Map<String, String> response = new HashMap<>();
         try {
-            // =======================================================================
-            // INICIO DE LAS VALIDACIONES DE DNI A NIVEL DE SERVIDOR (LO QUE DEBES AGREGAR)
-            // =======================================================================
-
             // 1. Validar que el DNI no esté vacío
             if (usuario.getDni() == null || usuario.getDni().isEmpty()) {
                 response.put("status", "error");
@@ -114,7 +106,6 @@ public class UsuarioController {
             }
 
             // 2. Validar que el DNI no esté ya registrado por otro usuario
-            // Obtener el usuario existente por DNI
             Optional<Usuario> existingUserByDni = usuarioService.obtenerUsuarioPorDni(usuario.getDni());
 
             // Si se encontró un usuario con ese DNI Y no es el mismo usuario que estamos editando
@@ -123,12 +114,6 @@ public class UsuarioController {
                 response.put("message", "El DNI ya está registrado por otro usuario.");
                 return ResponseEntity.badRequest().body(response);
             }
-
-            // =======================================================================
-            // FIN DE LAS VALIDACIONES DE DNI
-            // =======================================================================
-
-
             // Establece la fecha de registro solo si es un nuevo usuario (idUsuario es null)
             if (usuario.getFechaRegistro() == null && usuario.getIdUsuario() == null) {
                 usuario.setFechaRegistro(LocalDate.now());
@@ -163,7 +148,7 @@ public class UsuarioController {
      * @return ResponseEntity con un mensaje JSON.
      */
     @GetMapping("/eliminar/{id}")
-    @ResponseBody // Indica que el método devuelve directamente el cuerpo de la respuesta (JSON en este caso)
+    @ResponseBody
     public ResponseEntity<Map<String, String>> eliminarUsuario(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
         try {
@@ -184,7 +169,7 @@ public class UsuarioController {
      * @param idUsuario ID del usuario actual (opcional, para exclusión en ediciones).
      * @return ResponseEntity con un JSON indicando si el DNI existe.
      */
-    @GetMapping("/checkDni") // Asegúrate de que esta anotación y el nombre del método sean correctos
+    @GetMapping("/checkDni")
     @ResponseBody
     public ResponseEntity<Map<String, Boolean>> checkDni(@RequestParam String dni,
                                                          @RequestParam(required = false) Integer idUsuario) {
