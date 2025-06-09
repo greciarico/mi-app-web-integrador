@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface VentaRepository extends JpaRepository<Venta, Integer> {
-    // Consultas personalizadas para ventas si se necesitan
 }
 
