@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="viewContent">
+    <div class="modal-header">
+        <h4 class="modal-title">Detalles de Venta #<span th:text="${venta.idVenta}"></span></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeViewModal()">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>ID Venta:</strong> <span th:text="${venta.idVenta}"></span></p>
+                <p><strong>Fecha Registro:</strong> <span th:text="${#temporals.format(venta.fechaRegistro, 'dd/MM/yyyy')}"></span></p>
+                <p><strong>Cliente:</strong>
+                    <span th:if="${venta.cliente != null}">
+                        <span th:text="${venta.cliente.razonSocial ?: (venta.cliente.nombre + ' ' + venta.cliente.apPaterno + ' ' + venta.cliente.apMaterno)}"></span>
+                    </span>
+                    <span th:unless="${venta.cliente != null}">N/A</span>
+                </p>
+                <p><strong>Usuario:</strong> <span th:text="${venta.usuario?.nombre ?: 'N/A'}"></span></p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Tipo Documento:</strong> <span th:text="${venta.tipoDocumento}"></span></p>
+                <p><strong>N° Documento:</strong> <span th:text="${venta.numDocumento}"></span></p>
+                <p><strong>Tipo Pago:</strong> <span th:text="${venta.tipoPago}"></span></p>
+                <p><strong>IGV Aplicado:</strong> <span th:text="${venta.igvEntity?.igv ?: 'N/A'} + '%'"></span></p>
+            </div>
+        </div>
+
+        <hr/>
+        <h5>Productos de la Venta</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="detalle : ${venta.detalleVentas}">
+                    <td th:text="${detalle.producto?.nombre ?: 'Producto Desconocido'}"></td>
+                    <td th:text="${detalle.cantidad}"></td>
+                    <td th:text="${#numbers.formatDecimal(detalle.precioUnitario, 0, 'COMMA', 2, 'POINT')}"></td>
+                    <td th:text="${#numbers.formatDecimal(detalle.total, 0, 'COMMA', 2, 'POINT')}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6 offset-md-6 text-right">
+                <p><strong>Subtotal:</strong> S/ <span th:text="${#numbers.formatDecimal(venta.total / (1 + (venta.igvEntity?.igv ?: 0)/100), 0, 'COMMA', 2, 'POINT')}"></span></p>
+                <p><strong>Monto IGV:</strong> S/ <span th:text="${#numbers.formatDecimal(venta.igv, 0, 'COMMA', 2, 'POINT')}"></span></p>
+                <h4><strong>Total Final:</strong> S/ <span th:text="${#numbers.formatDecimal(venta.total, 0, 'COMMA', 2, 'POINT')}"></span></h4>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer justify-content-end">
+        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="closeViewModal()">Cerrar</button>
+    </div>
+</div>
+</body>
+</html>
