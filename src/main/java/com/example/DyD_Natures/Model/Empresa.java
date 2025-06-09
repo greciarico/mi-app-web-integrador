@@ -29,11 +29,8 @@ public class Empresa {
     @Column(name = "razon_social", nullable = false, length = 200)
     private String razonSocial;
 
-    // Constructor vacío obligatorio para JPA
     public Empresa() {
     }
-
-    // Getters y setters
 
     public Integer getIdEmpresa() {
         return idEmpresa;
