@@ -1,6 +1,6 @@
 package com.example.DyD_Natures.Model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference; // Importar JsonManagedReference
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -50,16 +50,12 @@ public class Venta {
             foreignKey = @ForeignKey(name = "fk_venta_igv"))
     private Igv igvEntity;
 
-    // AHORA SÍ: @JsonManagedReference para la colección de detalles en Venta.
-    // También cambiamos a FetchType.LAZY para mejor rendimiento y evitar StackOverflowError.
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<DetalleVenta> detalleVentas = new ArrayList<>();
 
     public Venta() {
     }
-
-    // Getters y setters
 
     public Integer getIdVenta() { return idVenta; }
     public void setIdVenta(Integer idVenta) { this.idVenta = idVenta; }
@@ -82,30 +78,26 @@ public class Venta {
     public Igv getIgvEntity() { return igvEntity; }
     public void setIgvEntity(Igv igvEntity) { this.igvEntity = igvEntity; }
 
-    // Importante: Jackson necesita un setter para deserializar la lista.
-    // También es buena práctica manejar nulos y asegurar que los detalles tengan la venta padre.
     public List<DetalleVenta> getDetalleVentas() {
         return detalleVentas;
     }
 
     public void setDetalleVentas(List<DetalleVenta> detalleVentas) {
-        // Limpiar la lista existente antes de añadir los nuevos,
-        // para que JPA maneje correctamente los orphanRemoval (si aplica)
         if (this.detalleVentas == null) {
             this.detalleVentas = new ArrayList<>();
         } else {
-            this.detalleVentas.clear(); // Limpiar solo si ya existe
+            this.detalleVentas.clear();
         }
         if (detalleVentas != null) {
             for (DetalleVenta detalle : detalleVentas) {
-                detalle.setVenta(this); // Asegurar que cada detalle tenga la referencia a esta venta
+                detalle.setVenta(this);
                 this.detalleVentas.add(detalle);
             }
         }
     }
 
 
-    // Métodos para agregar/eliminar detalles individualmente (buenas prácticas)
+    // Métodos para agregar/eliminar detalles individualmente
     public void addDetalleVenta(DetalleVenta detalle) {
         if (this.detalleVentas == null) {
             this.detalleVentas = new ArrayList<>();
@@ -118,7 +110,7 @@ public class Venta {
 
     public void removeDetalleVenta(DetalleVenta detalle) {
         if (this.detalleVentas != null && this.detalleVentas.remove(detalle)) {
-            detalle.setVenta(null); // Desvincular para evitar problemas de persistencia
+            detalle.setVenta(null);
         }
     }
 
