@@ -29,22 +29,18 @@ public class DocumentoCompraService {
      * Lista todos los documentos de compra, asegurando que las relaciones LAZY se carguen.
      * @return Lista de documentos de compra.
      */
-    @Transactional // <--- Asegura una sesión activa para cargar relaciones LAZY
+    @Transactional
     public List<DocumentoCompra> listarDocumentosCompra() {
         List<DocumentoCompra> documentos = documentoCompraRepository.findAll();
-        // Forzar la inicialización de las colecciones LAZY para evitar LazyInitializationException
         for (DocumentoCompra doc : documentos) {
-            // Accede a una propiedad para forzar carga del proveedor (si no es nulo)
             if (doc.getProveedor() != null) {
-                doc.getProveedor().getRazonSocial(); // Acceder a una propiedad para inicializar
+                doc.getProveedor().getRazonSocial();
             }
-            // Forzar carga de la colección de detalles (si no es nula)
             if (doc.getDetalleCompras() != null) {
-                doc.getDetalleCompras().size(); // Forzar inicialización de la colección
+                doc.getDetalleCompras().size();
                 for (DetalleCompra detalle : doc.getDetalleCompras()) {
-                    // Forzar carga del producto en el detalle (si no es nulo)
                     if (detalle.getProducto() != null) {
-                        detalle.getProducto().getNombre(); // Acceder a una propiedad para inicializar
+                        detalle.getProducto().getNombre();
                     }
                 }
             }
@@ -58,19 +54,17 @@ public class DocumentoCompraService {
      * @return Un Optional que contiene el DocumentoCompra si se encuentra, o vacío si no.
      */
     @Transactional(readOnly = true)
-    // También es crucial que este método sea transaccional para cargar relaciones LAZY
     public Optional<DocumentoCompra> obtenerDocumentoCompraPorId(Integer id) {
         Optional<DocumentoCompra> documentoOpt = documentoCompraRepository.findById(id);
         documentoOpt.ifPresent(doc -> {
-            // Forzar la inicialización de las colecciones LAZY para el documento específico
             if (doc.getProveedor() != null) {
                 doc.getProveedor().getRazonSocial();
             }
             if (doc.getDetalleCompras() != null) {
-                doc.getDetalleCompras().size(); // Forzar inicialización de la colección
+                doc.getDetalleCompras().size();
                 for (DetalleCompra detalle : doc.getDetalleCompras()) {
                     if (detalle.getProducto() != null) {
-                        detalle.getProducto().getNombre(); // Forzar inicialización del producto
+                        detalle.getProducto().getNombre();
                     }
                 }
             }
@@ -85,7 +79,7 @@ public class DocumentoCompraService {
      * @return El DocumentoCompra guardado.
      * @throws RuntimeException si ocurre un error de negocio (ej. producto no encontrado).
      */
-    @Transactional // Asegura que toda la operación sea atómica
+    @Transactional
     public DocumentoCompra guardarDocumentoCompra(DocumentoCompra documentoCompra) {
         // Establecer fecha de registro si es un nuevo documento de compra
         if (documentoCompra.getIdCompra() == null) {
@@ -139,13 +133,11 @@ public class DocumentoCompraService {
                     throw new IllegalArgumentException("Detalle de compra inválido: Precio unitario no puede ser negativo.");
                 }
 
-                // Obtener el producto gestionado (así Hibernate lo adjunta a la sesión)
                 Producto productoExistente = productoRepository.findById(detalle.getProducto().getIdProducto())
                         .orElseThrow(() -> new RuntimeException("Producto con ID " + detalle.getProducto().getIdProducto() + " no encontrado."));
 
-                detalle.setProducto(productoExistente); // Asigna el objeto Producto completo
+                detalle.setProducto(productoExistente);
 
-                // Establecer la referencia bidireccional del detalle al documento de compra
                 detalle.setDocumentoCompra(documentoCompra);
 
                 // Calcular el total del detalle
@@ -156,7 +148,7 @@ public class DocumentoCompraService {
 
                 // Aumentar el stock del producto
                 int oldCantidad = 0;
-                if (detalle.getIdDetalleCompra() != null && documentoCompra.getIdCompra() != null) { // Si es un detalle existente
+                if (detalle.getIdDetalleCompra() != null && documentoCompra.getIdCompra() != null) {
                     Optional<DocumentoCompra> existingDocOpt = documentoCompraRepository.findById(documentoCompra.getIdCompra());
                     if (existingDocOpt.isPresent()) {
                         oldCantidad = existingDocOpt.get().getDetalleCompras().stream()
@@ -178,7 +170,7 @@ public class DocumentoCompraService {
      * @throws EntityNotFoundException Si el documento de compra no se encuentra.
      * @throws RuntimeException Si un producto asociado no se encuentra o el stock se volvería negativo.
      */
-    @Transactional // Asegura que toda la operación sea atómica
+    @Transactional
     public void eliminarDocumentoCompra(Integer id) {
         Optional<DocumentoCompra> documentoOpt = documentoCompraRepository.findById(id);
         if (documentoOpt.isEmpty()) {
@@ -188,11 +180,11 @@ public class DocumentoCompraService {
 
         // Revertir el stock de los productos de los detalles de compra
         if (documento.getDetalleCompras() != null && !documento.getDetalleCompras().isEmpty()) {
-            documento.getDetalleCompras().size(); // Forzar la carga de la colección si es LAZY
+            documento.getDetalleCompras().size();
             for (DetalleCompra detalle : new ArrayList<>(documento.getDetalleCompras())) {
                 if (detalle.getProducto() != null) {
-                    detalle.getProducto().getIdProducto(); // Forzar la carga del producto si es LAZY
-                    updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad()); // LLAMA CON CANTIDAD NEGATIVA PARA RESTAR EL STOCK
+                    detalle.getProducto().getIdProducto();
+                    updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad());
                 }
             }
         }
@@ -213,8 +205,6 @@ public class DocumentoCompraService {
 
         int currentStock = producto.getStock();
         int newStock = currentStock + cantidadChange;
-
-        // Validar stock negativo SOLO si la operación es una RESTA (cantidadChange < 0)
         if (cantidadChange < 0 && newStock < 0) {
             throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre() +
                     ". Stock actual: " + currentStock + ", intento de reducir en: " + (-cantidadChange) +
