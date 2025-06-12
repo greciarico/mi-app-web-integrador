@@ -14,7 +14,7 @@
     <form id="formProveedor" th:object="${proveedor}" th:action="${proveedor.idProveedor == null ? '/proveedores/guardar' : '/proveedores/guardar'}" method="post">
         <div class="modal-body">
             <input type="hidden" th:field="*{idProveedor}" id="idProveedor"/>
-            <input type="hidden" id="fechaRegistro" th:value="${proveedor.fechaRegistro != null ? #temporals.format(proveedor.fechaRegistro, 'yyyy-MM-dd') : ''}"/>
+            <input type="hidden" id="fechaRegistro" th:value="${proveedor.fechaRegistro != null ? #temporals.format(proveedor.fechaRegistro, 'yyyy-MM-dd') : ''}"/>
 
             <div class="form-group">
                 <label for="ruc">RUC</label>
