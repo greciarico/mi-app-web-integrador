@@ -11,7 +11,8 @@
     <form id="formMerma" th:object="${merma}">
         <div class="modal-body">
             <input type="hidden" th:field="*{idMerma}" id="idMerma"/>
-            <input type="hidden" th:field="*{fechaRegistro}" id="fechaRegistro"/>
+            <input type="hidden" id="fechaRegistro"
+                   th:value="${merma.fechaRegistro != null ? #temporals.format(merma.fechaRegistro, 'yyyy-MM-dd') : ''}"/>
 
             <div class="form-group">
                 <label for="idProducto">Producto</label>
