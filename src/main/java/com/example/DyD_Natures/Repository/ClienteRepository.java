@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,11 +43,25 @@ public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
             "  LOWER(c.ruc) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "  LOWER(c.razonSocial) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "  LOWER(c.nombreComercial) LIKE LOWER(CONCAT('%', :searchTerm, '%')) ) AND " +
-            "c.estado <> 2")
+            "c.estado <> 2") // Excluir clientes con estado 2 (eliminado lógicamente)
     List<Cliente> findFilteredClientes(
             @Param("idRolCliente") Integer idRolCliente,
             @Param("searchTerm") String searchTerm);
 
-    // Método para obtener clientes que no tienen estado 2 
+    // Método para obtener clientes que no tienen estado 2 (eliminado lógicamente)
     List<Cliente> findByEstadoIsNot(Byte estado);
+
+
+    /**
+     * Cuenta el número total de clientes registrados en un rango de fechas, excluyendo el estado 2 (fijo).
+     * @param startDate Fecha de inicio (inclusive).
+     * @param endDate Fecha de fin (inclusive).
+     * @return Número de clientes registrados para el período.
+     */
+    @Query("SELECT COUNT(c) FROM Cliente c WHERE c.fechaRegistro BETWEEN :startDate AND :endDate AND c.estado <> 2")
+    Long countByFechaRegistroBetweenAndEstadoIsNot(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate); // <-- ¡Aquí se ha quitado el tercer parámetro!
+
+    // Para contar el total de clientes activos en toda la historia (sin filtro de fecha de registro)
+    @Query("SELECT COUNT(c) FROM Cliente c WHERE c.estado <> 2")
+    Long countAllActiveClients();
 }
