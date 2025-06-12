@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página en Mantenimiento</title>
+    <!-- Incluye aquí tus archivos CSS de Bootstrap u otros, si los tienes -->
+    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/dist/css/adminlte.min.css">
+    <style>
+        body {
+            background-color: #f4f6f9; /* Color de fondo AdminLTE */
+        }
+        .maintenance-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ocupar toda la altura de la ventana */
+            text-align: center;
+            padding: 20px;
+        }
+        .maintenance-icon {
+            font-size: 8rem; /* Tamaño grande para el ícono */
+            color: #ffc107; /* Color amarillo de advertencia */
+            margin-bottom: 20px;
+        }
+        .maintenance-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #343a40; /* Color oscuro para el texto */
+            margin-bottom: 10px;
+        }
+        .maintenance-message {
+            font-size: 1.2rem;
+            color: #6c757d; /* Color gris para el texto */
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini">
+<div class="wrapper">
+    <div class="maintenance-container">
+        <!-- Ícono de mantenimiento -->
+        <i class="fas fa-tools maintenance-icon"></i>
+
+        <!-- Título de la página en mantenimiento -->
+        <h1 class="maintenance-title">¡Página en Mantenimiento!</h1>
+
+        <!-- Mensaje descriptivo -->
+        <p class="maintenance-message">
+            Estamos realizando mejoras importantes para ofrecerte un mejor servicio.
+            Regresaremos muy pronto. Disculpa las molestias.
+        </p>
+
+        <!-- Puedes añadir un tiempo estimado si lo deseas -->
+        <p class="maintenance-message">
+            Agradecemos tu paciencia.
+        </p>
+
+        <!-- Botón de cierre de sesión -->
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="btn btn-danger btn-lg">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- jQuery -->
+<script src="/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/dist/js/adminlte.min.js"></script>
+</body>
+</html>
