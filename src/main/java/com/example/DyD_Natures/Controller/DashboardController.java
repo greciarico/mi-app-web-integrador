@@ -9,12 +9,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 
-@Controller
+@Controller // Este controlador sirve vistas (HTML)
 public class DashboardController {
     @Autowired
     private UsuarioService usuarioService;
 
-    @GetMapping("/")
+    @GetMapping("/") // Mapea la ruta raíz de tu aplicación
     public String home(Model model, Authentication authentication) {
         // Verifica si hay un usuario autenticado
         if (authentication != null && authentication.isAuthenticated()) {
@@ -27,7 +27,6 @@ public class DashboardController {
                 model.addAttribute("currentUser", usuario);
             });
         }
-        return "layout";
+        return "layout";  // Retorna el nombre de tu plantilla Thymeleaf (layout.html)
     }
 }
-
