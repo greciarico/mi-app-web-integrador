@@ -1,4 +1,4 @@
-package com.example.DyD_Natures.Security; // Asegúrate de que el paquete sea correcto
+package com.example.DyD_Natures.Security;
 
 import com.example.DyD_Natures.Service.UsuarioDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +19,10 @@ public class SecurityConfig {
     @Autowired
     private UsuarioDetailsService usuarioDetailsService;
 
+    // Inyecta tu manejador de éxito personalizado
+    @Autowired
+    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -27,8 +31,6 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/logout", "/css/**", "/js/**", "/plugins/**", "/dist/**", "/img/**").permitAll()
 
                         // 2. Permite acceso público a los endpoints AJAX para la carga inicial de datos y validaciones
-                        // Estos endpoints usualmente son llamados por JS en las páginas, y la página en sí puede requerir autenticación.
-                        // PermitAll es útil para carga inicial de datos. Si necesitas más seguridad, se puede restringir.
                         .requestMatchers("/usuarios/all", "/usuarios/checkDni").permitAll()
                         .requestMatchers("/productos/all").permitAll()
                         .requestMatchers("/proveedores/all", "/proveedores/checkRuc").permitAll()
@@ -46,8 +48,12 @@ public class SecurityConfig {
                         .requestMatchers("/documento-compra/all").permitAll() // Para cargar la tabla principal
                         .requestMatchers("/documento-compra/**").hasRole("ADMINISTRADOR") // Todas las demás operaciones CRUD de compra
 
-                        // 3. Rutas con roles específicos
-                        .requestMatchers("/").hasRole("ADMINISTRADOR") // Página de inicio o dashboard
+                        // 3. Rutas con roles específicos (más restrictivas van después de las public permitAll)
+                        // La raíz / SOLO puede ser accedida por ADMINISTRADOR
+                        .requestMatchers("/").hasRole("ADMINISTRADOR")
+
+                        // La página /vendedor solo para VENDEDOR
+                        .requestMatchers("/vendedor").hasRole("VENDEDOR")
 
                         // Módulos de Mantenimiento (ADMINISTRADOR)
                         .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
@@ -59,22 +65,25 @@ public class SecurityConfig {
                         .requestMatchers("/clientes/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/informacion-empresa/**").hasRole("ADMINISTRADOR")
 
-                        // Módulos de Venta
+                        // Módulos de Venta (accesibles por ambos roles)
                         .requestMatchers("/registro-venta/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
                         .requestMatchers("/ventas/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
+
+                        // 4. Cualquier otra solicitud DEBE estar autenticada (regla general al final)
                         .anyRequest().authenticated()
                 )
                 .formLogin(login -> login
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true) // Redirige al dashboard después del login
+                        // Aquí usamos el manejador de éxito personalizado
+                        .successHandler(customAuthenticationSuccessHandler)
                         .permitAll() // Permite a todos acceder a la página de login
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout") // URL para cerrar sesión
-                        .logoutSuccessUrl("/login")
+                        .logoutSuccessUrl("/login?logout") // Redirige a la página de login con un parámetro después del logout
                         .permitAll() // Permite a todos cerrar sesión
                 )
-                .csrf(csrf -> csrf.disable());
+                .csrf(csrf -> csrf.disable()); // Deshabilita CSRF por simplicidad; en producción, configúralo adecuadamente.
 
         return http.build();
     }
