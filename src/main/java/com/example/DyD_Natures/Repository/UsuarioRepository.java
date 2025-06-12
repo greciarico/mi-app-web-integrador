@@ -2,8 +2,11 @@ package com.example.DyD_Natures.Repository;
 
 import com.example.DyD_Natures.Model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +39,19 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
      * @return true si existe otro usuario con ese DNI (diferente al idUsuario proporcionado), false en caso contrario.
      */
     boolean existsByDniAndIdUsuarioIsNot(String dni, Integer idUsuario);
+
+    /**
+     * Cuenta el número total de usuarios registrados en un rango de fechas.
+     * @param startDate Fecha de inicio (inclusive).
+     * @param endDate Fecha de fin (inclusive).
+     * @return Número de usuarios registrados para el período.
+     */
+    @Query("SELECT COUNT(u) FROM Usuario u WHERE u.fechaRegistro BETWEEN :startDate AND :endDate AND u.estado = 1") // Asumo estado = 1 para activos
+    Long countByFechaRegistroBetweenAndEstadoIsTrue(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    // Para contar el total de usuarios activos en toda la historia (sin filtro de fecha de registro)
+    @Query("SELECT COUNT(u) FROM Usuario u WHERE u.estado = 1") // Asumo estado = 1 para activos
+    Long countAllActiveUsers();
 
 
 }
