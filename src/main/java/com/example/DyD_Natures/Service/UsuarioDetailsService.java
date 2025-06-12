@@ -9,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority; // Asegúrate de esta importación
+
 @Service
 public class UsuarioDetailsService implements UserDetailsService {
 
@@ -17,13 +19,16 @@ public class UsuarioDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String dni) throws UsernameNotFoundException {
-        Usuario usuario = usuarioRepository.findByDniAndEstadoIsTrue(dni).orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+        Usuario usuario = usuarioRepository.findByDniAndEstadoIsTrue(dni)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con DNI: " + dni));
 
+        String tipoRol = usuario.getRolUsuario().getTipoRol().toUpperCase(); // Obtiene "VENDEDOR" o "ADMINISTRADOR"
+
+        // Spring Security User.builder().roles() automáticamente añade "ROLE_"
         return User.builder()
                 .username(usuario.getDni())
                 .password(usuario.getContrasena())
-                .roles(usuario.getRolUsuario().getTipoRol().toUpperCase())
+                .roles(tipoRol) // Esto se convierte en ROLE_VENDEDOR o ROLE_ADMINISTRADOR
                 .build();
     }
-
 }
