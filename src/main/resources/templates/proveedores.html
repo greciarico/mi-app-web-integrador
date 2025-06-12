@@ -461,7 +461,6 @@
             const idProveedor = $('#idProveedor').val();
             const dataToSend = {
                 idProveedor: idProveedor === '' ? null : parseInt(idProveedor, 10),
-                fechaRegistro: $('#fechaRegistro').val(), // Asume que este campo existe y es manejado por Thymeleaf/backend
                 ruc: $('#ruc').val(),
                 nombreComercial: $('#nombreComercial').val(),
                 razonSocial: $('#razonSocial').val(),
