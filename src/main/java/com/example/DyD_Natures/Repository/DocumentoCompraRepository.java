@@ -1,16 +1,16 @@
 package com.example.DyD_Natures.Repository;
 
-import com.example.DyD_Natures.Model.DocumentoCompra; // Asegúrate de que esta entidad exista y tenga 'fechaRegistro' y 'total'
+import com.example.DyD_Natures.Model.DocumentoCompra;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
-public interface DocumentoCompraRepository extends JpaRepository<DocumentoCompra, Integer> {
+public interface DocumentoCompraRepository extends JpaRepository<DocumentoCompra, Integer>, JpaSpecificationExecutor<DocumentoCompra> { // Añade JpaSpecificationExecutor
 
     /**
      * Calcula la suma total de compras por mes para un año específico.
