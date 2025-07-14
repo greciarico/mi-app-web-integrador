@@ -69,5 +69,3 @@ public class Merma {
         this.producto = producto;
     }
 }
-
-
