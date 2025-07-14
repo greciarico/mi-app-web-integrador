@@ -48,4 +48,3 @@ public class TipoClienteService {
         tipoClienteRepository.deleteById(id);
     }
 }
-
