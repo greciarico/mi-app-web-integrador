@@ -53,6 +53,8 @@ public class Cliente {
     public Cliente() {
     }
 
+    // Getters y setters
+
     public Integer getIdCliente() {
         return idCliente;
     }
@@ -157,6 +159,3 @@ public class Cliente {
         this.estado = estado;
     }
 }
-
-
-
