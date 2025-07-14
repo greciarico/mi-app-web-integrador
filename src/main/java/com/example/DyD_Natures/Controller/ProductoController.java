@@ -1,8 +1,14 @@
 package com.example.DyD_Natures.Controller;
 
+import com.example.DyD_Natures.Dto.ProductoFilterDTO;
 import com.example.DyD_Natures.Model.Categoria;
 import com.example.DyD_Natures.Model.Producto;
 import com.example.DyD_Natures.Service.ProductoService;
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,7 +16,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +30,10 @@ public class ProductoController {
 
     @Autowired
     private ProductoService productoService;
+
+    // @Autowired
+    // private CategoriaService categoriaService; // Descomentar si usas un servicio separado para Categoría
+
     /**
      * Muestra la vista principal de productos.
      * Carga los productos activos/inactivos (no eliminados) para que el JavaScript los filtre.
@@ -105,8 +117,9 @@ public class ProductoController {
             }
 
 
+            // Cargar la entidad Categoria completa si solo viene el ID del formulario
             if (producto.getCategoria() != null && producto.getCategoria().getIdCategoria() != null) {
-                Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(producto.getCategoria().getIdCategoria());
+                Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(producto.getCategoria().getIdCategoria()); // O categoriaService.obtenerCategoriaPorId
                 if (categoriaOpt.isPresent()) {
                     producto.setCategoria(categoriaOpt.get());
                 } else {
@@ -148,4 +161,175 @@ public class ProductoController {
         }
     }
 
+    // ProductoController.java
+
+    @GetMapping("/activos")
+    @ResponseBody
+    public List<Producto> getActiveProductsJson() {
+        return productoService.listarSoloProductosActivos();
+    }
+
+    // ===============================================
+    // NUEVOS ENDPOINTS PARA EL REPORTE DE PRODUCTOS
+    // ===============================================
+
+    /**
+     * Muestra el fragmento del modal de filtros para el reporte de productos.
+     * También carga las categorías activas para el dropdown de filtro.
+     * @param model El modelo para pasar datos a la vista.
+     * @return La ruta al fragmento del modal.
+     */
+    @GetMapping("/reporte/modal")
+    public String obtenerModalReporteProductos(Model model) {
+        model.addAttribute("categorias", productoService.listarCategorias());
+        return "fragments/reporte_productos_modal :: reporteModalContent";
+    }
+
+    /**
+     * Genera y devuelve un informe PDF de productos basado en los filtros.
+     * @param filterDTO DTO con los criterios de filtrado para el reporte.
+     * @param response Objeto HttpServletResponse para escribir el PDF.
+     * @throws DocumentException Si ocurre un error al crear el documento PDF.
+     * @throws IOException Si ocurre un error de E/S.
+     */
+    @GetMapping("/reporte/pdf")
+    public void generarReportePdf(@ModelAttribute ProductoFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, IOException {
+        response.setContentType("application/pdf");
+        String headerKey = "Content-Disposition";
+        String headerValue = "inline; filename=reporte_productos.pdf";
+        response.setHeader(headerKey, headerValue);
+
+        List<Producto> productos = productoService.buscarProductosPorFiltros(filterDTO);
+
+        Document document = new Document(PageSize.A4.rotate()); // Tamaño A4 horizontal para más columnas
+        PdfWriter.getInstance(document, response.getOutputStream());
+        document.open();
+
+        Font fontTitle = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, BaseColor.BLACK);
+        Paragraph title = new Paragraph("Reporte de Productos", fontTitle);
+        title.setAlignment(Paragraph.ALIGN_CENTER);
+        title.setSpacingAfter(20);
+        document.add(title);
+
+        // Mostrar filtros aplicados
+        Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
+        StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
+
+        if (filterDTO.getNombre() != null && !filterDTO.getNombre().isEmpty()) {
+            filtrosAplicados.append("- Nombre: ").append(filterDTO.getNombre()).append("\n");
+        }
+        if (filterDTO.getDescripcion() != null && !filterDTO.getDescripcion().isEmpty()) {
+            filtrosAplicados.append("- Descripción: ").append(filterDTO.getDescripcion()).append("\n");
+        }
+        if (filterDTO.getIdCategoria() != null) {
+            Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(filterDTO.getIdCategoria());
+            categoriaOpt.ifPresent(categoria -> filtrosAplicados.append("- Categoría: ").append(categoria.getNombreCategoria()).append("\n"));
+        }
+        if (filterDTO.getPrecio1Min() != null || filterDTO.getPrecio1Max() != null) {
+            filtrosAplicados.append("- Precio 1: ");
+            if (filterDTO.getPrecio1Min() != null) filtrosAplicados.append("Desde ").append(filterDTO.getPrecio1Min()).append(" ");
+            if (filterDTO.getPrecio1Max() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getPrecio1Max());
+            filtrosAplicados.append("\n");
+        }
+        if (filterDTO.getPrecio2Min() != null || filterDTO.getPrecio2Max() != null) {
+            filtrosAplicados.append("- Precio 2: ");
+            if (filterDTO.getPrecio2Min() != null) filtrosAplicados.append("Desde ").append(filterDTO.getPrecio2Min()).append(" ");
+            if (filterDTO.getPrecio2Max() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getPrecio2Max());
+            filtrosAplicados.append("\n");
+        }
+        if (filterDTO.getStockMin() != null || filterDTO.getStockMax() != null) {
+            filtrosAplicados.append("- Stock: ");
+            if (filterDTO.getStockMin() != null) filtrosAplicados.append("Desde ").append(filterDTO.getStockMin()).append(" ");
+            if (filterDTO.getStockMax() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getStockMax());
+            filtrosAplicados.append("\n");
+        }
+        if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
+            filtrosAplicados.append("- Estados: ");
+            for (int i = 0; i < filterDTO.getEstados().size(); i++) {
+                Byte estado = filterDTO.getEstados().get(i);
+                filtrosAplicados.append(estado == 1 ? "Activo" : "Inactivo");
+                if (i < filterDTO.getEstados().size() - 1) {
+                    filtrosAplicados.append(", ");
+                }
+            }
+            filtrosAplicados.append("\n");
+        }
+        if (filterDTO.getFechaRegistroStart() != null || filterDTO.getFechaRegistroEnd() != null) {
+            filtrosAplicados.append("- Fecha de Registro: ");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            if (filterDTO.getFechaRegistroStart() != null) filtrosAplicados.append("Desde ").append(filterDTO.getFechaRegistroStart().format(formatter)).append(" ");
+            if (filterDTO.getFechaRegistroEnd() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getFechaRegistroEnd().format(formatter));
+            filtrosAplicados.append("\n");
+        }
+
+        if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) {
+            filtrosAplicados.append("- Ninguno (Reporte Completo)\n");
+        }
+
+        Paragraph pFiltros = new Paragraph(filtrosAplicados.toString(), fontFilters);
+        pFiltros.setAlignment(Paragraph.ALIGN_LEFT);
+        pFiltros.setSpacingAfter(10);
+        document.add(pFiltros);
+
+        // Crear la tabla PDF
+        PdfPTable table = new PdfPTable(9); // 9 columnas: ID, Nombre, Descripción, Categoría, Precio1, Precio2, Stock, Estado, Fecha Registro
+        table.setWidthPercentage(100);
+        table.setSpacingBefore(10f);
+        table.setSpacingAfter(10f);
+
+        float[] columnWidths = {0.5f, 1.5f, 2f, 1f, 0.8f, 0.8f, 0.6f, 0.7f, 1.2f}; // Ajusta anchos según necesidad
+        table.setWidths(columnWidths);
+
+        PdfPCell cell;
+        Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, BaseColor.WHITE);
+        Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 7, BaseColor.BLACK); // Fuente más pequeña para contenido
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
+
+        String[] headers = {"ID", "Nombre", "Descripción", "Categoría", "Precio 1", "Precio 2", "Stock", "Estado", "F. Registro"};
+        for (String header : headers) {
+            cell = new PdfPCell(new Phrase(header, fontHeader));
+            cell.setBackgroundColor(new BaseColor(24, 61, 0));
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setPadding(5);
+            table.addCell(cell);
+        }
+
+        if (productos.isEmpty()) {
+            cell = new PdfPCell(new Phrase("No se encontraron productos con los filtros aplicados.", fontContent));
+            cell.setColspan(9); // Abarca todas las columnas
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setPadding(10);
+            table.addCell(cell);
+        } else {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            for (Producto producto : productos) {
+                table.addCell(new Phrase(String.valueOf(producto.getIdProducto()), fontContent));
+                table.addCell(new Phrase(producto.getNombre(), fontContent));
+                table.addCell(new Phrase(producto.getDescripcion(), fontContent));
+                table.addCell(new Phrase(producto.getCategoria() != null ? producto.getCategoria().getNombreCategoria() : "N/A", fontContent));
+                table.addCell(new Phrase(producto.getPrecio1() != null ? producto.getPrecio1().setScale(2, BigDecimal.ROUND_HALF_UP).toString() : "0.00", fontContent));
+                table.addCell(new Phrase(producto.getPrecio2() != null ? producto.getPrecio2().setScale(2, BigDecimal.ROUND_HALF_UP).toString() : "0.00", fontContent));
+                table.addCell(new Phrase(String.valueOf(producto.getStock()), fontContent));
+                String estadoText;
+                Font estadoFont;
+
+                if (producto.getEstado() == 1) {
+                    estadoText = "Activo";
+                    estadoFont = fontContentActive;
+                } else if (producto.getEstado() == 0) {
+                    estadoText = "Inactivo";
+                    estadoFont = fontContentInactive;
+                } else {
+                    estadoText = "Desconocido";
+                    estadoFont = fontContent; // Default to black if unknown
+                }
+                table.addCell(new Phrase(estadoText, estadoFont));                  table.addCell(new Phrase(producto.getFechaRegistro() != null ? producto.getFechaRegistro().format(formatter) : "N/A", fontContent));
+            }
+        }
+
+        document.add(table);
+        document.close();
+    }
 }
