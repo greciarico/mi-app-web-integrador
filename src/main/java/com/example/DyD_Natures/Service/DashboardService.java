@@ -55,8 +55,8 @@ public class DashboardService {
                 break;
         }
 
-        BigDecimal totalSales = ventaRepository.sumTotalByFechaRegistroBetween(startDate, endDate);
-        Long numberOfSales = ventaRepository.countByFechaRegistroBetween(startDate, endDate);
+        BigDecimal totalSales = ventaRepository.sumTotalByFechaRegistroBetweenAndEstado(startDate, endDate);
+        Long numberOfSales = ventaRepository.countByFechaRegistroBetweenAndEstado(startDate, endDate);
         Long userRegistrations = usuarioRepository.countAllActiveUsers(); // O si quieres por período: usuarioRepository.countByFechaRegistroBetweenAndEstadoIsTrue(startDate, endDate);
         Long clientRegistrations = clienteRepository.countAllActiveClients(); // O si quieres por período: clienteRepository.countByFechaRegistroBetweenAndEstadoIsNot(startDate, endDate);
 
