@@ -18,6 +18,19 @@
         .bg-light {
             background-color: #f8f9fa !important; /* Color para campos readonly */
         }
+        /* NUEVO ESTILO PARA FILAS DE DOCUMENTOS INACTIVOS/CANCELADOS (similar a venta.html) */
+        .cancelled-item { /* Renombrado para consistencia con 'venta.html' si lo deseas, o usa table-danger-custom */
+            background-color: #f8d7da !important; /* Rojo claro para indicar cancelación */
+            color: #721c24 !important; /* Texto oscuro para contraste */
+        }
+        .cancelled-item a, .cancelled-item button {
+            color: #721c24 !important; /* Asegura que los enlaces y botones también se vean afectados */
+        }
+        /* Asegurarse de que el color de los iconos también se vea afectado */
+        .cancelled-item .fas {
+            color: #721c24 !important;
+        }
+
     </style>
 </head>
 <body class="hold-transition sidebar-mini">
@@ -66,29 +79,9 @@
                                 </tr>
                                 </thead>
                                 <tbody id="documentosCompraTableBody">
-                                <tr th:each="doc : ${documentosCompra}">
-                                    <td th:text="${doc.idCompra}"></td>
-                                    <td th:text="${doc.fechaRegistro != null ? #temporals.format(doc.fechaRegistro, 'dd/MM/yyyy') : 'N/A'}"></td>
-                                    <td th:text="${doc.proveedor != null ? doc.proveedor.razonSocial : 'N/A'}"></td>
-                                    <td th:text="${doc.tipoDocumento}"></td>
-                                    <td th:text="${doc.numDocumento}"></td>
-                                    <td th:text="${#numbers.formatDecimal(doc.total, 0, 'COMMA', 2, 'POINT')}"></td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button type="button" onclick="openViewModal([[${doc.idCompra}]])"
-                                                    class="btn btn-info btn-sm">
-                                                <i class="fas fa-eye"></i> Visualizar
-                                            </button>
-                                            <button type="button" onclick="confirmDelete([[${doc.idCompra}]])"
-                                                    class="btn btn-danger btn-sm">
-                                                <i class="fas fa-trash-alt"></i> Eliminar
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr th:if="${#lists.isEmpty(documentosCompra)}">
-                                    <td colspan="7" class="text-center text-muted">No hay documentos de compra registrados.</td>
-                                </tr>
+                                <!-- ELIMINADO: La tabla ahora se renderiza completamente con JavaScript -->
+                                <!-- <tr th:each="doc : ${documentosCompra}">...</tr> -->
+                                <!-- <tr th:if="${#lists.isEmpty(documentosCompra)}">...</tr> -->
                                 </tbody>
                             </table>
                         </div>
@@ -115,17 +108,25 @@
         <div class="modal-dialog modal-sm" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmar Eliminación</h5>
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmar Cancelar Documento de Compra</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeDeleteConfirmModal()">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    ¿Estás seguro de que quieres eliminar este documento de compra?
+                    ¿Estás seguro de que quieres cancelar este documento de compra? Esta acción no se puede revertir.
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeDeleteConfirmModal()">Cancelar</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteButton">Eliminar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteButton">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="reporteDocumentosCompraModal" tabindex="-1" role="dialog" aria-labelledby="reporteDocumentosCompraModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div id="modalReporteContentDocumentoCompra">
                 </div>
             </div>
         </div>
@@ -135,7 +136,7 @@
         /*<![CDATA[*/
 
         // Variables globales para los datos iniciales y el contador de detalles
-        let allDocumentosCompra = /*[[${documentosCompra}]]*/ [];
+        let allDocumentosCompra = []; // Inicializar como array vacío, siempre se cargará por AJAX
         let allProductosData = /*[[${productos}]]*/ []; // Pasados desde el controlador
         let allProveedoresData = /*[[${proveedores}]]*/ []; // Pasados desde el controlador
 
@@ -208,6 +209,10 @@
         // (Esta función es principalmente para la carga inicial y recargas)
         function renderMainTable(documentsToDisplay) {
             const tableBody = document.getElementById('documentosCompraTableBody');
+            if (!tableBody) { // Agrega esta validación por si acaso
+                console.error("Error: Elemento 'documentosCompraTableBody' no encontrado.");
+                return;
+            }
             tableBody.innerHTML = ''; // Limpiar la tabla
 
             if (documentsToDisplay.length === 0) {
@@ -220,6 +225,41 @@
                 const fechaFormatted = doc.fechaRegistro ? new Date(doc.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
                 const totalFormatted = parseFloat(doc.total).toFixed(2);
 
+                // *** CAMBIO CLAVE AQUÍ: Agregar clase condicionalmente basada en el estado ***
+                // Asumiendo que doc.estado es un Byte (1 para activo, 0 para inactivo)
+                const rowClass = (doc.estado !== null && doc.estado === 0) ? 'cancelled-item' : ''; // Usar 'cancelled-item'
+                if (rowClass) {
+                    row.classList.add(rowClass); // Aplica la clase si el estado es 0
+                }
+
+                // Lógica condicional para los botones de acción
+                let actionButtonsHtml = '';
+                if (doc.estado !== null && doc.estado === 0) {
+                    // Documento cancelado: solo visualizar y botón deshabilitado
+                    actionButtonsHtml = `
+                        <button type="button" onclick="openViewModal(${doc.idCompra})"
+                                class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm ml-1" disabled>
+                            <i class="fas fa-ban"></i>
+                        </button>
+                    `;
+                } else {
+                    // Documento activo: visualizar y cancelar
+                    actionButtonsHtml = `
+                        <button type="button" onclick="openViewModal(${doc.idCompra})"
+                                class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" onclick="confirmDelete(${doc.idCompra})"
+                                class="btn btn-danger btn-sm ml-1">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    `;
+                }
+
+
                 row.innerHTML = `
                     <td>${doc.idCompra}</td>
                     <td>${fechaFormatted}</td>
@@ -229,14 +269,7 @@
                     <td>S/ ${totalFormatted}</td>
                     <td>
                         <div class="btn-group">
-                            <button type="button" onclick="openViewModal(${doc.idCompra})"
-                                    class="btn btn-info btn-sm">
-                                <i class="fas fa-eye"></i> Visualizar
-                            </button>
-                            <button type="button" onclick="confirmDelete(${doc.idCompra})"
-                                    class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash-alt"></i> Eliminar
-                            </button>
+                            ${actionButtonsHtml}
                         </div>
                     </td>
                 `;
@@ -245,11 +278,11 @@
         }
 
         // Función para recargar la lista de documentos de compra (llamada después de CRUD)
-        function recargarListaDocumentosCompraCompleta() {
+        window.recargarListaDocumentosCompraCompleta = function() { // Hacer global
             fetch('/documento-compra/all')
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error('Network response was not ok for /documento-compra/all');
                     }
                     return response.json();
                 })
@@ -265,20 +298,130 @@
 
         // Función de filtro simplificada (puedes expandirla)
         function aplicarFiltrosDocumentoCompra() {
-            const searchTerm = document.getElementById('searchTermDocumentoCompra').value.toLowerCase();
+            const searchTermInput = document.getElementById('searchTermDocumentoCompra'); // Asegura que el input exista
+            if (!searchTermInput) return; // Validación
+            const searchTerm = searchTermInput.value.toLowerCase();
             const filteredDocs = allDocumentosCompra.filter(doc => {
-                const proveedorMatch = doc.proveedor && doc.proveedor.razonSocial.toLowerCase().includes(searchTerm);
+                const proveedorMatch = doc.proveedor && doc.proveedor.razonSocial && doc.proveedor.razonSocial.toLowerCase().includes(searchTerm);
                 const numDocMatch = doc.numDocumento && doc.numDocumento.toLowerCase().includes(searchTerm);
                 return proveedorMatch || numDocMatch;
             });
             renderMainTable(filteredDocs);
         }
 
-        function generarReporteDocumentoCompra() {
-            showNotification('info', 'Funcionalidad de reporte en desarrollo.');
-            // Implementar lógica para generar reporte (abrir nueva ventana, descargar PDF, etc.)
-        }
+ // ===============================================
+// FUNCIONES PARA EL REPORTE DE DOCUMENTOS DE COMPRA
+// ===============================================
 
+// Abre el modal de filtros del reporte de documentos de compra
+function generarReporteDocumentoCompra() {
+    console.log("Abriendo modal de reporte de documentos de compra...");
+    $('#modalReporteContentDocumentoCompra').load('/documento-compra/reporte/modal', function(response, status, xhr) {
+        if (status === "error") {
+            console.error("Error al cargar el formulario de reporte de documentos de compra:", xhr.status, xhr.statusText, response);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar reporte',
+                text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
+                footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+            });
+        } else {
+            console.log("Formulario de reporte de documentos de compra cargado exitosamente.");
+            // Establecer las fechas máximas/mínimas para los campos de fecha
+            setReportDateCompraMaxAttributes();
+            setReportDateCompraMinAttributes();
+
+            // *** CAMBIO CLAVE AQUÍ: Desmarcar "Activo" y "Cancelado" por defecto ***
+            $('#estadoActivoCompra').prop('checked', false);
+            $('#estadoInactivoCompra').prop('checked', false);
+
+            $('#reporteDocumentosCompraModal').modal('show');
+        }
+    });
+}
+
+// Cierra el modal de reporte de documentos de compra
+function cerrarReporteDocumentoCompraModal() {
+    $('#reporteDocumentosCompraModal').modal('hide');
+    setTimeout(() => {
+        $('#modalReporteContentDocumentoCompra').empty();
+    }, 300); // Pequeño delay para la animación del modal
+}
+
+// Limpia los filtros del modal de reporte de documentos de compra
+function limpiarFiltrosReporteDocumentoCompra() {
+    $('#formReporteDocumentoCompra')[0].reset();
+    $('.estado-checkbox-compra').prop('checked', false); // Desmarcar ambos al limpiar
+    setReportDateCompraMaxAttributes();
+    setReportDateCompraMinAttributes();
+}
+
+// Función para ajustar el atributo 'max' de la fecha de inicio del reporte de compra
+function setReportDateCompraMaxAttributes() {
+    const today = new Date().toISOString().split('T')[0];
+    $('#fechaRegistroStartCompra').attr('max', today);
+
+    const fechaFin = $('#fechaRegistroEndCompra').val();
+    if (fechaFin && $('#fechaRegistroStartCompra').val() && new Date(fechaFin) < new Date($('#fechaRegistroStartCompra').val())) {
+        $('#fechaRegistroEndCompra').val($('#fechaRegistroStartCompra').val());
+    }
+    $('#fechaRegistroEndCompra').attr('min', $('#fechaRegistroStartCompra').val());
+}
+
+// Función para ajustar el atributo 'min' de la fecha de fin del reporte de compra
+function setReportDateCompraMinAttributes() {
+    const today = new Date().toISOString().split('T')[0];
+    $('#fechaRegistroEndCompra').attr('max', today);
+
+    const fechaInicio = $('#fechaRegistroStartCompra').val();
+    if (fechaInicio && $('#fechaRegistroEndCompra').val() && new Date(fechaInicio) > new Date($('#fechaRegistroEndCompra').val())) {
+        $('#fechaRegistroStartCompra').val($('#fechaRegistroEndCompra').val());
+    }
+    $('#fechaRegistroStartCompra').attr('max', $('#fechaRegistroEndCompra').val() || today);
+}
+
+// Ejecuta la generación del reporte PDF de documentos de compra
+function ejecutarGenerarReporteDocumentoCompra() {
+    Swal.fire({
+        title: 'Generando Reporte...',
+        text: 'Por favor, espera mientras se genera el PDF de documentos de compra.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    const form = $('#formReporteDocumentoCompra');
+    // Obtener los valores de los checkboxes de estado y crear un array
+    const estadosSeleccionados = [];
+    $('.estado-checkbox-compra:checked').each(function() {
+        estadosSeleccionados.push($(this).val());
+    });
+
+    // Serializar el formulario y añadir los estados como un parámetro de consulta si hay alguno
+    let formData = form.serialize();
+    if (estadosSeleccionados.length > 0) {
+        // Eliminar cualquier 'estados=' que haya generado el serialize() para manejarlo manualmente
+        formData = formData.replace(/&estados=\d+/g, '');
+        estadosSeleccionados.forEach(estado => {
+            formData += '&estados=' + estado;
+        });
+    }
+
+    const url = '/documento-compra/reporte/pdf?' + formData;
+
+    setTimeout(() => {
+        const newWindow = window.open(url, '_blank');
+        if (newWindow) {
+            Swal.close();
+            showNotification("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
+            cerrarReporteDocumentoCompraModal();
+        } else {
+            Swal.close();
+            showNotification("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+        }
+    }, 300); // Pequeño delay para asegurar que el modal de carga de Swal se muestre
+}
 
         // ===============================================
         // LÓGICA DEL FORMULARIO MODAL (PARA DOCUMENTO DE COMPRA)
@@ -288,7 +431,12 @@
             clearErrors(); // Limpiar errores antes de abrir el modal
             detalleCount = 0; // Resetear el contador de detalles cada vez que se abre el modal
 
-            let url = idCompra ? `/documento-compra/editar/${idCompra}` : '/documento-compra/nuevo';
+            // Asegurar que solo se cargue el formulario de creación si idCompra es null
+            // Si quieres que el botón "Registrar Nueva Compra" SIEMPRE abra para nueva, entonces:
+            let url = '/documento-compra/nuevo'; // Solo para creación
+            // Si necesitas edición en algún punto, tendrías que re-introducir la lógica:
+            // let url = idCompra ? `/documento-compra/editar/${idCompra}` : '/documento-compra/nuevo';
+
 
             $.ajax({ // Usar jQuery AJAX para cargar el fragmento
                 url: url,
@@ -440,49 +588,69 @@
             const precioInput = document.getElementById(`precioUnitario-${index}`);
             const productoSelect = document.getElementById(`producto-${index}`);
 
-            cantidadInput.addEventListener('input', () => updateDetalleTotal(index));
-            precioInput.addEventListener('input', () => updateDetalleTotal(index));
-            productoSelect.addEventListener('change', () => {
-                const selectedProduct = allProductosData.find(p => p.idProducto == productoSelect.value);
-                if (selectedProduct) {
-                    precioInput.value = parseFloat(selectedProduct.precioUnitario).toFixed(2);
-                }
-                updateDetalleTotal(index);
-            });
+            if (cantidadInput) cantidadInput.addEventListener('input', () => updateDetalleTotal(index));
+            if (precioInput) precioInput.addEventListener('input', () => updateDetalleTotal(index));
+            if (productoSelect) {
+                productoSelect.addEventListener('change', () => {
+                    const selectedProduct = allProductosData.find(p => p.idProducto == productoSelect.value);
+                    if (selectedProduct) {
+                        precioInput.value = parseFloat(selectedProduct.precioUnitario).toFixed(2);
+                    }
+                    updateDetalleTotal(index);
+                });
+            }
 
             // Si el precio unitario no se inicializó desde el detalle, intenta usar el del producto
-            if (detalle && initialPrecioUnitario === '' && productoSelect.value) {
+            if (detalle && initialPrecioUnitario === '' && productoSelect && productoSelect.value) {
                 const selectedProduct = allProductosData.find(p => p.idProducto == productoSelect.value);
                 if (selectedProduct) {
                     precioInput.value = parseFloat(selectedProduct.precioUnitario).toFixed(2);
                 }
+            } else if (!detalle && productoSelect && productoSelect.value) { // Para nueva fila con producto pre-seleccionado
+                 const selectedProduct = allProductosData.find(p => p.idProducto == productoSelect.value);
+                 if (selectedProduct) {
+                     precioInput.value = parseFloat(selectedProduct.precioUnitario).toFixed(2);
+                 }
             }
             updateDetalleTotal(index);
         }
 
         window.removeDetalleCompra = function(button) {
             const detalleDiv = button.closest('tr.detalle-item'); // Seleccionar el <tr>
-            detalleDiv.remove();
-            calculateTotalGeneral();
+            if (detalleDiv) { // Agrega esta validación por si acaso
+                detalleDiv.remove();
+                calculateTotalGeneral();
+            }
         }
 
         window.updateDetalleTotal = function(index) {
-            const cantidad = parseFloat(document.getElementById(`cantidad-${index}`).value) || 0;
-            const precioUnitario = parseFloat(document.getElementById(`precioUnitario-${index}`).value) || 0;
-            const totalDetalle = cantidad * precioUnitario;
-            document.getElementById(`detalleTotalDisplay-${index}`).value = totalDetalle.toFixed(2); // Usar .value para inputs
-            calculateTotalGeneral();
+            const cantidadInput = document.getElementById(`cantidad-${index}`); // Asegura que existan
+            const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`); // Asegura que existan
+            const totalDisplay = document.getElementById(`detalleTotalDisplay-${index}`); // Asegura que existan
+
+            if (cantidadInput && precioUnitarioInput && totalDisplay) { // Validación de existencia
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const precioUnitario = parseFloat(precioUnitarioInput.value) || 0;
+                const totalDetalle = cantidad * precioUnitario;
+                totalDisplay.value = totalDetalle.toFixed(2); // Usar .value para inputs
+                calculateTotalGeneral();
+            }
         }
 
         window.calculateTotalGeneral = function() {
             let totalGeneral = 0;
             document.querySelectorAll('.detalle-item').forEach(detalleDiv => {
                 const totalDisplay = detalleDiv.querySelector('.total-detalle-display');
-                // Para inputs, leer el valor con .value
-                const totalValue = parseFloat(totalDisplay.value) || 0;
-                totalGeneral += totalValue;
+                if (totalDisplay) { // Validación de existencia
+                    // Para inputs, leer el valor con .value
+                    const totalValue = parseFloat(totalDisplay.value) || 0;
+                    totalGeneral += totalValue;
+                }
             });
-            document.getElementById('totalGeneralDisplay').value = totalGeneral.toFixed(2); // Usar .value para inputs
+            const totalGeneralDisplay = document.getElementById('totalGeneralDisplay'); // Asegura que exista
+            if (totalGeneralDisplay) { // Validación de existencia
+                totalGeneralDisplay.value = totalGeneral.toFixed(2); // Usar .value para inputs
+            }
         }
 
         // ===============================================
@@ -495,29 +663,29 @@
 
             // Validar campos principales
             const tipoDocumentoInput = document.getElementById('tipoDocumento');
-            if (!tipoDocumentoInput.value) {
+            if (tipoDocumentoInput && !tipoDocumentoInput.value) { // Agregado null check
                 displayError('tipoDocumentoError', 'El tipo de documento es obligatorio.');
                 tipoDocumentoInput.classList.add('is-invalid');
                 isValid = false;
-            } else {
+            } else if (tipoDocumentoInput) { // Solo remueve si existe
                 tipoDocumentoInput.classList.remove('is-invalid');
             }
 
             const numDocumentoInput = document.getElementById('numDocumento');
-            if (!numDocumentoInput.value.trim()) {
+            if (numDocumentoInput && !numDocumentoInput.value.trim()) { // Agregado null check
                 displayError('numDocumentoError', 'El número de documento es obligatorio.');
                 numDocumentoInput.classList.add('is-invalid');
                 isValid = false;
-            } else {
+            } else if (numDocumentoInput) { // Solo remueve si existe
                 numDocumentoInput.classList.remove('is-invalid');
             }
 
             const proveedorSelect = document.getElementById('proveedorSelect');
-            if (!proveedorSelect.value) {
+            if (proveedorSelect && !proveedorSelect.value) { // Agregado null check
                 displayError('proveedorSelectError', 'Debe seleccionar un proveedor.');
-                proveedorSelect.classList.add('is-invalid');
+                provelectSelect.classList.add('is-invalid');
                 isValid = false;
-            } else {
+            } else if (proveedorSelect) { // Solo remueve si existe
                 proveedorSelect.classList.remove('is-invalid');
             }
 
@@ -536,29 +704,30 @@
                 const cantidadInput = document.getElementById(`cantidad-${index}`);
                 const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
 
-                if (!productoSelect.value) {
+                // Agregadas validaciones de existencia antes de acceder a .value o .classList
+                if (productoSelect && !productoSelect.value) {
                     displayError(`productoError-${index}`, 'Seleccione un producto.');
                     productoSelect.classList.add('is-invalid');
                     isValid = false;
-                } else {
+                } else if (productoSelect) {
                     productoSelect.classList.remove('is-invalid');
                 }
 
-                const cantidad = parseFloat(cantidadInput.value);
-                if (isNaN(cantidad) || cantidad <= 0) {
+                const cantidad = parseFloat(cantidadInput ? cantidadInput.value : ''); // Usar null-check y valor vacío
+                if (cantidadInput && (isNaN(cantidad) || cantidad <= 0)) {
                     displayError(`cantidadError-${index}`, 'Cantidad > 0.');
                     cantidadInput.classList.add('is-invalid');
                     isValid = false;
-                } else {
+                } else if (cantidadInput) {
                     cantidadInput.classList.remove('is-invalid');
                 }
 
-                const precio = parseFloat(precioUnitarioInput.value);
-                if (isNaN(precio) || precio < 0) {
+                const precio = parseFloat(precioUnitarioInput ? precioUnitarioInput.value : ''); // Usar null-check y valor vacío
+                if (precioUnitarioInput && (isNaN(precio) || precio < 0)) {
                     displayError(`precioUnitarioError-${index}`, 'Precio >= 0.');
                     precioUnitarioInput.classList.add('is-invalid');
                     isValid = false;
-                } else {
+                } else if (precioUnitarioInput) {
                     precioUnitarioInput.classList.remove('is-invalid');
                 }
             }
@@ -570,34 +739,37 @@
         // LÓGICA DE GUARDADO DEL DOCUMENTO DE COMPRA
         // ===============================================
 
-        async function saveDocumentoCompra(form) {
-            if (!(await validateForm())) {
+        async function saveDocumentoCompra(form) { // Convertido a async
+            if (!(await validateForm())) { // Esperar la validación
                 return;
             }
 
-            const idCompra = document.getElementById('idCompra').value || null;
-            const fechaRegistro = document.getElementById('fechaRegistro').value;
-            const idProveedor = document.getElementById('proveedorSelect').value;
-            const tipoDocumento = document.getElementById('tipoDocumento').value;
-            const numDocumento = document.getElementById('numDocumento').value;
-            const total = parseFloat(document.getElementById('totalGeneralDisplay').value);
+            const idCompra = document.getElementById('idCompra') ? document.getElementById('idCompra').value : null; // Añadido null check
+            const fechaRegistro = document.getElementById('fechaRegistro') ? document.getElementById('fechaRegistro').value : ''; // Añadido null check
+            const idProveedor = document.getElementById('proveedorSelect') ? document.getElementById('proveedorSelect').value : null; // Añadido null check
+            const tipoDocumento = document.getElementById('tipoDocumento') ? document.getElementById('tipoDocumento').value : ''; // Añadido null check
+            const numDocumento = document.getElementById('numDocumento') ? document.getElementById('numDocumento').value : ''; // Añadido null check
+            const totalElement = document.getElementById('totalGeneralDisplay'); // Obtener elemento antes
+            const total = totalElement ? parseFloat(totalElement.value) : 0; // Añadido null check y parseFloat
 
             const detallesCompras = [];
             document.querySelectorAll('.detalle-item').forEach(detalleDiv => {
                 const index = detalleDiv.getAttribute('data-index');
+                // Añadidos null checks y parseInt/parseFloat para asegurar tipos correctos
+                const currentIdDetalleCompra = detalleDiv.querySelector(`input[name="detalleCompras[${index}].idDetalleCompra"]`).value;
                 detallesCompras.push({
-                    idDetalleCompra: detalleDiv.querySelector(`input[name="detalleCompras[${index}].idDetalleCompra"]`).value || null,
-                    producto: { idProducto: parseInt(document.getElementById(`producto-${index}`).value) },
-                    cantidad: parseInt(document.getElementById(`cantidad-${index}`).value),
-                    precioUnitario: parseFloat(document.getElementById(`precioUnitario-${index}`).value),
-                    total: parseFloat(document.getElementById(`detalleTotalDisplay-${index}`).value)
+                    idDetalleCompra: (currentIdDetalleCompra && currentIdDetalleCompra.trim() !== '') ? parseInt(currentIdDetalleCompra) : null,
+                    producto: { idProducto: parseInt(detalleDiv.querySelector(`#producto-${index}`).value) },
+                    cantidad: parseInt(detalleDiv.querySelector(`#cantidad-${index}`).value),
+                    precioUnitario: parseFloat(detalleDiv.querySelector(`#precioUnitario-${index}`).value),
+                    total: parseFloat(detalleDiv.querySelector(`#detalleTotalDisplay-${index}`).value)
                 });
             });
 
             const data = {
                 idCompra: idCompra ? parseInt(idCompra) : null,
                 fechaRegistro: fechaRegistro,
-                proveedor: { idProveedor: parseInt(idProveedor) },
+                proveedor: { idProveedor: idProveedor ? parseInt(idProveedor) : null },
                 tipoDocumento: tipoDocumento,
                 numDocumento: numDocumento,
                 total: total,
@@ -606,32 +778,32 @@
 
             const url = '/documento-compra/guardar';
 
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            })
-            .then(response => {
+            try {
+                const response = await fetch(url, { // Usar await
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
                 if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.message || 'Error al guardar el documento de compra.'); });
+                    const errorData = await response.json(); // Usar await
+                    throw new Error(errorData.message || 'Error al guardar el documento de compra.');
                 }
-                return response.json();
-            })
-            .then(data => {
-                showNotification('success', data.message);
+                const resultData = await response.json(); // Usar await
+                showNotification('success', resultData.message);
                 closeFormModal();
                 recargarListaDocumentosCompraCompleta(); // Recargar la tabla principal
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error:', error);
                 showNotification('error', error.message || 'Ocurrió un error inesperado al guardar.');
-            });
+            }
         }
 
+
         // ===============================================
-        // LÓGICA DE ELIMINACIÓN
+        // LÓGICA DE CANCELACIÓN (Eliminar)
         // ===============================================
 
         window.confirmDelete = function(id) { // Hacer global para que el onclick funcione
@@ -644,23 +816,24 @@
             documentIdToDelete = null;
         }
 
+        // Se usa 'click' porque es un botón en el modal de confirmación, no en la tabla principal
         document.getElementById('confirmDeleteButton').addEventListener('click', function() {
             if (documentIdToDelete) {
-                fetch(`/documento-compra/eliminar/${documentIdToDelete}`)
+                fetch(`/documento-compra/eliminar/${documentIdToDelete}`) // Asumiendo que 'eliminar' cambia el estado a inactivo
                     .then(response => {
                         if (!response.ok) {
-                            return response.json().then(err => { throw new Error(err.message || 'Error al eliminar el documento de compra.'); });
+                            return response.json().then(err => { throw new Error(err.message || 'Error al cancelar el documento de compra.'); });
                         }
                         return response.json();
                     })
                     .then(data => {
                         showNotification('success', data.message);
                         closeDeleteConfirmModal(); // Cerrar el modal y resetear ID
-                        recargarListaDocumentosCompraCompleta();
+                        recargarListaDocumentosCompraCompleta(); // Recargar para mostrar el estado actualizado
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        showNotification('error', error.message || 'Ocurrió un error al eliminar.');
+                        showNotification('error', error.message || 'Ocurrió un error al cancelar.');
                     });
             }
         });
@@ -669,7 +842,10 @@
         // INICIALIZACIÓN
         // ===============================================
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // Usa $(document).ready para asegurar que el DOM esté completamente cargado
+        // Esto reemplaza document.addEventListener('DOMContentLoaded', ...) si ya usas jQuery.
+        $(document).ready(function() {
+            // Asegúrate de que esta sea la ÚNICA llamada a recargarListaDocumentosCompraCompleta() al cargar la página
             recargarListaDocumentosCompraCompleta();
         });
 
