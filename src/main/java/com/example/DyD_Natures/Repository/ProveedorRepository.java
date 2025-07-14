@@ -2,15 +2,16 @@ package com.example.DyD_Natures.Repository;
 
 import com.example.DyD_Natures.Model.Proveedor;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query; // Importar
+import org.springframework.data.repository.query.Param; // Importar
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ProveedorRepository extends JpaRepository<Proveedor, Integer> {
+public interface ProveedorRepository extends JpaRepository<Proveedor, Integer>, JpaSpecificationExecutor<Proveedor> { // ¡Añadir JpaSpecificationExecutor!
 
     /**
      * Obtiene una lista de proveedores cuyo estado NO es el especificado.
@@ -20,7 +21,9 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Integer> {
      * @return Lista de proveedores cuyo estado no coincide con el estadoExcluido.
      */
     @Query("SELECT p FROM Proveedor p WHERE p.estado <> :estadoExcluido")
-    List<Proveedor> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido);
+    List<Proveedor> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido);// El parámetro es Byte
+
+    List<Proveedor> findByEstado(Byte estado);
 
     /**
      * Busca un Proveedor por su número de RUC.
