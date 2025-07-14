@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface IgvRepository extends JpaRepository<Igv, Integer> {
@@ -21,4 +20,12 @@ public interface IgvRepository extends JpaRepository<Igv, Integer> {
      */
     @Query("SELECT i FROM Igv i WHERE i.estado <> :estadoExcluido")
     List<Igv> findByEstadoExcluding(@Param("estadoExcluido") Byte estadoExcluido);
+
+    // Si tuvieras un campo único para IGV (ej. version o fecha única), lo añadirías aquí.
+    // Por ahora, no hay validación de unicidad para el valor del IGV en sí, solo por ID.
+
+    /**
+     * Devuelve sólo los IGV cuyo estado sea exactamente el pasado.
+     */
+    List<Igv> findByEstado(Byte estado);
 }
