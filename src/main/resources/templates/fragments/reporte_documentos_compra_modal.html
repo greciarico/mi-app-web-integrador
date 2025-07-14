@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="reporteModalContent">
+  <div class="modal-header">
+    <h4 class="modal-title">Generar Reporte de Documentos de Compra</h4>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarReporteDocumentoCompraModal()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <form id="formReporteDocumentoCompra">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="filtroTipoDocumento">Tipo Documento:</label>
+            <select class="form-control" id="filtroTipoDocumento" name="tipoDocumento">
+              <option value="">Todos los Tipos</option>
+              <option value="Factura">Factura</option>
+              <option value="Boleta">Boleta</option>
+              <option value="Ticket">Ticket</option>
+              <option value="Recibo">Recibo</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="filtroNumDocumento">N° Documento:</label>
+            <input type="text" id="filtroNumDocumento" name="numDocumento" class="form-control" placeholder="Número de documento"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="filtroIdProveedor">Proveedor:</label>
+            <select id="filtroIdProveedor" name="idProveedor" class="form-control">
+              <option value="">Todos los Proveedores</option>
+              <option th:each="prov : ${proveedores}" th:value="${prov.idProveedor}" th:text="${prov.razonSocial}"></option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Estado:</label><br>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input estado-checkbox-compra" type="checkbox" id="estadoActivoCompra" name="estados" value="1" checked>
+              <label class="form-check-label" for="estadoActivoCompra">Activo</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input estado-checkbox-compra" type="checkbox" id="estadoInactivoCompra" name="estados" value="0">
+              <label class="form-check-label" for="estadoInactivoCompra">Cancelado</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Fecha de Registro:</label>
+            <div class="input-group">
+              <input type="date" id="fechaRegistroStartCompra" name="fechaRegistroStart" class="form-control" onchange="setReportDateCompraMaxAttributes()">
+              <input type="date" id="fechaRegistroEndCompra" name="fechaRegistroEnd" class="form-control" onchange="setReportDateCompraMinAttributes()">
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Total de Documento:</label>
+            <div class="input-group">
+              <input type="number" step="0.01" id="totalMin" name="totalMin" class="form-control" placeholder="Min">
+              <input type="number" step="0.01" id="totalMax" name="totalMax" class="form-control" placeholder="Max">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info text-center mt-3" role="alert">
+        <i class="fas fa-info-circle"></i> Deje todas las opciones de filtro sin marcar (o marcadas por defecto) para generar un reporte de todos los documentos.
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-default" onclick="limpiarFiltrosReporteDocumentoCompra()">Limpiar Filtros</button>
+    <button type="button" class="btn btn-primary" id="btnGenerarPdfDocumentoCompra" style="background-color:#183D00 !important; border-color:#183D00 !important;" onclick="ejecutarGenerarReporteDocumentoCompra()">
+      <i class="fas fa-file-pdf"></i> Generar PDF
+    </button>
+  </div>
+</div>
+</body>
+</html>
