@@ -1,6 +1,6 @@
 package com.example.DyD_Natures.Model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonBackReference; // Importar JsonBackReference
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -14,13 +14,15 @@ public class DetalleVenta {
     @Column(name = "id_detalle_venta", nullable = false)
     private Integer idDetalleVenta;
 
+    // CRÍTICO: @JsonBackReference para la parte "hija" de la relación
+    // CRÍTICO: FetchType.LAZY para evitar carga innecesaria y StackOverflowError
     @JsonBackReference
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY) // DEBE ser LAZY aquí
     @JoinColumn(name = "id_venta", nullable = false,
             foreignKey = @ForeignKey(name = "fk_detalle_venta_venta1"))
     private Venta venta;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER) // Se mantiene EAGER para Producto (opcional, pero común)
     @JoinColumn(name = "id_producto", nullable = false,
             foreignKey = @ForeignKey(name = "fk_detalle_venta_producto1"))
     private Producto producto;
@@ -34,9 +36,22 @@ public class DetalleVenta {
     @Column(name = "total", nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    @Column(name = "estado", nullable = true)
+    private Byte estado = 1;
+
+    public Byte getEstado() {
+        return estado;
+    }
+
+    public void setEstado(Byte estado) {
+        this.estado = estado;
+    }
+
+    // CONSTRUCTOR VACÍO (ESENCIAL PARA JACKSON)
     public DetalleVenta() {
     }
 
+    // CONSTRUCTOR CON PARÁMETROS (opcional, pero útil)
     public DetalleVenta(Integer idDetalleVenta, Venta venta, Producto producto, Integer cantidad, BigDecimal precioUnitario, BigDecimal total) {
         this.idDetalleVenta = idDetalleVenta;
         this.venta = venta;
@@ -45,6 +60,8 @@ public class DetalleVenta {
         this.precioUnitario = precioUnitario;
         this.total = total;
     }
+
+    // --- GETTERS Y SETTERS ---
 
     public Integer getIdDetalleVenta() { return idDetalleVenta; }
     public void setIdDetalleVenta(Integer idDetalleVenta) { this.idDetalleVenta = idDetalleVenta; }
