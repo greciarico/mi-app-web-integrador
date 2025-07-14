@@ -14,8 +14,11 @@ public class Categoria {
     @Column(name = "nombre_categoria", length = 100, nullable = false)
     private String nombreCategoria;
 
+    // CAMBIO CLAVE AQUÍ: De Boolean a Byte
     @Column(name = "estado", nullable = false)
-    private Byte estado = 1;
+    private Byte estado = 1; // 0=Inactivo, 1=Activo, 2=Eliminado Lógicamente
+
+    // Getters y setters
 
     public Integer getIdCategoria() {
         return idCategoria;
@@ -33,11 +36,11 @@ public class Categoria {
         this.nombreCategoria = nombreCategoria;
     }
 
-    public Byte getEstado() {
+    public Byte getEstado() { // Ahora devuelve Byte
         return estado;
     }
 
-    public void setEstado(Byte estado) {
+    public void setEstado(Byte estado) { // Ahora acepta Byte
         this.estado = estado;
     }
 }
