@@ -114,5 +114,3 @@ public class Producto {
         this.fechaRegistro = fechaRegistro;
     }
 }
-
-
