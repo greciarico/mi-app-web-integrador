@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="reporteModalContent">
+  <div class="modal-header">
+    <h4 class="modal-title">Generar Reporte de Mermas</h4>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="cerrarReporteMermasModal()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <form id="formReporteMermas">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="filtroIdProductoMerma">Producto:</label>
+            <select id="filtroIdProductoMerma" name="idProducto" class="form-control">
+              <option value="">Todos los Productos</option>
+              <option th:each="prod : ${productos}"
+                      th:value="${prod.idProducto}"
+                      th:text="${prod.nombre}"></option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="filtroNombreProductoReporte">Nombre de Producto (búsqueda):</label>
+            <input type="text" id="filtroNombreProductoReporte" name="nombreProducto" class="form-control" placeholder="Buscar por nombre de producto"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <label for="filtroDescripcionMerma">Descripción de Merma:</label>
+            <input type="text" id="filtroDescripcionMerma" name="descripcionMerma" class="form-control" placeholder="Buscar por descripción de la merma"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Cantidad:</label>
+            <div class="input-group">
+              <input type="number" id="cantidadMermaMin" name="cantidadMin" class="form-control" placeholder="Min">
+              <input type="number" id="cantidadMermaMax" name="cantidadMax" class="form-control" placeholder="Max">
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Fecha de Registro:</label>
+            <div class="input-group">
+              <input type="date" id="fechaRegistroMermaStart" name="fechaRegistroStart" class="form-control" onchange="setMermaReportDateMaxAttributes()">
+              <input type="date" id="fechaRegistroMermaEnd" name="fechaRegistroEnd" class="form-control" onchange="setMermaReportDateMinAttributes()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info text-center mt-3" role="alert">
+        <i class="fas fa-info-circle"></i> Deje todas las opciones de filtro sin marcar para generar un reporte de todas las mermas.
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-default" onclick="limpiarFiltrosReporteMermas()">Limpiar Filtros</button>
+    <button type="button" class="btn btn-primary" id="btnGenerarPdfMerma" style="background-color:#183D00 !important; border-color:#183D00 !important;" onclick="ejecutarGenerarReporteMermas()">
+      <i class="fas fa-file-pdf"></i> Generar PDF
+    </button>
+  </div>
+</div>
+</body>
+</html>
