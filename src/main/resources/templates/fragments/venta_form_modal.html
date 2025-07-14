@@ -13,16 +13,22 @@
             <input type="hidden" th:field="*{fechaRegistro}" id="fechaRegistro"/>
             <input type="hidden" th:field="*{usuario.idUsuario}" th:value="1" id="idUsuario"/>
             <div class="row">
-                <div class="col-md-6"> <div class="form-group"> <label for="clienteSelect">Cliente:</label> <select id="clienteSelect" th:field="*{cliente.idCliente}" class="form-control" required>
-                    <option value="">-- Seleccione un Cliente --</option>
-                    <option th:each="cliente : ${clientes}"
-                            th:value="${cliente.idCliente}"
-                            th:text="${cliente.razonSocial != null and cliente.razonSocial.trim() != '' ? cliente.razonSocial : (cliente.nombre + ' ' + cliente.apPaterno + ' ' + cliente.apMaterno)}">
-                        Nombre Cliente
-                    </option>
-                </select>
-                    <span class="text-danger" id="clienteSelectError"></span>
-                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="clienteSelect">Cliente:</label>
+                        <div class="input-group">
+                            <select id="clienteSelect" th:field="*{cliente.idCliente}" class="form-control" required>
+                                <option value="">-- Seleccione un Cliente --</option>
+                                <option th:each="cliente : ${clientes}"
+                                        th:value="${cliente.idCliente}"
+                                        th:text="${cliente.razonSocial != null and cliente.razonSocial.trim() != '' ? cliente.razonSocial : (cliente.nombre + ' ' + cliente.apPaterno + ' ' + cliente.apMaterno)}">
+                                    Nombre Cliente
+                                </option>
+                            </select>
+
+                        </div>
+                        <span class="text-danger" id="clienteSelectError"></span>
+                    </div>
                 </div>
                 <div class="col-md-6"> <div class="form-group"> <label for="tipoDocumento">Tipo Documento:</label> <select id="tipoDocumento" th:field="*{tipoDocumento}" class="form-control" required>
                     <option value="">-- Seleccione --</option>
@@ -52,9 +58,9 @@
 
             <div class="form-group"> <label for="igvSelect">IGV:</label> <select id="igvSelect" th:field="*{igvEntity.idIgv}" class="form-control" required>
                 <option value="">-- Seleccione el IGV --</option>
-                <option th:each="igv : ${igvs}"
-                        th:value="${igv.idIgv}"
-                        th:text="${igv.igv + '%'}">
+                <option th:each="tasa : ${igvs}"
+                        th:value="${tasa.idIgv}"
+                        th:text="${tasa.tasa + '%'}">
                     18%
                 </option>
             </select>
