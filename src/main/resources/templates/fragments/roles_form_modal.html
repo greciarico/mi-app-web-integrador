@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="formContent">
+    <div class="modal fade" id="modalFormRol" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" th:text="${rolUsuario.idRol} != null ? 'Editar Rol' : 'Nuevo Rol'">Título</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="formRol" th:action="@{/roles/guardar}" th:object="${rolUsuario}" method="post">
+                        <input type="hidden" th:field="*{idRol}" />
+                        <div class="form-group">
+                            <label for="tipoRol">Nombre del Rol</label>
+                            <input type="text" id="tipoRol" th:field="*{tipoRol}" class="form-control" placeholder="Ej. ADMIN" required/>
+                        </div>
+                        <!-- BLOQUE DE PERMISOS RENOVADO -->
+                        <div class="form-group">
+                            <label>Permisos</label>
+                            <ul class="list-unstyled row">
+                                <li class="col-6 mb-2" th:each="perm : ${todosPermisos}">
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               th:field="*{permisos}"
+                                               th:value="${perm.idPermiso}"
+                                               th:id="${'perm-' + perm.idPermiso}" />
+                                        <label class="form-check-label"
+                                               th:for="${'perm-' + perm.idPermiso}"
+                                               th:text="${#strings.replace(perm.nombre,'_',' ')}">
+                                        </label>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        <!-- FIN BLOQUE DE PERMISOS -->
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="formRol" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
