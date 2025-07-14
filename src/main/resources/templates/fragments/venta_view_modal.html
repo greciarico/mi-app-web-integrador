@@ -25,7 +25,7 @@
                 <p><strong>Tipo Documento:</strong> <span th:text="${venta.tipoDocumento}"></span></p>
                 <p><strong>N° Documento:</strong> <span th:text="${venta.numDocumento}"></span></p>
                 <p><strong>Tipo Pago:</strong> <span th:text="${venta.tipoPago}"></span></p>
-                <p><strong>IGV Aplicado:</strong> <span th:text="${venta.igvEntity?.igv ?: 'N/A'} + '%'"></span></p>
+                <p><strong>IGV Aplicado:</strong> <span th:text="${#numbers.formatPercent(venta.igvEntity?.tasa, 1, 0)}"></span></p>
             </div>
         </div>
 
@@ -54,7 +54,7 @@
 
         <div class="row mt-4">
             <div class="col-md-6 offset-md-6 text-right">
-                <p><strong>Subtotal:</strong> S/ <span th:text="${#numbers.formatDecimal(venta.total / (1 + (venta.igvEntity?.igv ?: 0)/100), 0, 'COMMA', 2, 'POINT')}"></span></p>
+                <p><strong>Subtotal:</strong> S/ <span th:text="${#numbers.formatDecimal(venta.total / (1 + (venta.igvEntity?.tasa ?: 0)), 0, 'COMMA', 2, 'POINT')}"></span></p>
                 <p><strong>Monto IGV:</strong> S/ <span th:text="${#numbers.formatDecimal(venta.igv, 0, 'COMMA', 2, 'POINT')}"></span></p>
                 <h4><strong>Total Final:</strong> S/ <span th:text="${#numbers.formatDecimal(venta.total, 0, 'COMMA', 2, 'POINT')}"></span></h4>
             </div>
