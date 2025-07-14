@@ -2,6 +2,7 @@ package com.example.DyD_Natures.Repository;
 
 import com.example.DyD_Natures.Model.Venta;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor; // Importar
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface VentaRepository extends JpaRepository<Venta, Integer> {
+public interface VentaRepository extends JpaRepository<Venta, Integer>, JpaSpecificationExecutor<Venta> {
     // Consultas personalizadas para ventas si se necesitan
 
     /**
@@ -20,17 +21,11 @@ public interface VentaRepository extends JpaRepository<Venta, Integer> {
      * @param endDate Fecha de fin (inclusive).
      * @return Suma de los totales de venta para el período, o 0.00 si no hay ventas.
      */
-    @Query("SELECT SUM(v.total) FROM Venta v WHERE v.fechaRegistro BETWEEN :startDate AND :endDate")
-    BigDecimal sumTotalByFechaRegistroBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT SUM(v.total) FROM Venta v WHERE v.fechaRegistro BETWEEN :startDate AND :endDate AND v.estado = 1")
+    BigDecimal sumTotalByFechaRegistroBetweenAndEstado(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
-    /**
-     * Cuenta el número total de ventas en un rango de fechas.
-     * @param startDate Fecha de inicio (inclusive).
-     * @param endDate Fecha de fin (inclusive).
-     * @return Número de ventas para el período.
-     */
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.fechaRegistro BETWEEN :startDate AND :endDate")
-    Long countByFechaRegistroBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.fechaRegistro BETWEEN :startDate AND :endDate AND v.estado = 1")
+    Long countByFechaRegistroBetweenAndEstado(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     /**
      * Calcula la suma total de ventas por mes para un año específico.
@@ -46,3 +41,4 @@ public interface VentaRepository extends JpaRepository<Venta, Integer> {
     List<Object[]> findTotalSalesByMonthForYear(@Param("year") int year);
 
 }
+
