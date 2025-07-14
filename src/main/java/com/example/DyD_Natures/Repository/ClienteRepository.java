@@ -2,6 +2,7 @@ package com.example.DyD_Natures.Repository;
 
 import com.example.DyD_Natures.Model.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
+public interface ClienteRepository extends JpaRepository<Cliente, Integer>, JpaSpecificationExecutor<Cliente> {
 
     // Buscar cliente por DNI
     Optional<Cliente> findByDni(String dni);
@@ -64,4 +65,8 @@ public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
     // Para contar el total de clientes activos en toda la historia (sin filtro de fecha de registro)
     @Query("SELECT COUNT(c) FROM Cliente c WHERE c.estado <> 2")
     Long countAllActiveClients();
+
+    // Devuelve únicamente los clientes con estado = 1
+    List<Cliente> findByEstado(Byte estado);
+
 }
