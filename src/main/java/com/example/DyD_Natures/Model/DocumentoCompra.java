@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference; // Importar
 
 @Entity
 @Table(name = "documento_compra")
@@ -33,9 +33,22 @@ public class DocumentoCompra {
     @Column(name = "num_documento", nullable = false, length = 45)
     private String numDocumento;
 
+    // AÑADIDO: @JsonManagedReference para manejar la referencia bidireccional
+    // Esta es la "parte" que Jackson va a serializar normalmente.
     @JsonManagedReference
     @OneToMany(mappedBy = "documentoCompra", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DetalleCompra> detalleCompras = new ArrayList<>();
+
+    @Column(name = "estado", nullable = true)
+    private Byte estado = 1;
+
+    public Byte getEstado() {
+        return estado;
+    }
+
+    public void setEstado(Byte estado) {
+        this.estado = estado;
+    }
 
     public DocumentoCompra() {
     }
