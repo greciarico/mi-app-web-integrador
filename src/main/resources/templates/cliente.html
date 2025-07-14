@@ -53,6 +53,9 @@
                                             <button class="btn btn-default" type="button" onclick="aplicarFiltrosCliente()">
                                                 <i class="fas fa-search"></i> Buscar
                                             </button>
+                                            <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteClientesModal()">
+                                                <i class="fas fa-file-alt"></i> Generar Reporte
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -89,7 +92,14 @@
             </div>
         </div>
     </div>
-
+    <div class="modal fade" id="reporteClientesModal" tabindex="-1" role="dialog" aria-labelledby="reporteClientesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div id="modalReporteContentCliente">
+                </div>
+            </div>
+        </div>
+    </div>
     <script th:inline="javascript">
         /*<![CDATA[*/
 
@@ -758,8 +768,121 @@
             recargarListaClientesCompleta();
         }
 
-        function generarReporteCliente() {
-            mostrarNotificacion("info", "La funcionalidad de generar reporte de Cliente aún no está implementada.");
+        // ============== NUEVAS FUNCIONES PARA EL REPORTE DE CLIENTES ==============
+
+        // Abre el modal de filtros del reporte de clientes
+        function abrirReporteClientesModal() {
+            console.log("Abriendo modal de reporte de clientes...");
+            $('#modalReporteContentCliente').load('/clientes/reporte/modal', function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario de reporte de clientes:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar reporte',
+                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    console.log("Formulario de reporte de clientes cargado exitosamente.");
+                    // Inicializar Select2 para el filtro de tipo de cliente en el modal de reporte
+                    setTimeout(() => {
+                        $('#filtroTipoClienteReporte').select2({
+                            placeholder: "-- Seleccione un Tipo de Cliente --",
+                            allowClear: true,
+                            width: '100%',
+                            dropdownParent: $('#reporteClientesModal')
+                        });
+                        console.log("Select2 inicializado en #filtroTipoClienteReporte.");
+                    }, 100);
+
+                    // Establecer las fechas máximas/mínimas para los campos de fecha
+                    setClienteReportDateMaxAttributes(); // Para fecha de inicio
+                    setClienteReportDateMinAttributes(); // Para fecha de fin
+
+                    $('#reporteClientesModal').modal('show');
+                }
+            });
+        }
+
+        // Cierra el modal de reporte de clientes
+        function cerrarReporteClientesModal() {
+            $('#reporteClientesModal').modal('hide');
+            // Destruir la instancia de Select2 antes de limpiar el contenido del modal
+            const selectTipoClienteReporte = $('#filtroTipoClienteReporte');
+            if (selectTipoClienteReporte.data('select2')) {
+                selectTipoClienteReporte.select2('destroy');
+                console.log("Select2 destruido en #filtroTipoClienteReporte.");
+            }
+            setTimeout(() => {
+                $('#modalReporteContentCliente').empty();
+            }, 300);
+        }
+
+        // Limpia los filtros del modal de reporte de clientes
+        function limpiarFiltrosReporteClientes() {
+            $('#formReporteClientes')[0].reset();
+            // Para Select2, necesitas establecer el valor a vacío y triggerear el cambio
+            $('#filtroTipoClienteReporte').val('').trigger('change');
+            // NUEVO: Limpiar el filtro de estado
+            $('#filtroEstadoClienteReporte').val(''); // Esto establece el valor a "Todos"
+            setClienteReportDateMaxAttributes(); // Restablecer límites de fecha
+            setClienteReportDateMinAttributes();
+        }
+
+        // Función para ajustar el atributo 'max' de la fecha de inicio del reporte de clientes
+        function setClienteReportDateMaxAttributes() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroClienteStart').attr('max', today);
+
+            const fechaFin = $('#fechaRegistroClienteEnd').val();
+            if (fechaFin && $('#fechaRegistroClienteStart').val() && new Date(fechaFin) < new Date($('#fechaRegistroClienteStart').val())) {
+                $('#fechaRegistroClienteEnd').val($('#fechaRegistroClienteStart').val());
+            }
+            $('#fechaRegistroClienteEnd').attr('min', $('#fechaRegistroClienteStart').val());
+        }
+
+        // Función para ajustar el atributo 'min' de la fecha de fin del reporte de clientes
+        function setClienteReportDateMinAttributes() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroClienteEnd').attr('max', today);
+
+            const fechaInicio = $('#fechaRegistroClienteStart').val();
+            if (fechaInicio && $('#fechaRegistroClienteEnd').val() && new Date(fechaInicio) > new Date($('#fechaRegistroClienteEnd').val())) {
+                $('#fechaRegistroClienteStart').val($('#fechaRegistroClienteEnd').val());
+            }
+            $('#fechaRegistroClienteStart').attr('max', $('#fechaRegistroClienteEnd').val() || today);
+        }
+
+
+        // Ejecuta la generación del reporte PDF de clientes
+        function ejecutarGenerarReporteClientes() {
+            Swal.fire({
+                title: 'Generando Reporte...',
+                text: 'Por favor, espera mientras se genera el PDF.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const form = $('#formReporteClientes');
+            const formData = form.serialize();
+
+            const url = '/clientes/reporte/pdf?' + formData;
+
+            // Retraso para dar tiempo a Swal.fire para mostrarse
+            setTimeout(() => {
+                // Abre el PDF en una nueva ventana/pestaña
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    Swal.close();
+                    mostrarNotificacion("success", "El reporte PDF de clientes se está generando y debería abrirse en una nueva ventana.");
+                    cerrarReporteClientesModal();
+                } else {
+                    Swal.close();
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la apertura de la nueva ventana. Por favor, permite los pop-ups para este sitio.");
+                }
+            }, 300);
         }
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
@@ -772,7 +895,108 @@
                 delay: 3000
             });
         }
+        // ===========================================
+// FUNCIONES PARA AUTOCONPLETAR CON API RENIEC/SUNAT
+// ===========================================
 
+/**
+ * Busca datos de DNI o RUC usando la API externa y autocompleta el formulario.
+ * Se llama al perder el foco del campo (onblur) o al hacer clic en el botón "Buscar".
+ * @param {string} triggerType 'dni' o 'ruc' para indicar qué botón o campo lo disparó.
+ */
+async function buscarDatosDniRuc(triggerType) {
+    const idTipoCliente = parseInt($('#idTipoCliente').val(), 10);
+    let numeroDocumento;
+    let tipoDocumentoApi;
+    let inputFieldId;
+    let errorFieldId;
+
+    if (idTipoCliente === 1) { // Persona Natural - DNI
+        numeroDocumento = $('#dni').val().trim();
+        tipoDocumentoApi = 'dni';
+        inputFieldId = 'dni';
+        errorFieldId = 'dniError';
+        // Solo buscar si el DNI tiene 8 dígitos y es numérico
+        if (numeroDocumento.length !== 8 || !/^\d+$/.test(numeroDocumento)) {
+            displayError(errorFieldId, "El DNI debe tener 8 dígitos numéricos para buscar.");
+            return;
+        }
+    } else if (idTipoCliente === 2) { // Persona Jurídica - RUC
+        numeroDocumento = $('#ruc').val().trim();
+        tipoDocumentoApi = 'ruc';
+        inputFieldId = 'ruc';
+        errorFieldId = 'rucError';
+        // Solo buscar si el RUC tiene 11 dígitos y es numérico
+        if (numeroDocumento.length !== 11 || !/^\d+$/.test(numeroDocumento)) {
+            displayError(errorFieldId, "El RUC debe tener 11 dígitos numéricos para buscar.");
+            return;
+        }
+    } else {
+        // No hay tipo de cliente seleccionado, no se puede buscar por documento
+        return;
+    }
+
+    // Limpiar errores previos del campo de documento
+    clearSpecificError(errorFieldId);
+
+    // Evitar múltiples llamadas si el campo está vacío o no es válido para búsqueda
+    if (!numeroDocumento) {
+        return;
+    }
+
+    // Mostrar indicador de carga y deshabilitar botón
+    const btnToDisable = triggerType === 'dni' ? $('#btnBuscarDni') : $('#btnBuscarRuc');
+    btnToDisable.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Buscando...').prop('disabled', true);
+    $('#' + inputFieldId).prop('disabled', true); // Deshabilitar el input mientras busca
+
+    try {
+        const response = await $.ajax({
+            type: "GET",
+            url: `/clientes/buscarPorDocumento?tipoDocumento=${tipoDocumentoApi}&numeroDocumento=${numeroDocumento}`,
+            dataType: "json"
+        });
+
+        if (response) {
+            mostrarNotificacion("success", `Datos de ${tipoDocumentoApi.toUpperCase()} encontrados.`);
+            if (tipoDocumentoApi === 'dni') {
+                $('#nombre').val(response.nombres || '');
+                $('#apPaterno').val(response.apellidoPaterno || '');
+                $('#apMaterno').val(response.apellidoMaterno || '');
+                // La dirección a menudo no viene de RENIEC en APIs gratuitas.
+                // Si tu API la da, puedes autocompletarla:
+                // $('#direccion').val(response.direccion || $('#direccion').val());
+            } else if (tipoDocumentoApi === 'ruc') {
+                $('#razonSocial').val(response.razonSocial || '');
+                $('#nombreComercial').val(response.nombreComercial || '');
+                // Si tu API de SUNAT da la dirección:
+                $('#direccion').val(response.direccion || $('#direccion').val());
+            }
+        } else {
+            // Esto no debería ejecutarse si el backend ya maneja el 404
+            mostrarNotificacion("info", `No se encontraron datos para el ${tipoDocumentoApi.toUpperCase()} proporcionado.`);
+        }
+    } catch (xhr) {
+        let errorMessage = `Error al buscar datos de ${tipoDocumentoApi.toUpperCase()}.`;
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+            errorMessage = xhr.responseJSON.message;
+        } else if (xhr.status === 404) {
+            errorMessage = `${tipoDocumentoApi.toUpperCase()} no encontrado o no existe.`;
+        } else if (xhr.status === 429) { // Too Many Requests - Límite de API
+            errorMessage = `Se excedió el límite de consultas a la API. Intente más tarde o ingrese los datos manualmente.`;
+        } else if (xhr.status === 400) { // Bad Request
+            errorMessage = `${tipoDocumentoApi.toUpperCase()} inválido o formato incorrecto.`;
+        } else {
+            errorMessage += " Por favor, intente de nuevo o ingrese los datos manualmente.";
+        }
+        displayError(errorFieldId, errorMessage);
+        mostrarNotificacion("error", errorMessage);
+        console.error(`Error AJAX al buscar datos de ${tipoDocumentoApi.toUpperCase()}:`, xhr);
+    } finally {
+        // Habilitar el botón y el input de nuevo
+        btnToDisable.html('<i class="fas fa-search"></i> Buscar').prop('disabled', false);
+        $('#' + inputFieldId).prop('disabled', false);
+    }
+}
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
             renderizarTablaCliente(allClientes);
