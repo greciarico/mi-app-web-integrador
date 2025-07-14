@@ -36,7 +36,7 @@
                                         <button class="btn btn-default" type="button" onclick="aplicarFiltrosProveedores()">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteProveedores()">
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteProveedoresModal()">
                                             <i class="fas fa-file-alt"></i> Generar Reporte
                                         </button>
                                     </div>
@@ -76,7 +76,14 @@
             </div>
         </div>
     </div>
-
+    <div class="modal fade" id="reporteProveedoresModal" tabindex="-1" role="dialog" aria-labelledby="reporteProveedoresModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div id="modalReporteContentProveedor">
+                </div>
+            </div>
+        </div>
+    </div>
     <script th:inline="javascript">
         /*<![CDATA[*/
 
@@ -581,8 +588,94 @@
             recargarListaProveedoresCompleta();
         }
 
-        function generarReporteProveedores() {
-            mostrarNotificacion("info", "La funcionalidad de generar reporte de proveedores aún no está implementada.");
+        // FUNCIONES PARA EL REPORTE PDF DE PROVEEDORES
+
+        // Abre el modal de filtros del reporte
+        function abrirReporteProveedoresModal() {
+            console.log("Abriendo modal de reporte de proveedores...");
+            $('#modalReporteContentProveedor').load('/proveedores/reporte/modal', function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario de reporte de proveedores:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar reporte',
+                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    console.log("Formulario de reporte de proveedores cargado exitosamente.");
+                    // *** AQUÍ ES DONDE DEBEMOS APLICAR LA LÓGICA DE LA FECHA MÁXIMA ***
+                    setReportDateMaxAttributes();
+                    $('#reporteProveedoresModal').modal('show');
+                }
+            });
+        }
+
+        // Nueva función para establecer el atributo 'max' en los inputs de fecha
+        function setReportDateMaxAttributes() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Meses son 0-11
+            const day = String(today.getDate()).padStart(2, '0');
+            const maxDate = `${year}-${month}-${day}`;
+
+            // Asegúrate de que los IDs sean correctos
+            $('#fechaRegistroDesde').attr('max', maxDate);
+            $('#fechaRegistroHasta').attr('max', maxDate);
+            console.log("Fechas máximas establecidas a:", maxDate);
+        }
+
+        // Cierra el modal de reporte
+        function cerrarReporteProveedoresModal() {
+            $('#reporteProveedoresModal').modal('hide');
+            setTimeout(() => {
+                $('#modalReporteContentProveedor').empty();
+                // Opcional: limpiar fondos si no se gestionan automáticamente al cerrar el modal
+                // $('.modal-backdrop').remove();
+                // $('body').removeClass('modal-open');
+            }, 300);
+        }
+
+        // Limpia los filtros del modal de reporte
+        function limpiarFiltrosReporteProveedores() {
+    $('#formReporteProveedores')[0].reset(); // Resetea todos los campos del formulario
+    $('.estado-checkbox-proveedor').prop('checked', false); // Desmarca los checkboxes de estado
+    // Los inputs de tipo 'date' se resetean con form.reset() si no tienen valor por defecto
+    // Pero puedes ser explícito si lo prefieres:
+    $('#fechaRegistroDesde').val('');
+    $('#fechaRegistroHasta').val('');
+}
+
+        // Ejecuta la generación del reporte PDF
+        function ejecutarGenerarReporteProveedores() {
+            Swal.fire({
+                title: 'Generando Reporte...',
+                text: 'Por favor, espera mientras se genera el PDF.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Recopilar los datos del formulario de reporte
+            const form = $('#formReporteProveedores');
+            const formData = form.serialize(); // Serializa todos los campos del formulario en una cadena de consulta
+
+            // Construir la URL con los parámetros de los filtros
+            const url = '/proveedores/reporte/pdf?' + formData;
+
+            // Abrir una nueva ventana o pestaña para la descarga del PDF
+            setTimeout(() => {
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    Swal.close();
+                    mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
+                    cerrarReporteProveedoresModal(); // Cierra el modal después de iniciar la descarga
+                } else {
+                    Swal.close();
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+                }
+            }, 300);
         }
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
