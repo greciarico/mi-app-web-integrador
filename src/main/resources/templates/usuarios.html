@@ -73,6 +73,14 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="reporteUsuariosModal" tabindex="-1" role="dialog" aria-labelledby="reporteUsuariosModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div id="modalReporteContent">
+                </div>
+            </div>
+        </div>
+    </div>
     <script th:inline="javascript">
         /*<![CDATA[*/
 
@@ -525,11 +533,11 @@
         }
 
         // ===========================================
-        // FUNCIONES DE FILTRADO Y REPORTE (AHORA CLIENT-SIDE)
+        // FUNCIONES DE FILTRADO Y REPORTE (ACTUALIZADAS)
         // ===========================================
 
         // Función para recargar la lista completa de usuarios desde el servidor
-        // y luego aplicar los filtros locales.
+        // y luego aplicar los filtros locales. (Mantenida)
         function recargarListaUsuariosCompleta() {
             $.ajax({
                 type: "GET",
@@ -547,7 +555,7 @@
         }
 
         // La función aplicarFiltros YA NO HACE UNA LLAMADA AJAX a la URL principal,
-        // SINO QUE FILTRA LA LISTA allUsers EN EL CLIENTE Y RENDERIZA LA TABLA.
+        // SINO QUE FILTRA LA LISTA allUsers EN EL CLIENTE Y RENDERIZA LA TABLA. (Mantenida)
         function aplicarFiltros() {
             const searchTerm = $('#searchTerm').val().toLowerCase().trim();
             let filteredUsers = allUsers; // Siempre empezamos con la lista completa
@@ -562,13 +570,15 @@
                     // Si no es "activo" o "inactivo", aplica el filtro general en todos los campos
                     filteredUsers = allUsers.filter(usuario => {
                         const estadoText = usuario.estado === 1 ? 'activo' : 'inactivo'; // Para buscar por texto de estado
+                        const rolNombre = usuario.rolUsuario ? usuario.rolUsuario.tipoRol.toLowerCase() : ''; // Para buscar por texto de rol
                         return (
                             (usuario.nombre && usuario.nombre.toLowerCase().includes(searchTerm)) ||
                             (usuario.apPaterno && usuario.apPaterno.toLowerCase().includes(searchTerm)) ||
                             (usuario.apMaterno && usuario.apMaterno.toLowerCase().includes(searchTerm)) ||
                             (usuario.dni && usuario.dni.toLowerCase().includes(searchTerm)) ||
                             (usuario.correo && usuario.correo.toLowerCase().includes(searchTerm)) ||
-                            estadoText.includes(searchTerm)
+                            estadoText.includes(searchTerm) ||
+                            rolNombre.includes(searchTerm) // Añadir búsqueda por rol
                         );
                     });
                 }
@@ -576,9 +586,94 @@
             renderizarTabla(filteredUsers); // Renderizar la tabla con los usuarios filtrados
         }
 
+        // NUEVA FUNCIÓN: Abre el modal de generación de reporte
         function generarReporte() {
-            mostrarNotificacion("info", "La funcionalidad de generar reporte aún no está implementada.");
+            console.log("Abriendo modal de generación de reporte.");
+            $('#modalReporteContent').load('/usuarios/reporte/modal', function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el modal de reporte:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    $('#reporteUsuariosModal').modal('show');
+                    console.log("Modal de reporte cargado y mostrado.");
+                }
+            });
         }
+
+        // NUEVA FUNCIÓN: Cierra el modal de generación de reporte
+        function cerrarReporteModal() {
+            $('#reporteUsuariosModal').modal('hide');
+            $('#modalReporteContent').empty();
+            console.log("Modal de reporte cerrado.");
+        }
+
+        // NUEVA FUNCIÓN: Ejecuta la generación del reporte PDF con los filtros
+        function ejecutarGenerarReporte() {
+            const form = $('#formReporteUsuarios');
+            const formData = form.serialize(); // Obtiene todos los parámetros del formulario de filtros
+
+            // Construir la URL con los parámetros de los filtros
+            const url = '/usuarios/reporte/pdf?' + formData;
+
+            // Abrir una nueva ventana o pestaña para la descarga del PDF
+            // Esto es crucial porque la respuesta es un archivo, no JSON.
+            window.open(url, '_blank');
+
+            mostrarNotificacion("success", "Generando reporte PDF...");
+            cerrarReporteModal(); // Cierra el modal después de iniciar la descarga
+        }
+        // NUEVA FUNCIÓN: Limpia los filtros del modal de reporte
+    function limpiarFiltrosReporte() {
+        $('#formReporteUsuarios')[0].reset(); // Resetea el campo de texto
+        // Desmarcar todos los checkboxes de roles
+        $('.rol-checkbox').prop('checked', false);
+        // Desmarcar todos los checkboxes de estados
+        $('.estado-checkbox').prop('checked', false);
+    }
+
+
+    // NUEVA FUNCIÓN: Ejecuta la generación del reporte PDF con los filtros
+    function ejecutarGenerarReporte() {
+        const form = $('#formReporteUsuarios');
+        const formData = form.serialize(); // Obtiene todos los parámetros del formulario de filtros
+
+        // Mostrar indicador de carga con SweetAlert2
+        Swal.fire({
+            title: 'Generando Reporte...',
+            html: 'Por favor espera, esto puede tardar unos segundos.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Construir la URL con los parámetros de los filtros
+        const url = '/usuarios/reporte/pdf?' + formData;
+
+        // Abrir una nueva ventana o pestaña para la descarga del PDF
+        // Esto es crucial porque la respuesta es un archivo, no JSON.
+        // Usamos un pequeño retraso para que el Swal.fire() tenga tiempo de renderizarse.
+        setTimeout(() => {
+            const newWindow = window.open(url, '_blank');
+            // Opcional: Intentar detectar si la ventana se abrió y cerró para ocultar el spinner
+            // Esto es complicado y a menudo poco fiable, una simple notificación es mejor.
+            if (newWindow) {
+                // Si la ventana/pestaña se abrió, asumimos que la descarga ha comenzado.
+                Swal.close();
+                mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
+                cerrarReporteModal(); // Cierra el modal después de iniciar la descarga
+            } else {
+                // El navegador bloqueó el popup o hubo un problema.
+                Swal.close();
+                mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+            }
+        }, 300); // Pequeño retraso
+    }
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
         function mostrarNotificacion(type, message) {
