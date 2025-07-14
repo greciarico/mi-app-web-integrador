@@ -10,4 +10,3 @@ import java.util.List;
 public interface RolUsuarioRepository extends JpaRepository<RolUsuario, Integer> {
 
 }
-
