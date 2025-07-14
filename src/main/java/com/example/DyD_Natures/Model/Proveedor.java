@@ -1,5 +1,6 @@
 package com.example.DyD_Natures.Model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
@@ -14,6 +15,7 @@ public class Proveedor {
     @Column(name = "id_proveedor", nullable = false)
     private Integer idProveedor;
 
+    @JsonFormat(pattern = "dd/MM/yyyy")
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
@@ -38,8 +40,11 @@ public class Proveedor {
     @Column(name = "estado", nullable = false)
     private Byte estado = 1;
 
+    // Constructor vacío para JPA
     public Proveedor() {
     }
+
+    // Getters y setters
 
     public Integer getIdProveedor() {
         return idProveedor;
