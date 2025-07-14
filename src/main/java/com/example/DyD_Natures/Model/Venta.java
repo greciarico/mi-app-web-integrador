@@ -17,6 +17,17 @@ public class Venta {
     @Column(name = "id_venta", nullable = false)
     private Integer idVenta;
 
+    // --- CAMPO PARA LA BASE DE DATOS ---
+    // Este es el campo que SÍ se guarda en la base de datos, en la columna "igv".
+    // Almacenará el MONTO del IGV (ej: 18.00).
+    @Column(name = "igv", nullable = false, precision = 10, scale = 2)
+    private BigDecimal igv;
+
+    // --- CAMPO TRANSITORIO PARA EL FORMULARIO/JSON ---
+    // Este campo NO se guarda en la BD. Solo existe para recibir el dato 'tasa' del JSON que envía el frontend.
+    @Transient
+    private BigDecimal tasa;
+
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
@@ -42,41 +53,113 @@ public class Venta {
     @Column(name = "tipo_pago", nullable = false, length = 100)
     private String tipoPago;
 
-    @Column(name = "igv", nullable = false, precision = 10, scale = 2)
-    private BigDecimal igv;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_igv", nullable = false,
             foreignKey = @ForeignKey(name = "fk_venta_igv"))
     private Igv igvEntity;
 
+    // --- RELACIÓN CON DETALLES ---
+    // @JsonManagedReference evita problemas de bucles infinitos al convertir a JSON.
+    // FetchType.LAZY es una buena práctica para mejorar el rendimiento.
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<DetalleVenta> detalleVentas = new ArrayList<>();
 
+    @Column(name = "estado", nullable = true)
+    private Byte estado = 1;
+
     public Venta() {
     }
 
-    public Integer getIdVenta() { return idVenta; }
-    public void setIdVenta(Integer idVenta) { this.idVenta = idVenta; }
-    public LocalDate getFechaRegistro() { return fechaRegistro; }
-    public void setFechaRegistro(LocalDate fechaRegistro) { this.fechaRegistro = fechaRegistro; }
-    public Cliente getCliente() { return cliente; }
-    public void setCliente(Cliente cliente) { this.cliente = cliente; }
-    public Usuario getUsuario() { return usuario; }
-    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
-    public BigDecimal getTotal() { return total; }
-    public void setTotal(BigDecimal total) { this.total = total; }
-    public String getTipoDocumento() { return tipoDocumento; }
-    public void setTipoDocumento(String tipoDocumento) { this.tipoDocumento = tipoDocumento; }
-    public String getNumDocumento() { return numDocumento; }
-    public void setNumDocumento(String numDocumento) { this.numDocumento = numDocumento; }
-    public String getTipoPago() { return tipoPago; }
-    public void setTipoPago(String tipoPago) { this.tipoPago = tipoPago; }
-    public BigDecimal getIgv() { return igv; }
-    public void setIgv(BigDecimal igv) { this.igv = igv; }
-    public Igv getIgvEntity() { return igvEntity; }
-    public void setIgvEntity(Igv igvEntity) { this.igvEntity = igvEntity; }
+    // --- Getters y Setters ---
+
+    public Integer getIdVenta() {
+        return idVenta;
+    }
+
+    public void setIdVenta(Integer idVenta) {
+        this.idVenta = idVenta;
+    }
+
+    public BigDecimal getIgv() {
+        return igv;
+    }
+
+    public void setIgv(BigDecimal igv) {
+        this.igv = igv;
+    }
+
+    public BigDecimal getTasa() {
+        return tasa;
+    }
+
+    public void setTasa(BigDecimal tasa) {
+        this.tasa = tasa;
+    }
+
+    public LocalDate getFechaRegistro() {
+        return fechaRegistro;
+    }
+
+    public void setFechaRegistro(LocalDate fechaRegistro) {
+        this.fechaRegistro = fechaRegistro;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public String getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(String tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
+    }
+
+    public String getNumDocumento() {
+        return numDocumento;
+    }
+
+    public void setNumDocumento(String numDocumento) {
+        this.numDocumento = numDocumento;
+    }
+
+    public String getTipoPago() {
+        return tipoPago;
+    }
+
+    public void setTipoPago(String tipoPago) {
+        this.tipoPago = tipoPago;
+    }
+
+    public Igv getIgvEntity() {
+        return igvEntity;
+    }
+
+    public void setIgvEntity(Igv igvEntity) {
+        this.igvEntity = igvEntity;
+    }
 
     public List<DetalleVenta> getDetalleVentas() {
         return detalleVentas;
@@ -96,22 +179,12 @@ public class Venta {
         }
     }
 
-
-    // Métodos para agregar/eliminar detalles individualmente
-    public void addDetalleVenta(DetalleVenta detalle) {
-        if (this.detalleVentas == null) {
-            this.detalleVentas = new ArrayList<>();
-        }
-        if (!this.detalleVentas.contains(detalle)) { // Evitar duplicados si equals/hashCode están bien
-            this.detalleVentas.add(detalle);
-            detalle.setVenta(this);
-        }
+    public Byte getEstado() {
+        return estado;
     }
 
-    public void removeDetalleVenta(DetalleVenta detalle) {
-        if (this.detalleVentas != null && this.detalleVentas.remove(detalle)) {
-            detalle.setVenta(null);
-        }
+    public void setEstado(Byte estado) {
+        this.estado = estado;
     }
 
     @Override
