@@ -40,7 +40,7 @@
                                         <button class="btn btn-default" type="button" onclick="aplicarFiltrosCategorias()">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteCategorias()">
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteCategoriasModal()">
                                             <i class="fas fa-file-alt"></i> Generar Reporte
                                         </button>
                                     </div>
@@ -82,6 +82,14 @@
             <div class="modal-content">
                 <div id="modalFormContentCategoria">
                     <!-- El fragmento categorias_form_modal.html se insertará aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="reporteCategoriasModal" tabindex="-1" role="dialog" aria-labelledby="reporteCategoriasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div id="modalReporteContentCategoria">
                 </div>
             </div>
         </div>
@@ -353,8 +361,68 @@
             renderizarTablaCategorias(filteredCategorias);
         }
 
-        function generarReporteCategorias() {
-            mostrarNotificacion("info", "La funcionalidad de generar reporte de categorías aún no está implementada.");
+        // ============== NUEVAS FUNCIONES PARA EL REPORTE DE CATEGORÍAS ==============
+
+        // Abre el modal de filtros del reporte de categorías
+        function abrirReporteCategoriasModal() {
+            console.log("Abriendo modal de reporte de categorías...");
+            $('#modalReporteContentCategoria').load('/categorias/reporte/modal', function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario de reporte de categorías:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar reporte',
+                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    console.log("Formulario de reporte de categorías cargado exitosamente.");
+                    $('#reporteCategoriasModal').modal('show');
+                }
+            });
+        }
+
+        // Cierra el modal de reporte de categorías
+        function cerrarReporteCategoriasModal() {
+            $('#reporteCategoriasModal').modal('hide');
+            setTimeout(() => {
+                $('#modalReporteContentCategoria').empty();
+            }, 300);
+        }
+
+        // Limpia los filtros del modal de reporte de categorías
+        function limpiarFiltrosReporteCategorias() {
+            $('#formReporteCategorias')[0].reset();
+            $('.estado-checkbox-categoria').prop('checked', false);
+        }
+
+        // Ejecuta la generación del reporte PDF de categorías
+        function ejecutarGenerarReporteCategorias() {
+            Swal.fire({
+                title: 'Generando Reporte...',
+                text: 'Por favor, espera mientras se genera el PDF.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const form = $('#formReporteCategorias');
+            const formData = form.serialize();
+
+            const url = '/categorias/reporte/pdf?' + formData;
+
+            setTimeout(() => {
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    Swal.close();
+                    mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
+                    cerrarReporteCategoriasModal();
+                } else {
+                    Swal.close();
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+                }
+            }, 300);
         }
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
