@@ -1,8 +1,9 @@
 package com.example.DyD_Natures.Controller;
 
-import com.example.DyD_Natures.Dto.ProveedorFilterDTO;
-import com.example.DyD_Natures.Model.Proveedor;
-import com.example.DyD_Natures.Service.ProveedorService;
+import com.example.DyD_Natures.Dto.ProductoFilterDTO;
+import com.example.DyD_Natures.Model.Categoria;
+import com.example.DyD_Natures.Model.Producto;
+import com.example.DyD_Natures.Service.ProductoService;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
@@ -16,6 +17,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -23,201 +25,223 @@ import java.util.Map;
 import java.util.Optional;
 
 @Controller
-@RequestMapping("/proveedores")
-public class ProveedorController {
+@RequestMapping("/productos")
+public class ProductoController {
 
     @Autowired
-    private ProveedorService proveedorService;
+    private ProductoService productoService;
+
+    // @Autowired
+    // private CategoriaService categoriaService; // Descomentar si usas un servicio separado para Categoría
 
     /**
-     * Muestra la vista principal de proveedores.
-     * Carga los proveedores activos/inactivos (no eliminados) para que el JavaScript los filtre.
+     * Muestra la vista principal de productos.
+     * Carga los productos activos/inactivos (no eliminados) para que el JavaScript los filtre.
      * @param model El modelo para pasar datos a la vista.
-     * @return El nombre de la vista (proveedores.html).
+     * @return El nombre de la vista (productos.html).
      */
     @GetMapping
-    public String listarProveedores(Model model) {
-        model.addAttribute("proveedores", proveedorService.listarProveedoresActivos());
-        return "proveedores"; // Asegúrate de que esto apunta a tu archivo proveedores.html
+    public String listarProductos(Model model) {
+        model.addAttribute("productos", productoService.listarProductosActivos());
+        return "productos";
     }
 
     /**
-     * Endpoint para obtener todos los proveedores activos/inactivos (no eliminados) en formato JSON.
+     * Endpoint para obtener todos los productos activos/inactivos (no eliminados) en formato JSON.
      * Usado por el JavaScript para recargar la lista después de operaciones CRUD.
-     * @return Una lista de proveedores activos/inactivos (no eliminados).
+     * @return Una lista de productos activos/inactivos (no eliminados).
      */
     @GetMapping("/all")
     @ResponseBody
-    public List<Proveedor> getAllProveedoresJson(@RequestParam(required = false) String searchTerm) { // AÑADIR @RequestParam
-        // Crear un DTO de filtro para pasar al servicio
-        ProveedorFilterDTO filterDTO = new ProveedorFilterDTO();
-
-        // Si se proporciona un término de búsqueda, establecerlo en el DTO
-        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            filterDTO.setNombreRucRazonSocialCorreo(searchTerm);
-        }
-        // Por defecto, buscarProveedoresPorFiltros ya excluye los proveedores con estado = 2 (eliminado lógicamente).
-        // Si no se proporciona searchTerm, buscarProveedoresPorFiltros devolverá todos los no eliminados.
-        return proveedorService.buscarProveedoresPorFiltros(filterDTO);
+    public List<Producto> getAllProductsJson() {
+        return productoService.listarProductosActivos();
     }
+
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
-        model.addAttribute("proveedor", new Proveedor());
-        // Asegúrate de que este fragmento existe y es correcto
-        return "fragments/proveedores_form_modal :: formContent";
+        Producto producto = new Producto();
+        producto.setCategoria(new Categoria());
+        model.addAttribute("producto", producto);
+        model.addAttribute("categorias", productoService.listarCategorias());
+        return "fragments/productos_form_modal :: formContent";
     }
 
     @GetMapping("/editar/{id}")
     public String mostrarFormularioEditar(@PathVariable Integer id, Model model) {
-        Optional<Proveedor> proveedorOpt = proveedorService.obtenerProveedorPorId(id);
-        if (proveedorOpt.isPresent()) {
-            model.addAttribute("proveedor", proveedorOpt.get());
-            // Asegúrate de que este fragmento existe y es correcto
-            return "fragments/proveedores_form_modal :: formContent";
+        Optional<Producto> productoOpt = productoService.obtenerProductoPorId(id);
+        if (productoOpt.isPresent()) {
+            model.addAttribute("producto", productoOpt.get());
+            model.addAttribute("categorias", productoService.listarCategorias());
+            return "fragments/productos_form_modal :: formContent";
         }
-        // En caso de no encontrarlo, puedes redirigir a un error o crear uno nuevo vacío
-        model.addAttribute("proveedor", new Proveedor());
-        return "fragments/proveedores_form_modal :: formContent";
+        model.addAttribute("producto", new Producto());
+        model.addAttribute("categorias", productoService.listarCategorias());
+        return "fragments/productos_form_modal :: formContent";
     }
 
-    /**
-     * Guarda un proveedor nuevo o actualiza uno existente.
-     * Recibe los datos del proveedor como un objeto JSON en el cuerpo de la solicitud.
-     * @param proveedor El objeto Proveedor recibido del frontend (JSON).
-     * @return ResponseEntity con el estado de la operación y un mensaje.
-     */
     @PostMapping("/guardar")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) { // <--- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
+    public ResponseEntity<Map<String, String>> guardarProducto(@ModelAttribute Producto producto) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones básicas (estas validaciones ahora deberían recibir los datos correctos del JSON)
-            if (proveedor.getRuc() == null || proveedor.getRuc().isEmpty()) {
+            // Validaciones básicas, por ejemplo, que el nombre o código no estén vacíos
+            if (producto.getNombre() == null || producto.getNombre().isEmpty()) {
                 response.put("status", "error");
-                response.put("message", "El RUC es obligatorio.");
-                // Puedes añadir un HttpStatus.BAD_REQUEST para indicar un error de cliente
+                response.put("message", "El nombre del producto es obligatorio.");
                 return ResponseEntity.badRequest().body(response);
             }
-            if (proveedor.getNombreComercial() == null || proveedor.getNombreComercial().isEmpty()) {
+            if (producto.getDescripcion() == null || producto.getDescripcion().isEmpty()) {
                 response.put("status", "error");
-                response.put("message", "El Nombre Comercial es obligatorio.");
+                response.put("message", "La descripción del producto es obligatoria.");
                 return ResponseEntity.badRequest().body(response);
             }
-            if (proveedor.getRazonSocial() == null || proveedor.getRazonSocial().isEmpty()) {
+            if (producto.getPrecio1() == null || producto.getPrecio1().compareTo(BigDecimal.ZERO) <= 0) {
                 response.put("status", "error");
-                response.put("message", "La Razón Social es obligatoria.");
+                response.put("message", "El Precio 1 es obligatorio y debe ser mayor que cero.");
                 return ResponseEntity.badRequest().body(response);
             }
-            if (proveedor.getDireccion() == null || proveedor.getDireccion().isEmpty()) {
+            if (producto.getPrecio2() == null || producto.getPrecio2().compareTo(BigDecimal.ZERO) <= 0) {
                 response.put("status", "error");
-                response.put("message", "La Dirección es obligatoria.");
+                response.put("message", "El Precio 2 es obligatorio y debe ser mayor que cero.");
                 return ResponseEntity.badRequest().body(response);
             }
-            // Puedes añadir más validaciones para teléfono y correo si son obligatorios en tu negocio
+            if (producto.getStock() == null || producto.getStock() < 0) {
+                response.put("status", "error");
+                response.put("message", "El Stock es obligatorio y no puede ser negativo.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (producto.getCategoria() == null || producto.getCategoria().getIdCategoria() == null) {
+                response.put("status", "error");
+                response.put("message", "La categoría es obligatoria.");
+                return ResponseEntity.badRequest().body(response);
+            }
 
-            // Validación de RUC único
-            Optional<Proveedor> existingProveedorByRuc = proveedorService.obtenerProveedorPorRuc(proveedor.getRuc());
-            if (existingProveedorByRuc.isPresent() && (proveedor.getIdProveedor() == null || !existingProveedorByRuc.get().getIdProveedor().equals(proveedor.getIdProveedor()))) {
-                response.put("status", "error");
-                response.put("message", "El RUC ya está registrado.");
-                return ResponseEntity.badRequest().body(response); // O HttpStatus.CONFLICT (409) para indicar duplicado
+
+            // Cargar la entidad Categoria completa si solo viene el ID del formulario
+            if (producto.getCategoria() != null && producto.getCategoria().getIdCategoria() != null) {
+                Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(producto.getCategoria().getIdCategoria()); // O categoriaService.obtenerCategoriaPorId
+                if (categoriaOpt.isPresent()) {
+                    producto.setCategoria(categoriaOpt.get());
+                } else {
+                    response.put("status", "error");
+                    response.put("message", "Categoría seleccionada inválida.");
+                    return ResponseEntity.badRequest().body(response);
+                }
             }
 
-            // Si las validaciones pasan, procede a guardar
-            proveedorService.guardarProveedor(proveedor);
+            // Si es un nuevo producto, establece el estado por defecto a 1 (Activo) como Byte
+            if (producto.getIdProducto() == null) {
+                producto.setEstado((byte) 1);
+            }
+
+            productoService.guardarProducto(producto);
             response.put("status", "success");
-            response.put("message", "Proveedor guardado exitosamente!");
+            response.put("message", "Producto guardado exitosamente!");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // Captura cualquier otra excepción inesperada
             response.put("status", "error");
-            response.put("message", "Error al guardar el proveedor: " + e.getMessage());
+            response.put("message", "Error al guardar el producto: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    /**
-     * Realiza una eliminación lógica (cambio de estado) de un proveedor.
-     * @param id El ID del proveedor a inactivar.
-     * @return ResponseEntity con el estado de la operación y un mensaje.
-     */
-    @PostMapping("/inactivar/{id}") // Cambiado a POST, como lo usas en el frontend para inactivar
+    @GetMapping("/eliminar/{id}")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> inactivarProveedor(@PathVariable("id") Integer id) {
+    public ResponseEntity<Map<String, String>> eliminarProducto(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
         try {
-            proveedorService.eliminarProveedor(id); // Este método ya cambia el estado a 2 (inactivo/eliminado lógico)
+            productoService.eliminarProducto(id);
             response.put("status", "success");
-            response.put("message", "Proveedor inactivado exitosamente!");
+            response.put("message", "Producto eliminado exitosamente!");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("message", "Error al inactivar el proveedor: " + e.getMessage());
+            response.put("message", "Error al eliminar el producto: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    /**
-     * Endpoint para verificar la unicidad del RUC.
-     * @param ruc El número de RUC a verificar.
-     * @param idProveedor El ID del proveedor a excluir de la búsqueda (null para nuevas creaciones).
-     * @return ResponseEntity con un mapa que indica si el RUC ya existe.
-     */
-    @GetMapping("/checkRuc")
+    // ProductoController.java
+
+    @GetMapping("/activos")
     @ResponseBody
-    public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
-                                                         @RequestParam(required = false) Integer idProveedor) {
-        Map<String, Boolean> response = new HashMap<>();
-        boolean exists = proveedorService.existsByRucExcludingId(ruc, idProveedor);
-        response.put("exists", exists);
-        return ResponseEntity.ok(response);
+    public List<Producto> getActiveProductsJson() {
+        return productoService.listarSoloProductosActivos();
     }
-    // --- NUEVOS ENDPOINTS PARA REPORTES ---
+
+    // ===============================================
+    // NUEVOS ENDPOINTS PARA EL REPORTE DE PRODUCTOS
+    // ===============================================
 
     /**
-     * Muestra el fragmento del modal con opciones para generar el reporte de proveedores.
+     * Muestra el fragmento del modal de filtros para el reporte de productos.
+     * También carga las categorías activas para el dropdown de filtro.
      * @param model El modelo para pasar datos a la vista.
-     * @return El fragmento HTML del modal de reporte.
+     * @return La ruta al fragmento del modal.
      */
     @GetMapping("/reporte/modal")
-    public String mostrarReporteModal(Model model) {
-        // No hay roles ni otros datos complejos para proveedores como en usuarios,
-        // pero si tuvieras otros filtros (ej. por categoría de proveedor), los añadirías aquí.
-        return "fragments/reporte_proveedores_modal :: reporteModalContent";
+    public String obtenerModalReporteProductos(Model model) {
+        model.addAttribute("categorias", productoService.listarCategorias());
+        return "fragments/reporte_productos_modal :: reporteModalContent";
     }
 
     /**
-     * Genera y devuelve un informe PDF de proveedores basado en los filtros.
+     * Genera y devuelve un informe PDF de productos basado en los filtros.
      * @param filterDTO DTO con los criterios de filtrado para el reporte.
      * @param response Objeto HttpServletResponse para escribir el PDF.
      * @throws DocumentException Si ocurre un error al crear el documento PDF.
      * @throws IOException Si ocurre un error de E/S.
      */
     @GetMapping("/reporte/pdf")
-    public void generarReportePdf(@ModelAttribute ProveedorFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, IOException {
+    public void generarReportePdf(@ModelAttribute ProductoFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, IOException {
         response.setContentType("application/pdf");
         String headerKey = "Content-Disposition";
-        String headerValue = "inline; filename=reporte_proveedores.pdf";
+        String headerValue = "inline; filename=reporte_productos.pdf";
         response.setHeader(headerKey, headerValue);
 
-        List<Proveedor> proveedores = proveedorService.buscarProveedoresPorFiltros(filterDTO);
+        List<Producto> productos = productoService.buscarProductosPorFiltros(filterDTO);
 
-        Document document = new Document(PageSize.A4.rotate());
+        Document document = new Document(PageSize.A4.rotate()); // Tamaño A4 horizontal para más columnas
         PdfWriter.getInstance(document, response.getOutputStream());
         document.open();
 
         Font fontTitle = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, BaseColor.BLACK);
-        Paragraph title = new Paragraph("Reporte de Proveedores", fontTitle);
+        Paragraph title = new Paragraph("Reporte de Productos", fontTitle);
         title.setAlignment(Paragraph.ALIGN_CENTER);
         title.setSpacingAfter(20);
         document.add(title);
 
-        // Mostrar filtros aplicados (similar a usuarios)
+        // Mostrar filtros aplicados
         Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
         StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
 
-        if (filterDTO.getNombreRucRazonSocialCorreo() != null && !filterDTO.getNombreRucRazonSocialCorreo().isEmpty()) {
-            filtrosAplicados.append("- Búsqueda General: ").append(filterDTO.getNombreRucRazonSocialCorreo()).append("\n");
+        if (filterDTO.getNombre() != null && !filterDTO.getNombre().isEmpty()) {
+            filtrosAplicados.append("- Nombre: ").append(filterDTO.getNombre()).append("\n");
+        }
+        if (filterDTO.getDescripcion() != null && !filterDTO.getDescripcion().isEmpty()) {
+            filtrosAplicados.append("- Descripción: ").append(filterDTO.getDescripcion()).append("\n");
+        }
+        if (filterDTO.getIdCategoria() != null) {
+            Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(filterDTO.getIdCategoria());
+            categoriaOpt.ifPresent(categoria -> filtrosAplicados.append("- Categoría: ").append(categoria.getNombreCategoria()).append("\n"));
+        }
+        if (filterDTO.getPrecio1Min() != null || filterDTO.getPrecio1Max() != null) {
+            filtrosAplicados.append("- Precio 1: ");
+            if (filterDTO.getPrecio1Min() != null) filtrosAplicados.append("Desde ").append(filterDTO.getPrecio1Min()).append(" ");
+            if (filterDTO.getPrecio1Max() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getPrecio1Max());
+            filtrosAplicados.append("\n");
+        }
+        if (filterDTO.getPrecio2Min() != null || filterDTO.getPrecio2Max() != null) {
+            filtrosAplicados.append("- Precio 2: ");
+            if (filterDTO.getPrecio2Min() != null) filtrosAplicados.append("Desde ").append(filterDTO.getPrecio2Min()).append(" ");
+            if (filterDTO.getPrecio2Max() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getPrecio2Max());
+            filtrosAplicados.append("\n");
+        }
+        if (filterDTO.getStockMin() != null || filterDTO.getStockMax() != null) {
+            filtrosAplicados.append("- Stock: ");
+            if (filterDTO.getStockMin() != null) filtrosAplicados.append("Desde ").append(filterDTO.getStockMin()).append(" ");
+            if (filterDTO.getStockMax() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getStockMax());
+            filtrosAplicados.append("\n");
         }
         if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
             filtrosAplicados.append("- Estados: ");
@@ -230,15 +254,13 @@ public class ProveedorController {
             }
             filtrosAplicados.append("\n");
         }
-        // NUEVO: Mostrar filtros de fecha en el PDF
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        if (filterDTO.getFechaRegistroDesde() != null) {
-            filtrosAplicados.append("- Fecha Registro Desde: ").append(filterDTO.getFechaRegistroDesde().format(formatter)).append("\n");
+        if (filterDTO.getFechaRegistroStart() != null || filterDTO.getFechaRegistroEnd() != null) {
+            filtrosAplicados.append("- Fecha de Registro: ");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            if (filterDTO.getFechaRegistroStart() != null) filtrosAplicados.append("Desde ").append(filterDTO.getFechaRegistroStart().format(formatter)).append(" ");
+            if (filterDTO.getFechaRegistroEnd() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getFechaRegistroEnd().format(formatter));
+            filtrosAplicados.append("\n");
         }
-        if (filterDTO.getFechaRegistroHasta() != null) {
-            filtrosAplicados.append("- Fecha Registro Hasta: ").append(filterDTO.getFechaRegistroHasta().format(formatter)).append("\n");
-        }
-
 
         if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) {
             filtrosAplicados.append("- Ninguno (Reporte Completo)\n");
@@ -249,22 +271,22 @@ public class ProveedorController {
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
 
-
-        PdfPTable table = new PdfPTable(9); // 9 columnas: ID, Fecha Reg, RUC, Nom Comercial, Razon Social, Telefono, Correo, Direccion, Estado
+        // Crear la tabla PDF
+        PdfPTable table = new PdfPTable(9); // 9 columnas: ID, Nombre, Descripción, Categoría, Precio1, Precio2, Stock, Estado, Fecha Registro
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
 
-        float[] columnWidths = {0.5f, 1f, 1f, 1.5f, 1.5f, 0.8f, 1.5f, 2f, 0.7f};
+        float[] columnWidths = {0.5f, 1.5f, 2f, 1f, 0.8f, 0.8f, 0.6f, 0.7f, 1.2f}; // Ajusta anchos según necesidad
         table.setWidths(columnWidths);
 
         PdfPCell cell;
-        Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
-        Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
+        Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, BaseColor.WHITE);
+        Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 7, BaseColor.BLACK); // Fuente más pequeña para contenido
         Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
         Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
 
-        String[] headers = {"ID", "Fecha Reg.", "RUC", "Nombre Comercial", "Razón Social", "Teléfono", "Correo", "Dirección", "Estado"};
+        String[] headers = {"ID", "Nombre", "Descripción", "Categoría", "Precio 1", "Precio 2", "Stock", "Estado", "F. Registro"};
         for (String header : headers) {
             cell = new PdfPCell(new Phrase(header, fontHeader));
             cell.setBackgroundColor(new BaseColor(24, 61, 0));
@@ -274,38 +296,37 @@ public class ProveedorController {
             table.addCell(cell);
         }
 
-        if (proveedores.isEmpty()) {
-            cell = new PdfPCell(new Phrase("No se encontraron proveedores con los filtros aplicados.", fontContent));
-            cell.setColspan(9);
+        if (productos.isEmpty()) {
+            cell = new PdfPCell(new Phrase("No se encontraron productos con los filtros aplicados.", fontContent));
+            cell.setColspan(9); // Abarca todas las columnas
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(10);
             table.addCell(cell);
         } else {
-            // El formatter ya está definido arriba, asegúrate que se el mismo que usas aquí
-            // DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); // Esto debería estar solo una vez
-            for (Proveedor proveedor : proveedores) {
-                table.addCell(new Phrase(String.valueOf(proveedor.getIdProveedor()), fontContent));
-                table.addCell(new Phrase(proveedor.getFechaRegistro() != null ? proveedor.getFechaRegistro().format(formatter) : "N/A", fontContent));
-                table.addCell(new Phrase(proveedor.getRuc(), fontContent));
-                table.addCell(new Phrase(proveedor.getNombreComercial(), fontContent));
-                table.addCell(new Phrase(proveedor.getRazonSocial(), fontContent));
-                table.addCell(new Phrase(proveedor.getTelefono() != null ? proveedor.getTelefono() : "N/A", fontContent));
-                table.addCell(new Phrase(proveedor.getCorreo() != null ? proveedor.getCorreo() : "N/A", fontContent));
-                table.addCell(new Phrase(proveedor.getDireccion(), fontContent));
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            for (Producto producto : productos) {
+                table.addCell(new Phrase(String.valueOf(producto.getIdProducto()), fontContent));
+                table.addCell(new Phrase(producto.getNombre(), fontContent));
+                table.addCell(new Phrase(producto.getDescripcion(), fontContent));
+                table.addCell(new Phrase(producto.getCategoria() != null ? producto.getCategoria().getNombreCategoria() : "N/A", fontContent));
+                table.addCell(new Phrase(producto.getPrecio1() != null ? producto.getPrecio1().setScale(2, BigDecimal.ROUND_HALF_UP).toString() : "0.00", fontContent));
+                table.addCell(new Phrase(producto.getPrecio2() != null ? producto.getPrecio2().setScale(2, BigDecimal.ROUND_HALF_UP).toString() : "0.00", fontContent));
+                table.addCell(new Phrase(String.valueOf(producto.getStock()), fontContent));
                 String estadoText;
                 Font estadoFont;
 
-                if (proveedor.getEstado() == 1) {
+                if (producto.getEstado() == 1) {
                     estadoText = "Activo";
                     estadoFont = fontContentActive;
-                } else if (proveedor.getEstado() == 0) {
+                } else if (producto.getEstado() == 0) {
                     estadoText = "Inactivo";
                     estadoFont = fontContentInactive;
                 } else {
                     estadoText = "Desconocido";
                     estadoFont = fontContent; // Default to black if unknown
                 }
-                table.addCell(new Phrase(estadoText, estadoFont));              }
+                table.addCell(new Phrase(estadoText, estadoFont));                  table.addCell(new Phrase(producto.getFechaRegistro() != null ? producto.getFechaRegistro().format(formatter) : "N/A", fontContent));
+            }
         }
 
         document.add(table);
