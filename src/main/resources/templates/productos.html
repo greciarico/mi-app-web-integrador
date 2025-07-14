@@ -40,7 +40,7 @@
                     <button class="btn btn-default" type="button" onclick="aplicarFiltrosProductos()">
                       <i class="fas fa-search"></i> Buscar
                     </button>
-                    <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteProductos()">
+                    <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteProductosModal()">
                       <i class="fas fa-file-alt"></i> Generar Reporte
                     </button>
                   </div>
@@ -91,7 +91,13 @@
       </div>
     </div>
   </div>
-
+  <div class="modal fade" id="reporteProductosModal" tabindex="-1" role="dialog" aria-labelledby="reporteProductosModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document"> <div class="modal-content">
+      <div id="modalReporteContentProducto">
+      </div>
+    </div>
+    </div>
+  </div>
   <script th:inline="javascript">
     /*<![CDATA[*/
 
@@ -395,8 +401,99 @@
         renderizarTablaProductos(filteredProducts);
     }
 
-    function generarReporteProductos() {
-        mostrarNotificacion("info", "La funcionalidad de generar reporte de productos aún no está implementada.");
+    // ============== NUEVAS FUNCIONES PARA EL REPORTE DE PRODUCTOS ==============
+
+    // Abre el modal de filtros del reporte de productos
+    function abrirReporteProductosModal() {
+        console.log("Abriendo modal de reporte de productos...");
+        $('#modalReporteContentProducto').load('/productos/reporte/modal', function(response, status, xhr) {
+            if (status === "error") {
+                console.error("Error al cargar el formulario de reporte de productos:", xhr.status, xhr.statusText, response);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al cargar reporte',
+                    text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
+                    footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                });
+            } else {
+                console.log("Formulario de reporte de productos cargado exitosamente.");
+                // Establecer las fechas máximas/mínimas para los campos de fecha
+                setReportDateMaxAttributes(); // Para fecha de inicio
+                setReportDateMinAttributes(); // Para fecha de fin
+                $('#reporteProductosModal').modal('show');
+            }
+        });
+    }
+
+    // Cierra el modal de reporte de productos
+    function cerrarReporteProductosModal() {
+        $('#reporteProductosModal').modal('hide');
+        setTimeout(() => {
+            $('#modalReporteContentProducto').empty();
+        }, 300);
+    }
+
+    // Limpia los filtros del modal de reporte de productos
+    function limpiarFiltrosReporteProductos() {
+        $('#formReporteProductos')[0].reset();
+        $('.estado-checkbox-producto').prop('checked', false);
+        setReportDateMaxAttributes(); // Restablecer límites de fecha
+        setReportDateMinAttributes();
+    }
+
+    // Función para ajustar el atributo 'max' de la fecha de inicio
+    function setReportDateMaxAttributes() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#fechaRegistroStart').attr('max', today);
+
+        // Si la fecha de fin está establecida y es anterior a la fecha de inicio, ajustarla
+        const fechaFin = $('#fechaRegistroEnd').val();
+        if (fechaFin && $('#fechaRegistroStart').val() && new Date(fechaFin) < new Date($('#fechaRegistroStart').val())) {
+            $('#fechaRegistroEnd').val($('#fechaRegistroStart').val());
+        }
+        $('#fechaRegistroEnd').attr('min', $('#fechaRegistroStart').val());
+    }
+
+    // Función para ajustar el atributo 'min' de la fecha de fin
+    function setReportDateMinAttributes() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#fechaRegistroEnd').attr('max', today);
+
+        // Si la fecha de inicio está establecida y es posterior a la fecha de fin, ajustarla
+        const fechaInicio = $('#fechaRegistroStart').val();
+        if (fechaInicio && $('#fechaRegistroEnd').val() && new Date(fechaInicio) > new Date($('#fechaRegistroEnd').val())) {
+            $('#fechaRegistroStart').val($('#fechaRegistroEnd').val());
+        }
+        $('#fechaRegistroStart').attr('max', $('#fechaRegistroEnd').val() || today); // Si fechaEnd vacía, max es hoy
+    }
+
+    // Ejecuta la generación del reporte PDF de productos
+    function ejecutarGenerarReporteProductos() {
+        Swal.fire({
+            title: 'Generando Reporte...',
+            text: 'Por favor, espera mientras se genera el PDF.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const form = $('#formReporteProductos');
+        const formData = form.serialize();
+
+        const url = '/productos/reporte/pdf?' + formData;
+
+        setTimeout(() => {
+            const newWindow = window.open(url, '_blank');
+            if (newWindow) {
+                Swal.close();
+                mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
+                cerrarReporteProductosModal();
+            } else {
+                Swal.close();
+                mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+            }
+        }, 300);
     }
 
     // Función para mostrar notificaciones usando AdminLTE Toasts
