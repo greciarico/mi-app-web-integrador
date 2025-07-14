@@ -14,6 +14,7 @@ public class EmpresaService {
     @Autowired
     private EmpresaRepository empresaRepository;
 
+    // Asumimos un ID fijo para la información de la empresa
     private static final Integer EMPRESA_ID = 1;
 
     /**
@@ -31,6 +32,7 @@ public class EmpresaService {
      * @return La Empresa guardada.
      */
     public Empresa guardarEmpresa(Empresa empresa) {
+        // Siempre usamos el ID fijo para la empresa
         empresa.setIdEmpresa(EMPRESA_ID);
 
         // Si es una creación (no existe previamente), establece la fecha de registro
@@ -50,6 +52,7 @@ public class EmpresaService {
      * @return true si existe otra empresa con ese RUC, false en caso contrario.
      */
     public boolean existsByRucExcludingCurrent(String ruc) {
+        // Al validar unicidad, siempre se excluye el ID fijo de la empresa (EMPRESA_ID)
         return empresaRepository.existsByRucAndIdEmpresaIsNot(ruc, EMPRESA_ID);
     }
 }
