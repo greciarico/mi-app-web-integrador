@@ -1,5 +1,6 @@
 package com.example.DyD_Natures.Model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,9 +14,10 @@ public class Igv {
     @Column(name = "id_igv", nullable = false)
     private Integer idIgv;
 
-    @Column(name = "igv", nullable = false, precision = 5, scale = 2)
-    private BigDecimal igv;
+    @Column(name = "tasa", nullable = false, precision = 5, scale = 2)
+    private BigDecimal tasa;
 
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
@@ -36,12 +38,12 @@ public class Igv {
         this.idIgv = idIgv;
     }
 
-    public BigDecimal getIgv() {
-        return igv;
+    public BigDecimal getTasa() {
+        return tasa;
     }
 
-    public void setIgv(BigDecimal igv) {
-        this.igv = igv;
+    public void setTasa(BigDecimal tasa) {
+        this.tasa = tasa;
     }
 
     public LocalDate getFechaRegistro() {
