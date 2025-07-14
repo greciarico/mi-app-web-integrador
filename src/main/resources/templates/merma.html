@@ -42,7 +42,7 @@
                                         <button class="btn btn-default" type="button" onclick="aplicarFiltrosMerma()">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteMerma()">
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteMermasModal()">
                                             <i class="fas fa-file-alt"></i> Generar Reporte
                                         </button>
                                     </div>
@@ -86,6 +86,14 @@
             <div class="modal-content">
                 <div id="modalFormContentMerma">
                     <!-- El fragmento merma_form_modal.html se insertará aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="reporteMermasModal" tabindex="-1" role="dialog" aria-labelledby="reporteMermasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div id="modalReporteContentMerma">
                 </div>
             </div>
         </div>
@@ -379,8 +387,116 @@
             renderizarTablaMerma(filteredMermas);
         }
 
-        function generarReporteMerma() {
-            mostrarNotificacion("info", "La funcionalidad de generar reporte de Merma aún no está implementada.");
+        // ============== NUEVAS FUNCIONES PARA EL REPORTE DE MERMAS ==============
+
+        // Abre el modal de filtros del reporte de mermas
+        function abrirReporteMermasModal() {
+            console.log("Abriendo modal de reporte de mermas...");
+            $('#modalReporteContentMerma').load('/merma/reporte/modal', function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario de reporte de mermas:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar reporte',
+                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                } else {
+                    console.log("Formulario de reporte de mermas cargado exitosamente.");
+                    // Inicializar Select2 para el filtro de producto en el modal de reporte
+                    setTimeout(() => {
+                        $('#filtroIdProductoMerma').select2({
+                            placeholder: "-- Seleccione o Busque un Producto --",
+                            allowClear: true,
+                            width: '100%',
+                            dropdownParent: $('#reporteMermasModal')
+                        });
+                        console.log("Select2 inicializado en #filtroIdProductoMerma.");
+                    }, 100);
+
+                    // Establecer las fechas máximas/mínimas para los campos de fecha
+                    setMermaReportDateMaxAttributes(); // Para fecha de inicio
+                    setMermaReportDateMinAttributes(); // Para fecha de fin
+
+                    $('#reporteMermasModal').modal('show');
+                }
+            });
+        }
+
+        // Cierra el modal de reporte de mermas
+        function cerrarReporteMermasModal() {
+            $('#reporteMermasModal').modal('hide');
+            // Destruir la instancia de Select2 antes de limpiar el contenido del modal
+            const selectProductoReporte = $('#filtroIdProductoMerma');
+            if (selectProductoReporte.data('select2')) {
+                selectProductoReporte.select2('destroy');
+                console.log("Select2 destruido en #filtroIdProductoMerma.");
+            }
+            setTimeout(() => {
+                $('#modalReporteContentMerma').empty();
+            }, 300);
+        }
+
+        // Limpia los filtros del modal de reporte de mermas
+        function limpiarFiltrosReporteMermas() {
+            $('#formReporteMermas')[0].reset();
+            // Para Select2, necesitas establecer el valor a vacío y triggerear el cambio
+            $('#filtroIdProductoMerma').val('').trigger('change');
+            setMermaReportDateMaxAttributes(); // Restablecer límites de fecha
+            setMermaReportDateMinAttributes();
+        }
+
+        // Función para ajustar el atributo 'max' de la fecha de inicio del reporte
+        function setMermaReportDateMaxAttributes() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroMermaStart').attr('max', today);
+
+            const fechaFin = $('#fechaRegistroMermaEnd').val();
+            if (fechaFin && $('#fechaRegistroMermaStart').val() && new Date(fechaFin) < new Date($('#fechaRegistroMermaStart').val())) {
+                $('#fechaRegistroMermaEnd').val($('#fechaRegistroMermaStart').val());
+            }
+            $('#fechaRegistroMermaEnd').attr('min', $('#fechaRegistroMermaStart').val());
+        }
+
+        // Función para ajustar el atributo 'min' de la fecha de fin del reporte
+        function setMermaReportDateMinAttributes() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroMermaEnd').attr('max', today);
+
+            const fechaInicio = $('#fechaRegistroMermaStart').val();
+            if (fechaInicio && $('#fechaRegistroMermaEnd').val() && new Date(fechaInicio) > new Date($('#fechaRegistroMermaEnd').val())) {
+                $('#fechaRegistroMermaStart').val($('#fechaRegistroMermaEnd').val());
+            }
+            $('#fechaRegistroMermaStart').attr('max', $('#fechaRegistroMermaEnd').val() || today);
+        }
+
+        // Ejecuta la generación del reporte PDF de mermas
+        function ejecutarGenerarReporteMermas() {
+            Swal.fire({
+                title: 'Generando Reporte...',
+                text: 'Por favor, espera mientras se genera el PDF.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const form = $('#formReporteMermas');
+            const formData = form.serialize();
+
+            const url = '/merma/reporte/pdf?' + formData;
+
+            setTimeout(() => {
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    Swal.close();
+                    mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
+                    cerrarReporteMermasModal();
+                } else {
+                    Swal.close();
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+                }
+            }, 300);
         }
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
