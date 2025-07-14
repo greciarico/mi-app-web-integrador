@@ -1,14 +1,18 @@
 package com.example.DyD_Natures.Service;
 
+import com.example.DyD_Natures.Dto.MermaFilterDTO;
 import com.example.DyD_Natures.Model.Merma;
 import com.example.DyD_Natures.Model.Producto;
 import com.example.DyD_Natures.Repository.MermaRepository;
 import com.example.DyD_Natures.Repository.ProductoRepository;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -117,5 +121,53 @@ public class MermaService {
         productoRepository.save(productoExistente); // Guarda el producto con el stock repuesto
 
         mermaRepository.delete(merma); // Elimina el registro de merma
+    }
+    /**
+     * Busca registros de Merma aplicando filtros dinámicamente para la generación de reportes.
+     * @param filterDTO DTO con los criterios de búsqueda.
+     * @return Lista de registros de Merma que coinciden con los filtros.
+     */
+    public List<Merma> buscarMermasPorFiltros(MermaFilterDTO filterDTO) {
+        return mermaRepository.findAll((root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Unir con la entidad Producto para filtrar por sus atributos
+            Join<Merma, Producto> productoJoin = root.join("producto");
+
+            // Filtro por nombre de producto
+            if (filterDTO.getNombreProducto() != null && !filterDTO.getNombreProducto().trim().isEmpty()) {
+                String searchTerm = "%" + filterDTO.getNombreProducto().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(productoJoin.get("nombre")), searchTerm));
+            }
+
+            // Filtro por descripción de la merma
+            if (filterDTO.getDescripcionMerma() != null && !filterDTO.getDescripcionMerma().trim().isEmpty()) {
+                String searchTerm = "%" + filterDTO.getDescripcionMerma().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("descripcion")), searchTerm));
+            }
+
+            // Filtro por un producto específico (por ID)
+            if (filterDTO.getIdProducto() != null) {
+                predicates.add(criteriaBuilder.equal(productoJoin.get("idProducto"), filterDTO.getIdProducto()));
+            }
+
+            // Filtro por rango de fecha de registro
+            if (filterDTO.getFechaRegistroStart() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
+            }
+            if (filterDTO.getFechaRegistroEnd() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
+            }
+
+            // Filtro por rango de cantidad
+            if (filterDTO.getCantidadMin() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("cantidad"), filterDTO.getCantidadMin()));
+            }
+            if (filterDTO.getCantidadMax() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("cantidad"), filterDTO.getCantidadMax()));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        });
     }
 }
