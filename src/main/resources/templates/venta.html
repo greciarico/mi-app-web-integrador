@@ -32,6 +32,14 @@
             margin-bottom: 0;
             line-height: 1.25;
         }
+        /* Nuevo estilo para filas de ventas canceladas */
+        .cancelled-sale {
+            background-color: #f8d7da !important; /* Rojo claro para indicar cancelación */
+            color: #721c24 !important; /* Texto oscuro para contraste */
+        }
+        .cancelled-sale a, .cancelled-sale button {
+            color: #721c24 !important; /* Asegura que los enlaces y botones también se vean afectados */
+        }
     </style>
 </head>
 <body class="hold-transition sidebar-mini">
@@ -44,9 +52,15 @@
                         <h3 class="card-title">Lista de Ventas</h3>
                         <div class="card-tools">
                             <button type="button" onclick="openFormModal(null)"
-                                    class="btn btn-success" style="background-color:#183D00 !important; border-color:#183D00 !important;">
+                                    class="btn btn-success" style="background-color:#183D00 !important; border-color:#183D00 !important;">
                                 <i class="fas fa-plus"></i> Registrar Nueva Venta
                             </button>
+                            <div class="input-group-append">
+                                <!-- AQUI CAMBIAMOS LA LLAMADA DIRECTA -->
+                                <button type="button" class="btn btn-outline-secondary" onclick="window.openClienteFormModal()">
+                                    <i class="fas fa-plus"></i>Añadir Cliente
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <!-- /.card-header -->
@@ -110,6 +124,24 @@
         </div>
     </div>
 
+    <!-- *************************************************************** -->
+    <!-- MODAL PARA EL FORMULARIO DE CLIENTE - INICIO -->
+    <!-- *************************************************************** -->
+    <div class="modal fade" id="clienteFormModal" tabindex="-1" role="dialog" aria-labelledby="clienteFormModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content" id="clienteFormModalContent">
+                <!-- El contenido del formulario de cliente se cargará aquí con JS -->
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="reporteVentasModal" tabindex="-1" role="dialog" aria-labelledby="reporteVentasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div id="modalReporteContentVenta">
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- SCRIPT PRINCIPAL CON TODA LA LÓGICA JAVASCRIPT -->
     <script th:inline="javascript">
         /*<![CDATA[*/
@@ -117,11 +149,13 @@
             // Variables globales para este script
             let allVentas = /*[[${ventas}]]*/ [];
             let allProductosData = [];
-            let allClientesData = [];
+            let allClientesData = []; // Esta variable será actualizada por el callback
             let allIgvData = [];
-
             const ventaModalElement = $('#ventaModal');
             const modalContentContainer = document.getElementById('modalContentContainer');
+
+            // Referencia al modal de cliente para adjuntar eventos de cierre
+
 
             let detalleCount = 0;
             let modalIsTransitioning = false;
@@ -146,13 +180,23 @@
                 });
             }
 
+            // Esta función limpia los errores en ambos formularios si están presentes
             function clearErrors() {
-                const currentForm = document.getElementById('ventaForm');
-                if (currentForm) {
-                    currentForm.querySelectorAll('.text-danger').forEach(el => el.textContent = '');
-                    currentForm.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                const ventaForm = document.getElementById('ventaForm');
+                const clienteForm = document.getElementById('clienteForm'); // ID del formulario de cliente
+
+                if (ventaForm) {
+                    ventaForm.querySelectorAll('.text-danger').forEach(el => el.textContent = '');
+                    ventaForm.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                }
+                if (clienteForm) {
+                    // Si el formulario de cliente se carga dinámicamente, esta parte limpia sus errores.
+                    // Asegúrate de que el formulario cliente tenga el id="clienteForm"
+                    clienteForm.querySelectorAll('.text-danger').forEach(el => el.textContent = '');
+                    clienteForm.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
                 }
             }
+
 
             function displayError(elementId, message) {
                 const errorElement = document.getElementById(elementId);
@@ -193,47 +237,60 @@
                 return 'Cliente Desconocido';
             }
 
-            function renderMainTable(ventasToDisplay) {
-                const tableBody = document.getElementById('ventasTableBody');
-                if (!tableBody) {
-                    return;
+           function renderMainTable(ventasToDisplay) {
+            const tableBody = document.getElementById('ventasTableBody');
+            if (!tableBody) {
+                return;
+            }
+            tableBody.innerHTML = '';
+            if (ventasToDisplay.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas registradas.</td></tr>';
+                return;
+            }
+
+            ventasToDisplay.forEach(venta => {
+                const rowClass = venta.estado === 0 ? 'cancelled-sale' : '';
+                const row = document.createElement('tr');
+                if (rowClass) {
+                    row.classList.add(rowClass);
                 }
-                tableBody.innerHTML = '';
 
-                if (ventasToDisplay.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas registradas.</td></tr>';
-                    return;
-                }
+                const fechaFormatted = venta.fechaRegistro ? new Date(venta.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
+                const totalFormatted = parseFloat(venta.total).toFixed(2);
+                const clientDisplayName = getClientDisplayName(venta.cliente);
 
-                ventasToDisplay.forEach(venta => {
-                    const row = document.createElement('tr');
-                    const fechaFormatted = venta.fechaRegistro ? new Date(venta.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
-                    const totalFormatted = parseFloat(venta.total).toFixed(2);
-                    const clientDisplayName = getClientDisplayName(venta.cliente); // Usa la nueva función
-
-                    row.innerHTML = `
-                        <td>${venta.idVenta}</td>
-                        <td>${fechaFormatted}</td>
-                        <td>${clientDisplayName}</td>
-                        <td>${venta.usuario ? venta.usuario.nombre : 'N/A'}</td>
-                        <td>${venta.tipoDocumento}</td>
-                        <td>${venta.numDocumento}</td>
-                        <td>S/ ${totalFormatted}</td>
-                        <td>
-                            <div class="btn-group">
-                                <button type="button" onclick="openViewModal(${venta.idVenta})"
-                                        class="btn btn-primary btn-sm">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button type="button" onclick="openFormModal(${venta.idVenta})"
-                                        class="btn btn-info btn-sm ml-1">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+                row.innerHTML = `
+                    <td>${venta.idVenta}</td>
+                    <td>${fechaFormatted}</td>
+                    <td>${clientDisplayName}</td>
+                    <td>${venta.usuario ? venta.usuario.nombre : 'N/A'}</td>
+                    <td>${venta.tipoDocumento}</td>
+                    <td>${venta.numDocumento}</td>
+                    <td>S/ ${totalFormatted}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" onclick="openViewModal(${venta.idVenta})"
+                                    class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <a href="/ventas/comprobante/${venta.idVenta}" target="_blank"
+                               class="btn btn-info btn-sm ml-1">
+                                <i class="fas fa-file-invoice"></i> </a>
+                            ${venta.estado !== 0 ? `
+                            <button type="button" onclick="confirmCancelVenta(${venta.idVenta})"
+                                    class="btn btn-danger btn-sm ml-1">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                            ` : `
+                            <button type="button" class="btn btn-secondary btn-sm ml-1" disabled>
+                                <i class="fas fa-ban"></i>
+                            </button>
+                            `}
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
             }
 
             window.recargarListaVentasCompleta = function() {
@@ -245,26 +302,47 @@
                         })
                         .then(data => { allVentas = data; }),
 
-                    fetch('/productos/all')
-                        .then(response => {
-                            if (!response.ok) throw new Error('Network response was not ok for /productos/all');
-                            return response.json();
+                    fetch('/productos/activos')
+                        .then(r => {
+                          if (!r.ok) throw new Error('Error al cargar productos activos');
+                          return r.json();
                         })
                         .then(data => { allProductosData = data; }),
 
-                    fetch('/clientes/all')
-                        .then(response => {
-                            if (!response.ok) throw new Error('Network response was not ok for /clientes/all');
-                            return response.json();
-                        })
-                        .then(data => { allClientesData = data; }),
 
-                    fetch('/igv/all')
-                        .then(response => {
-                            if (!response.ok) throw new Error('Network response was not ok for /igv/all');
-                            return response.json();
-                        })
-                        .then(data => { allIgvData = data; })
+                    // Actualizamos allClientesData desde el backend
+                   fetch('/clientes/activos')
+                      .then(r => {
+                        if (!r.ok) throw new Error('Error al cargar clientes activos');
+                        return r.json();
+                      })
+                      .then(data =>  {
+                            allClientesData = data;
+                            // También actualizamos el Select2 si el modal de ventas está abierto
+                            const clienteSelectInModal = $('#modalContentContainer #clienteSelect');
+                            if (clienteSelectInModal.length && clienteSelectInModal.data('select2')) {
+                                clienteSelectInModal.empty(); // Limpiar opciones existentes
+                                clienteSelectInModal.append('<option value="">-- Seleccione un Cliente --</option>');
+                                allClientesData.forEach(cliente => {
+                                    const displayName = getClientDisplayName(cliente);
+                                    clienteSelectInModal.append(`<option value="${cliente.idCliente}">${displayName}</option>`);
+                                });
+                                // Mantiene la selección actual si es posible, o limpia
+                                clienteSelectInModal.trigger('change');
+                            }
+                        }),
+
+                    // dentro de recargarListaVentasCompleta():
+                fetch('/tasa/activos')
+                  .then(r => {
+                    if (!r.ok) throw new Error('');
+                    return r.json();
+                  })
+                  .then(data => {
+                    console.log("IGV activos desde servidor: ", data );
+                    allIgvData = data;
+                  })
+                  .catch(err => showNotification('error', err.message)),
 
                 ]).then(() => {
                     renderMainTable(allVentas);
@@ -285,12 +363,123 @@
                 renderMainTable(filteredVentas);
             }
 
-            function generarReporteVenta() {
-                showNotification('info', 'Funcionalidad de reporte en desarrollo.');
-            }
+            // ===============================================
+// LÓGICA DE REPORTE DE VENTAS (CLIENT-SIDE)
+// ===============================================
+
+// Abre el modal de filtros del reporte de ventas
+window.generarReporteVenta = function() {
+    console.log("Abriendo modal de reporte de ventas...");
+    $('#modalReporteContentVenta').load('/ventas/reporte/modal', function(response, status, xhr) {
+        if (status === "error") {
+            console.error("Error al cargar el formulario de reporte de ventas:", xhr.status, xhr.statusText, response);
+            showNotification('error', 'Hubo un problema al cargar el formulario de reporte de ventas. Por favor, inténtalo de nuevo.');
+        } else {
+            console.log("Formulario de reporte de ventas cargado exitosamente.");
+            // Inicializar Select2 para los selects de cliente y usuario en el modal
+            $('#filtroIdCliente').select2({
+                placeholder: "-- Seleccione un Cliente --",
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#reporteVentasModal')
+            });
+            $('#filtroIdUsuario').select2({
+                placeholder: "-- Seleccione un Vendedor --",
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#reporteVentasModal')
+            });
+
+            // Establecer las fechas máximas/mínimas para los campos de fecha
+            setReportDateRangeVenta();
+            $('#reporteVentasModal').modal('show');
+        }
+    });
+}
+
+// Cierra el modal de reporte de ventas
+window.cerrarReporteVentasModal = function() {
+    $('#reporteVentasModal').modal('hide');
+    // Destruir Select2 para evitar duplicados en futuras aperturas
+    $('#filtroIdCliente').select2('destroy');
+    $('#filtroIdUsuario').select2('destroy');
+    setTimeout(() => {
+        $('#modalReporteContentVenta').empty();
+    }, 300); // Pequeño retraso para que la transición del modal se complete
+}
+
+// Limpia los filtros del modal de reporte de ventas
+window.limpiarFiltrosReporteVentas = function() {
+    $('#formReporteVentas')[0].reset();
+    $('.estado-checkbox-venta').prop('checked', false); // Desmarcar checkboxes
+    $('#filtroIdCliente').val('').trigger('change'); // Limpiar Select2
+    $('#filtroIdUsuario').val('').trigger('change'); // Limpiar Select2
+    setReportDateRangeVenta(); // Restablecer límites de fecha
+}
+
+// Función para ajustar el atributo 'max' y 'min' de las fechas en el modal de reporte de ventas
+window.setReportDateRangeVenta = function() {
+    const today = new Date().toISOString().split('T')[0];
+    const fechaInicioInput = document.getElementById('fechaRegistroVentaStart');
+    const fechaFinInput = document.getElementById('fechaRegistroVentaEnd');
+
+    if (fechaInicioInput) {
+        fechaInicioInput.setAttribute('max', today);
+        if (fechaFinInput && fechaFinInput.value) {
+            fechaInicioInput.setAttribute('max', fechaFinInput.value);
+        }
+    }
+    if (fechaFinInput) {
+        fechaFinInput.setAttribute('max', today);
+        if (fechaInicioInput && fechaInicioInput.value) {
+            fechaFinInput.setAttribute('min', fechaInicioInput.value);
+        } else {
+            fechaFinInput.removeAttribute('min'); // Si fecha de inicio está vacía, no hay mínimo
+        }
+    }
+}
+
+// Ejecuta la generación del reporte PDF de ventas
+window.ejecutarGenerarReporteVentas = function() {
+    Swal.fire({
+        title: 'Generando Reporte...',
+        text: 'Por favor, espera mientras se genera el PDF.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    const form = $('#formReporteVentas');
+    let formData = form.serialize();
+
+    // Manejar múltiples checkboxes para el campo 'estados'
+    const estadosChecked = [];
+    $('.estado-checkbox-venta:checked').each(function() {
+        estadosChecked.push('estados=' + $(this).val());
+    });
+    if (estadosChecked.length > 0) {
+        formData += '&' + estadosChecked.join('&');
+    }
+
+    const url = '/ventas/reporte/pdf?' + formData;
+
+    // Pequeño retardo para asegurar que el Swal.showLoading() se vea
+    setTimeout(() => {
+        const newWindow = window.open(url, '_blank');
+        if (newWindow) {
+            Swal.close();
+            showNotification("success", "El reporte PDF se está generando y debería descargarse pronto.");
+            cerrarReporteVentasModal();
+        } else {
+            Swal.close();
+            showNotification("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+        }
+    }, 300);
+}
 
             // ===============================================
-            // LÓGICA DEL FORMULARIO MODAL (CREAR/EDITAR)
+            // LÓGICA DEL FORMULARIO MODAL (CREAR VENTA SOLAMENTE)
             // ===============================================
 
             // Declarar loadAndShowModalContent a nivel global
@@ -315,6 +504,9 @@
                                     width: '100%',
                                     dropdownParent: ventaModalElement
                                 });
+                                // Si ya había una selección, la restablecemos
+                                const currentSelectedClienteId = clienteSelectInModal.val();
+                                clienteSelectInModal.val(currentSelectedClienteId).trigger('change');
                             }
                             if (igvSelectInModal.length) {
                                 igvSelectInModal.select2({
@@ -335,7 +527,6 @@
                                     });
                                 }
                             });
-
                             ventaModalElement.modal('show');
                             modalIsTransitioning = false;
                         }, 150);
@@ -356,13 +547,14 @@
                 clearErrors();
                 detalleCount = 0;
 
-                let url = idVenta ? `/ventas/editar/${idVenta}` : '/ventas/nuevo';
+                // Siempre carga el formulario para CREAR (ignora idVenta si se pasa, ya que no editamos)
+                let url = '/ventas/nuevo';
 
                 if (ventaModalElement.hasClass('show')) {
-                    ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url)); // Pasar argumentos
+                    ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url));
                     ventaModalElement.modal('hide');
                 } else {
-                    loadAndShowModalContent(idVenta, url); // Pasar argumentos
+                    loadAndShowModalContent(idVenta, url);
                 }
             }
 
@@ -396,20 +588,20 @@
                     return;
                 }
                 modalIsTransitioning = true;
-
                 if (!idVenta) {
                     showNotification('error', 'ID de venta no proporcionado para visualizar.');
                     modalIsTransitioning = false;
                     return;
                 }
                 let url = `/ventas/visualizar/${idVenta}`;
-
                 // Reutilizar loadAndShowModalContent, adaptado para la vista
                 if (ventaModalElement.hasClass('show')) {
-                    ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url)); // Reutilizar y pasar argumentos
+                    ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url));
+                    // Reutilizar y pasar argumentos
                     ventaModalElement.modal('hide');
                 } else {
-                    loadAndShowModalContent(idVenta, url); // Reutilizar y pasar argumentos
+                    loadAndShowModalContent(idVenta, url);
+                    // Reutilizar y pasar argumentos
                 }
             }
 
@@ -441,7 +633,6 @@
                     return;
                 }
                 detalleVentasContainer.innerHTML = '';
-
                 if (modalSale && modalSale.detalleVentas && modalSale.detalleVentas.length > 0) {
                     modalSale.detalleVentas.forEach(detalle => {
                         addDetalleVenta(detalle, allProductosData);
@@ -458,27 +649,26 @@
                 detalleDiv.classList.add('detalle-item');
                 detalleDiv.setAttribute('data-index', index);
                 detalleDiv.id = `detalleRow-${index}`;
+                let activos = productsArray.filter(p => p.estado === 1);
 
-                let productoOptions = productsArray.map(p =>
-                    `<option value="${p.idProducto}"
-                            data-precio1="${p.precio1 || ''}"
-                            data-precio2="${p.precio2 || ''}"
-                            data-stock="${p.stock}"
-                            ${detalle && detalle.producto && detalle.producto.idProducto === p.idProducto ? 'selected' : ''}>
-                        ${p.nombre} (Stock: ${p.stock})
-                    </option>`
+                let productoOptions = activos.map(p =>
+                  `<option value="${p.idProducto}"
+                          data-precio1="${p.precio1 || ''}"
+                          data-precio2="${p.precio2 || ''}"
+                          data-stock="${p.stock}"
+                          ${detalle && detalle.producto && detalle.producto.idProducto === p.idProducto ? 'selected' : ''}>
+                      ${p.nombre} (Stock: ${p.stock})
+                   </option>`
                 ).join('');
 
                 const initialCantidad = detalle ? (detalle.cantidad || '') : '';
                 const initialPrecioUnitario = detalle && detalle.precioUnitario ? (parseFloat(detalle.precioUnitario).toFixed(2) || '') : '';
                 const initialTotalDetalle = detalle && detalle.total ? (parseFloat(detalle.total) || 0).toFixed(2) : '0.00';
-
-
                 detalleDiv.innerHTML = `
                     <td>
                         <input type="hidden" name="detalleVentas[${index}].idDetalleVenta" value="${detalle ? detalle.idDetalleVenta || '' : ''}">
                         <select name="detalleVentas[${index}].producto.idProducto" id="producto-${index}" required
-                                class="form-control">
+                               class="form-control">
                             <option value="">Seleccione un Producto</option>
                             ${productoOptions}
                         </select>
@@ -526,8 +716,6 @@
                         });
                     }
                 }, 10);
-
-
                 const cantidadInput = document.getElementById(`cantidad-${index}`);
                 const precioInput = document.getElementById(`precioUnitario-${index}`);
                 const productoSelect = document.getElementById(`producto-${index}`);
@@ -541,7 +729,7 @@
                         if (precio1 && (initialPrecioUnitario === '' || parseFloat(precioInput.value) === 0 || precioInput.value === '')) {
                              precioInput.value = parseFloat(precio1).toFixed(2);
                         } else if (precio1 && !precioInput.value) { // Si no hay valor previo, usa precio1
-                             precioInput.value = parseFloat(precio1).toFixed(2);
+                            precioInput.value = parseFloat(precio1).toFixed(2);
                         }
                         updateDetalleTotal(index);
                     });
@@ -560,7 +748,7 @@
                      const precio1 = selectedOption.dataset.precio1;
                      if (precio1) {
                          precioInput.value = parseFloat(precio1).toFixed(2);
-                     }
+                    }
                 }
                 updateDetalleTotal(index);
             }
@@ -581,8 +769,6 @@
                     if (priceValue) {
                         precioInput.value = parseFloat(priceValue).toFixed(2);
                         updateDetalleTotal(index);
-                    } else {
-                        showNotification('warning', `El producto seleccionado no tiene ${priceType}.`);
                     }
                 } else {
                     showNotification('info', 'Por favor, selecciona un producto primero para fijar el precio.');
@@ -625,13 +811,12 @@
                         subtotal += totalValue;
                     }
                 });
-
                 const igvSelect = document.getElementById('igvSelect');
                 let igvRate = 0;
                 if (igvSelect && igvSelect.value) {
-                    const selectedIgv = allIgvData.find(igv => igv.idIgv == igvSelect.value);
+                    const selectedIgv = allIgvData.find(tasa => tasa.idIgv == igvSelect.value);
                     if (selectedIgv) {
-                        igvRate = parseFloat(selectedIgv.igv) / 100;
+                        igvRate = parseFloat(selectedIgv.tasa) ;
                     }
                 }
 
@@ -672,7 +857,6 @@
                 } else if (tipoDocumentoInput) {
                     tipoDocumentoInput.classList.remove('is-invalid');
                 }
-
                 const numDocumentoInput = document.getElementById('numDocumento');
                 if (numDocumentoInput && !numDocumentoInput.value.trim()) {
                     displayError('numDocumentoError', 'El número de documento es obligatorio.');
@@ -681,7 +865,6 @@
                 } else if (numDocumentoInput) {
                     numDocumentoInput.classList.remove('is-invalid');
                 }
-
                 const clienteSelect = document.getElementById('clienteSelect');
                 if (clienteSelect && !clienteSelect.value) {
                     displayError('clienteSelectError', 'Debe seleccionar un cliente.');
@@ -690,7 +873,6 @@
                 } else if (clienteSelect) {
                     clienteSelect.classList.remove('is-invalid');
                 }
-
                 const igvSelect = document.getElementById('igvSelect');
                 if (igvSelect && !igvSelect.value) {
                     displayError('igvSelectError', 'Debe seleccionar un tipo de IGV.');
@@ -699,7 +881,6 @@
                 } else if (igvSelect) {
                     igvSelect.classList.remove('is-invalid');
                 }
-
                 const tipoPagoInput = document.getElementById('tipoPago');
                 if (tipoPagoInput && !tipoPagoInput.value) {
                     displayError('tipoPagoError', 'El tipo de pago es obligatorio.');
@@ -708,21 +889,16 @@
                 } else if (tipoPagoInput) {
                     tipoPagoInput.classList.remove('is-invalid');
                 }
-
-
                 const detalleRows = document.querySelectorAll('.detalle-item');
                 if (detalleRows.length === 0) {
                     showNotification('error', 'Debe añadir al menos un producto a la venta.');
                     isValid = false;
                 }
-
                 for (const row of detalleRows) {
                     const index = row.getAttribute('data-index');
-
                     const productoSelect = document.getElementById(`producto-${index}`);
                     const cantidadInput = document.getElementById(`cantidad-${index}`);
                     const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
-
                     if (productoSelect && !productoSelect.value) {
                         displayError(`productoError-${index}`, 'Seleccione un producto.');
                         productoSelect.classList.add('is-invalid');
@@ -730,7 +906,6 @@
                     } else if (productoSelect) {
                         productoSelect.classList.remove('is-invalid');
                     }
-
                     const cantidad = parseFloat(cantidadInput ? cantidadInput.value : '');
                     if (cantidadInput && (isNaN(cantidad) || cantidad <= 0)) {
                         displayError(`cantidadError-${index}`, 'Cantidad > 0.');
@@ -739,34 +914,27 @@
                     } else if (cantidadInput) {
                         cantidadInput.classList.remove('is-invalid');
                     }
-
                     if (productoSelect && cantidadInput) {
                         const selectedOption = productoSelect.options[productoSelect.selectedIndex];
                         const availableStock = parseInt(selectedOption.dataset.stock || '0');
                         const currentSaleId = document.getElementById('idVenta') ? document.getElementById('idVenta').value : null;
                         let oldQuantityInThisDetail = 0;
-
                         if (currentSaleId) {
                             const oldSale = allVentas.find(v => v.idVenta == currentSaleId);
                             if (oldSale && oldSale.detalleVentas) {
-                                const oldDetailForProduct = oldSale.detalleVentas.find(d =>
-                                    d.producto && d.producto.idProducto == productoSelect.value
-                                );
+                                const oldDetailForProduct = oldSale.detalleVentas.find(d => d.producto && d.producto.idProducto == productoSelect.value );
                                 if (oldDetailForProduct) {
                                     oldQuantityInThisDetail = oldDetailForProduct.cantidad;
                                 }
                             }
                         }
-
                         const effectiveAvailableStock = availableStock + oldQuantityInThisDetail;
-
                         if (cantidad > effectiveAvailableStock) {
                             displayError(`cantidadError-${index}`, `Stock insuficiente. Disponible: ${availableStock} (cantidad previa en esta venta: ${oldQuantityInThisDetail}).`);
                             cantidadInput.classList.add('is-invalid');
                             isValid = false;
                         }
                     }
-
                     const precio = parseFloat(precioUnitarioInput ? precioUnitarioInput.value : '');
                     if (precioUnitarioInput && (isNaN(precio) || precio < 0)) {
                         displayError(`precioUnitarioError-${index}`, 'Precio >= 0.');
@@ -778,19 +946,16 @@
                 }
                 return isValid;
             }
-
             // ===============================================
             // LÓGICA DE GUARDADO DE LA VENTA (EN EL CLIENTE)
             // ===============================================
-
             window.saveVenta = async function(event) { // Recibe el objeto 'event'
                 event.preventDefault(); // Evita el envío del formulario por defecto
-
                 if (!(await validateForm())) {
-                    showNotification('error', 'Por favor, corrige los errores en el formulario.'); // Notificación genérica si la validación falla en el frontend
+                    showNotification('error', 'Por favor, corrige los errores en el formulario.');
+                    // Notificación genérica si la validación falla en el frontend
                     return;
                 }
-
                 const idVenta = document.getElementById('idVenta') ? document.getElementById('idVenta').value : null;
                 const idCliente = document.getElementById('clienteSelect') ? document.getElementById('clienteSelect').value : null;
                 const tipoDocumento = document.getElementById('tipoDocumento') ? document.getElementById('tipoDocumento').value : '';
@@ -800,24 +965,19 @@
                 const totalElement = document.getElementById('totalGeneralDisplay');
                 const total = totalElement ? parseFloat(totalElement.value) : 0;
                 const igvCalculatedAmount = document.getElementById('igvCalculatedDisplay') ? parseFloat(document.getElementById('igvCalculatedDisplay').value) : 0;
-
                 const detallesVentas = [];
                 // Itera sobre todas las filas con la clase 'detalle-item' en el tbody
                 document.querySelectorAll('#detalleVentasContainer tr.detalle-item').forEach(detalleRow => {
                     const index = detalleRow.getAttribute('data-index');
-
                     // Función para obtener el valor de un elemento dentro de la fila actual
                     const getVal = (selector) => {
                         const element = detalleRow.querySelector(selector);
                         // Asegúrate de que el valor sea un string vacío si es null o undefined, para que parseInt/parseFloat no fallen
                         return element ? element.value : '';
                     };
-
                     // Obtén el idDetalleVenta. Si está vacío o null, conviértelo a null para el backend.
                     const currentIdDetalleVenta = getVal(`input[name="detalleVentas[${index}].idDetalleVenta"]`);
                     const parsedIdDetalleVenta = (currentIdDetalleVenta && currentIdDetalleVenta.trim() !== '') ? parseInt(currentIdDetalleVenta) : null;
-
-
                     detallesVentas.push({
                         idDetalleVenta: parsedIdDetalleVenta,
                         producto: { idProducto: getVal(`#producto-${index}`) ? parseInt(getVal(`#producto-${index}`)) : null },
@@ -826,7 +986,6 @@
                         total: getVal(`#detalleTotalDisplay-${index}`) ? parseFloat(getVal(`#detalleTotalDisplay-${index}`)) : null
                     });
                 });
-
                 const data = {
                     idVenta: idVenta ? parseInt(idVenta) : null,
                     cliente: { idCliente: idCliente ? parseInt(idCliente) : null },
@@ -835,18 +994,15 @@
                     tipoDocumento: tipoDocumento,
                     numDocumento: numDocumento,
                     tipoPago: tipoPago,
-                    igv: igvCalculatedAmount,
+                    tasa: igvCalculatedAmount,
                     igvEntity: { idIgv: idIgv ? parseInt(idIgv) : null },
                     detalleVentas: detallesVentas
                 };
-
                 // --- AÑADIDO PARA DEPURACIÓN ---
                 console.log("JSON de la venta a enviar:");
                 console.log(JSON.stringify(data, null, 2)); // El 'null, 2' formatea el JSON para que sea legible
                 // --- FIN AÑADIDO ---
-
                 const url = '/ventas/guardar';
-
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
@@ -855,23 +1011,299 @@
                         },
                         body: JSON.stringify(data),
                     });
-
                     if (!response.ok) {
                         const errorData = await response.json();
                         showNotification('error', errorData.message || 'Error al guardar la venta. Inténtalo de nuevo.');
                         return;
                     }
-
                     const resultData = await response.json();
                     showNotification('success', resultData.message);
-
                     closeFormModal();
                     recargarListaVentasCompleta();
-
                 } catch (error) {
                     showNotification('error', error.message || 'Ocurrió un error de red o interno al guardar la venta.');
                 }
             }
+
+            // ===============================================
+            // NUEVAS FUNCIONES PARA CANCELAR VENTA
+            // ===============================================
+
+            window.confirmCancelVenta = function(idVenta) {
+                Swal.fire({
+                    title: '¿Está seguro?',
+                    text: "¡No podrás revertir esto!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, cancelar venta',
+                    cancelButtonText: 'No, mantener'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        cancelarVenta(idVenta);
+                    }
+                });
+            }
+
+            async function cancelarVenta(idVenta) {
+                try {
+                    const response = await fetch(`/ventas/cancelar/${idVenta}`, {
+                        method: 'POST', // O 'PUT' dependiendo de tu API REST
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Error al cancelar la venta.');
+                    }
+
+                    const result = await response.json();
+                    showNotification('success', result.message || 'Venta cancelada exitosamente.');
+                    recargarListaVentasCompleta(); // Recarga la tabla para reflejar el cambio de estado y color
+                } catch (error) {
+                    console.error('Error al cancelar la venta:', error);
+                    showNotification('error', error.message || 'Ocurrió un error al intentar cancelar la venta.');
+                }
+            }
+
+
+            const clienteFormModalElement = $('#clienteFormModal');
+            const clienteFormModalContent = $('#clienteFormModalContent');
+
+            // ===============================================
+            // LÓGICA DEL FORMULARIO DE CLIENTE (NUEVO/EDICIÓN)
+            // ===============================================
+
+            /**
+             * Función para abrir el modal del formulario de cliente.
+             * Se llama desde venta.html (botón de la tabla) o desde form_venta.html (botón en el select de cliente).
+             */
+            window.openClienteFormModal = function() {
+                $.ajax({
+                    url: '/ventas/cliente/nuevo', // Endpoint del controlador para cargar el fragmento del cliente
+                    type: 'GET',
+                    success: function(response) {
+                        clienteFormModalContent.html(response); // Carga el HTML del formulario en el modal
+                        clienteFormModalElement.modal('show'); // Muestra el modal
+
+                        // **** AQUI ES DONDE LLAMAMOS A LAS FUNCIONES DEL FORMULARIO DE CLIENTE ****
+                        // Adjuntar manejador de evento para el cambio en el select del tipo de cliente
+                        // Usamos .off() para evitar múltiples adjunciones si el modal se abre varias veces
+                        $('#clienteFormModalContent #idTipoCliente').off('change').on('change', toggleClientFields);
+
+                        // Inicializar el estado de los campos al abrir el modal (para edición o nuevo)
+                        toggleClientFields();
+
+                        // Adjuntar el manejador de envío del formulario (para guardar el cliente)
+                        $('#clienteFormModalContent #formCliente').off('submit').on('submit', saveCliente);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error al cargar el formulario de cliente:', error);
+                        showNotification('error', 'Error al cargar el formulario de cliente. Por favor, intente de nuevo.');
+                    }
+                });
+            };
+
+            /**
+             * Función para cerrar el modal del cliente.
+             * Esta función debe ser llamada por los botones de cerrar/cancelar dentro del modal de cliente.
+             * Al cerrar, recarga la lista de clientes en el formulario de ventas.
+             */
+            window.closeClienteFormModal = function() {
+                clienteFormModalElement.modal('hide');
+                clienteFormModalElement.one('hidden.bs.modal', function () {
+                    clienteFormModalContent.empty(); // Limpiar el contenido al cerrar
+                    clearErrors(); // Limpia errores del formulario de cliente al cerrar
+
+                    // IMPORTANTE: Recargar los datos de clientes en el modal de ventas
+                    // para asegurar que el select tenga el cliente recién añadido.
+                    recargarListaVentasCompleta(); // Esto actualizará allClientesData y el Select2 en el modal de ventas
+                });
+            };
+
+            // **** INICIO: FUNCIONES ESPECÍFICAS DEL FORMULARIO DE CLIENTE (MOVIDAS AQUÍ) ****
+
+            // Función para alternar campos visibles según el tipo de cliente
+            function toggleClientFields() {
+                const tipoClienteId = parseInt($('#clienteFormModalContent #idTipoCliente').val(), 10);
+                clearErrors(); // Limpiar errores al cambiar de tipo
+
+                // Primero, ocultar todos los campos específicos de tipo
+                $('#clienteFormModalContent #naturalFields').hide();
+                $('#clienteFormModalContent #juridicaFields').hide();
+
+                // Determinar qué conjunto de campos mostrar y qué conjunto de campos limpiar
+                if (tipoClienteId === 1) { // Persona Natural (Ajusta el ID si es diferente en tu DB)
+                    $('#clienteFormModalContent #naturalFields').show();
+                    // Limpiar solo los campos de Persona Jurídica
+                    $('#clienteFormModalContent #ruc').val('');
+                    $('#clienteFormModalContent #razonSocial').val('');
+                    $('#clienteFormModalContent #nombreComercial').val('');
+                } else if (tipoClienteId === 2) { // Persona Jurídica (Ajusta el ID si es diferente en tu DB)
+                    $('#clienteFormModalContent #juridicaFields').show();
+                    // Limpiar solo los campos de Persona Natural
+                    $('#clienteFormModalContent #dni').val('');
+                    $('#clienteFormModalContent #nombre').val('');
+                    $('#clienteFormModalContent #apPaterno').val('');
+                    $('#clienteFormModalContent #apMaterno').val('');
+                } else { // No se ha seleccionado ningún tipo (ej. al cargar el formulario para un nuevo cliente)
+                    // Limpiar todos los campos específicos de tipo
+                    $('#clienteFormModalContent #dni').val('');
+                    $('#clienteFormModalContent #nombre').val('');
+                    $('#clienteFormModalContent #apPaterno').val('');
+                    $('#clienteFormModalContent #apMaterno').val('');
+                    $('#clienteFormModalContent #ruc').val('');
+                    $('#clienteFormModalContent #razonSocial').val('');
+                    $('#clienteFormModalContent #nombreComercial').val('');
+                }
+                // (Opcional): Re-adjunta los escuchadores de validación en tiempo real si son relevantes
+                // attachRealTimeValidationListeners(); // Solo si estas funciones están adaptadas para el modal
+            }
+
+            // Las funciones de validación (validateRequiredCliente, validateDniCliente, etc.)
+            // deben ser definidas aquí en venta.html y deben usar el prefijo
+            // '#clienteFormModalContent' para seleccionar los elementos del formulario dentro del modal.
+
+            function validateRequiredCliente(inputElementId, errorElementId, fieldName) {
+                const input = $('#clienteFormModalContent #' + inputElementId);
+                const value = input.val().trim();
+                if (value === "") {
+                    displayError(errorElementId, `${fieldName} es obligatorio.`);
+                    return false;
+                }
+                input.removeClass('is-invalid');
+                return true;
+            }
+
+            function validateDniCliente(inputElementId, errorElementId) {
+                const input = $('#clienteFormModalContent #' + inputElementId);
+                const value = input.val().trim();
+                const regex = /^\d{8}$/;
+
+                if (value === "") {
+                    displayError(errorElementId, "El DNI es obligatorio.");
+                    return false;
+                } else if (!regex.test(value)) {
+                    displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
+                    return false;
+                }
+                input.removeClass('is-invalid');
+                return true;
+            }
+
+            // ... (Aquí irían todas las demás funciones de validación para el cliente,
+            // como validateRucCliente, validateNombreApellidosCliente, validateTelefonoCliente,
+            // checkDniUnicoCliente, checkRucUnicoCliente, etc., asegurándote de que todas
+            // usen '#clienteFormModalContent #' al seleccionar elementos del DOM.)
+
+            async function checkDniUnicoCliente(dniInputId, dniErrorId, idCliente) {
+                const dni = $('#clienteFormModalContent #' + dniInputId).val();
+                if (dni.trim() === "") return true;
+
+                let url = '/ventas/checkDni?dni=' + encodeURIComponent(dni); // Usar el endpoint de VentaController si es este quien valida
+                if (idCliente) {
+                    url += '&idCliente=' + idCliente;
+                }
+                try {
+                    const response = await $.ajax({ type: "GET", url: url, dataType: "json" });
+                    if (response.exists) {
+                        displayError(dniErrorId, "Este DNI ya está registrado.");
+                        return false;
+                    }
+                    return true;
+                } catch (error) {
+                    console.error("Error al verificar DNI de cliente:", error);
+                    displayError(dniErrorId, "Error al verificar DNI. Intenta de nuevo.");
+                    return false;
+                }
+            }
+            // ... (checkRucUnicoCliente similar) ...
+
+
+
+            // Función para guardar el cliente
+            window.saveCliente = async function(event) {
+                event.preventDefault();
+
+                const idCliente = $('#clienteFormModalContent #idCliente').val() === '' ? null : parseInt($('#clienteFormModalContent #idCliente').val(), 10);
+                const fechaRegistro = $('#clienteFormModalContent #fechaRegistro').val();
+                const tipoClienteId = parseInt($('#clienteFormModalContent #idTipoCliente').val(), 10);
+
+                const clienteData = {
+                    idCliente: idCliente,
+                    fechaRegistro: fechaRegistro,
+                    tipoCliente: { idRolCliente: tipoClienteId },
+                    dni: $('#clienteFormModalContent #dni').val() || null,
+                    nombre: $('#clienteFormModalContent #nombre').val() || null,
+                    apPaterno: $('#clienteFormModalContent #apPaterno').val() || null,
+                    apMaterno: $('#clienteFormModalContent #apMaterno').val() || null,
+                    ruc: $('#clienteFormModalContent #ruc').val() || null,
+                    razonSocial: $('#clienteFormModalContent #razonSocial').val() || null,
+                    nombreComercial: $('#clienteFormModalContent #nombreComercial').val() || null,
+                    direccion: $('#clienteFormModalContent #direccion').val(),
+                    telefono: $('#clienteFormModalContent #telefono').val() || null,
+                    estado: parseInt($('#clienteFormModalContent #estado').val(), 10)
+                };
+
+                try {
+                    const response = await fetch('/ventas/cliente/guardar', { // Asegúrate que esta URL coincida con tu @PostMapping en VentaController
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(clienteData),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        showNotification('success', result.message);
+                        closeClienteFormModal(); // Cierra el modal y recarga clientes en el select de ventas
+                    } else {
+                        showNotification('error', result.message);
+                        // Opcional: Si el backend devuelve errores de validación específicos, mostrarlos
+                        if (result.errors) {
+                            result.errors.forEach(err => {
+                                displayError(err.field + 'Error', err.defaultMessage);
+                            });
+                        }
+                    }
+                } catch (error) {
+                    showNotification('error', 'Error al guardar el cliente: ' + error.message);
+                }
+            };
+            // **** FIN: FUNCIONES ESPECÍFICAS DEL FORMULARIO DE CLIENTE ****
+
+            // ... (resto de la inicialización de $(document).ready y funciones para Ventas) ...
+
+            // Ejemplo: Asegúrate de que esta función exista y recargue tus clientes en el select de ventas
+            function recargarListaVentasCompleta() {
+                // ... tu lógica para recargar los datos de ventas y clientes asociados
+            }
+
+            // Estas funciones son genéricas y deben estar en tu venta.html
+            window.clearErrors = function() {
+                $('.text-danger').text('');
+                $('.form-control').removeClass('is-invalid');
+            };
+
+            window.displayError = function(elementId, message) {
+                $('#' + elementId).text(message);
+                $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
+            };
+
+            window.showNotification = function(type, message) {
+                $(document).Toasts('create', {
+                    class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
+                    title: type === 'success' ? 'Éxito' : (type === 'info' ? 'Información' : 'Error'),
+                    body: message,
+                    autohide: true,
+                    delay: 3000
+                });
+            };
 
             // ===============================================
             // INICIALIZACIÓN
