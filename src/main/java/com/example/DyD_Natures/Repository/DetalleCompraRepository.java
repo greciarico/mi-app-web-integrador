@@ -12,6 +12,4 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, In
     // Buscar detalles de compra por documento de compra
     List<DetalleCompra> findByDocumentoCompra(DocumentoCompra documentoCompra);
 
-    // Eliminar todos los detalles de compra asociados a un documento de compra
-    void deleteByDocumentoCompra(DocumentoCompra documentoCompra);
 }
