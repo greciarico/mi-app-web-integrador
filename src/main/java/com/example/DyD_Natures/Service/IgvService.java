@@ -16,11 +16,16 @@ public class IgvService {
     private IgvRepository igvRepository;
 
     /**
-     * Lista todos los registros de IGV que no tienen el estado '2' (eliminado lógicamente).
-     * @return Lista de registros de IGV activos/inactivos (no eliminados).
+     * Trae TODOS los registros de IGV menos los eliminados (estado = 2).
+     * Incluye tanto activos (1) como inactivos (0).
      */
-    public List<Igv> listarIgvActivos() {
+    public List<Igv> listarIgvExcludingDeleted() {
         return igvRepository.findByEstadoExcluding((byte) 2);
+    }
+
+    /** Sólo IGV activos (estado = 1) */
+    public List<Igv> listarSoloIgvActivos() {
+        return igvRepository.findByEstado((byte) 1);
     }
 
     /**
@@ -56,8 +61,10 @@ public class IgvService {
         Optional<Igv> igvOpt = igvRepository.findById(id);
         if (igvOpt.isPresent()) {
             Igv igv = igvOpt.get();
-            igv.setEstado((byte) 2); // Cambiar estado a 2 = eliminado lógicamente
+            igv.setEstado((byte) 2); // Cambiar estado a 2 = eliminado lógicamente (Byte)
             igvRepository.save(igv);
         }
     }
+    // No hay métodos de unicidad como DNI/RUC para IGV, a menos que tu lógica de negocio lo requiera (ej. un IGV activo por fecha)
+    // Si necesitas validar que solo haya un IGV "activo" o por fecha, añadirías lógica aquí.
 }
