@@ -22,7 +22,7 @@
                     <div class="card-header">
                         <h3 class="card-title">Lista de Registros de IGV</h3>
                         <div class="card-tools">
-                            <a href="javascript:void(0)" onclick="abrirFormularioIgv('/igv/nuevo')"
+                            <a href="javascript:void(0)" onclick="abrirFormularioIgv('/tasa/nuevo')"
                                class="btn btn-success" style="background-color:#183D00 !important; border-color:#183D00 !important;">
                                 <i class="fas fa-plus"></i> Crear Nuevo IGV
                             </a>
@@ -39,9 +39,6 @@
                                     <div class="input-group-append">
                                         <button class="btn btn-default" type="button" onclick="aplicarFiltrosIgv()">
                                             <i class="fas fa-search"></i> Buscar
-                                        </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteIgv()">
-                                            <i class="fas fa-file-alt"></i> Generar Reporte
                                         </button>
                                     </div>
                                 </div>
@@ -105,26 +102,26 @@
                 return;
             }
 
-            igvsToDisplay.forEach(igv => {
-                const estadoText = igv.estado === 1 ? 'Activo' : 'Inactivo';
-                const estadoClass = igv.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
-                const fechaRegistroFormatted = igv.fechaRegistro ? new Date(igv.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
+            igvsToDisplay.forEach(tasa => {
+                const estadoText = tasa.estado === 1 ? 'Activo' : 'Inactivo';
+                const estadoClass = tasa.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
+                const fechaRegistroFormatted = tasa.fechaRegistro ? new Date(tasa.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
                 // Para mostrar en la tabla, multiplicamos por 100 para el porcentaje (sin decimales)
-                const igvValueFormatted = igv.igv ? (parseFloat(igv.igv) * 100).toFixed(0) + '%' : 'N/A';
+                const igvValueFormatted = tasa.tasa ? (parseFloat(tasa.tasa) * 100).toFixed(0) + '%' : 'N/A';
 
                 const row = `
                     <tr>
-                        <td>${igv.idIgv}</td>
+                        <td>${tasa.idIgv}</td>
                         <td>${igvValueFormatted}</td>
                         <td>${fechaRegistroFormatted}</td>
-                        <td>${igv.descripcion || 'N/A'}</td>
+                        <td>${tasa.descripcion || 'N/A'}</td>
                         <td class="text-center"><span class="${estadoClass}">${estadoText}</span></td>
                         <td>
-                            <a href="javascript:void(0)" onclick="abrirFormularioIgv('/igv/editar/${igv.idIgv}')"
+                            <a href="javascript:void(0)" onclick="abrirFormularioIgv('/tasa/editar/${tasa.idIgv}')"
                                class="btn btn-info btn-sm">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <a href="javascript:void(0)" onclick="confirmarEliminarIgv(${igv.idIgv})"
+                            <a href="javascript:void(0)" onclick="confirmarEliminarIgv(${tasa.idIgv})"
                                class="btn btn-danger btn-sm">
                                 <i class="fas fa-trash"></i>
                             </a>
@@ -151,16 +148,20 @@
         // FUNCIONES DE VALIDACIÓN ESPECÍFICAS (PARA IGV)
         // ===========================================
 
-        function validateIgvPercentage(inputElementId, errorElementId) { // Renombrado para claridad
+        function validateTasaValue(inputElementId, errorElementId) {
             const input = $('#' + inputElementId);
+            if (input.length === 0) {
+                console.error("Elemento no encontrado con ID:", inputElementId);
+                return false;
+            }
             const value = input.val().trim();
-            const numValue = parseInt(value, 10);
+            const numValue = parseFloat(value); // Usamos parseFloat para decimales
 
             if (value === "") {
-                displayError(errorElementId, "El valor de IGV es obligatorio.");
+                displayError(errorElementId, "El valor es obligatorio.");
                 return false;
-            } else if (isNaN(numValue) || numValue <= 0 || !/^\d+$/.test(value)) {
-                displayError(errorElementId, "El IGV debe ser un número entero positivo (ej: 18).");
+            } else if (isNaN(numValue) || numValue <= 0) { // Validación más simple para números positivos
+                displayError(errorElementId, "El valor debe ser un número positivo (ej: 0.18).");
                 return false;
             }
             input.removeClass('is-invalid');
@@ -172,11 +173,13 @@
             clearErrors();
             let isValid = true;
 
-            // Validar el campo visible de porcentaje
-            if (!validateIgvPercentage('igvPercentage', 'igvError')) isValid = false;
+            // Llamamos a la nueva función de validación para el campo 'tasa'
+            // y usamos un id de error más específico 'tasaError'
+            if (!validateTasaValue('tasa', 'tasaError')) isValid = false;
 
             return isValid;
         }
+
 
         // ===========================================
         // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE IGV
@@ -224,30 +227,32 @@
 
         // MODIFICADO: Esta función ahora construye los datos manualmente para AJAX y envía como JSON
         function guardarIgvAjax() {
-            // Recoger los datos del formulario
+            // Recoge los datos directamente del formulario
             const idIgv = $('#idIgv').val();
-            const fechaRegistro = $('#fechaRegistro').val(); // Fecha de registro se mantiene si es edición
-            const igvPercentageValue = parseInt($('#igvPercentage').val(), 10);
-            const igvDecimalValue = (igvPercentageValue / 100).toFixed(2); // Convertir a string con 2 decimales para precisión
+            const fechaRegistro = $('#fechaRegistro').val();
+
+            // Lee directamente el valor decimal del campo 'tasa'
+            const tasaValue = parseFloat($('#tasa').val());
+
             const descripcion = $('#descripcion').val();
             const estado = $('#estado').val();
 
-            // Construir el objeto de datos para enviar
+            // Construye el objeto de datos para enviar
             const dataToSend = {
-                idIgv: idIgv === '' ? null : parseInt(idIgv, 10), // Si es nuevo, idIgv será vacío, convertir a null
-                fechaRegistro: fechaRegistro, // Enviar tal cual (Spring Boot y Jackson lo manejarán)
-                igv: parseFloat(igvDecimalValue), // Convertir a número (flotante) antes de enviar en JSON
+                idIgv: idIgv === '' ? null : parseInt(idIgv, 10),
+                fechaRegistro: fechaRegistro,
+                tasa: tasaValue, // Envía el valor decimal directamente
                 descripcion: descripcion,
-                estado: parseInt(estado, 10) // Convertir a entero (Byte)
+                estado: parseInt(estado, 10)
             };
 
-            const url = '/igv/guardar'; // URL fija de guardado
+            const url = '/tasa/guardar';
 
             $.ajax({
                 type: "POST",
                 url: url,
-                contentType: 'application/json', // ¡Importante! Indicar que envías JSON
-                data: JSON.stringify(dataToSend), // Convierte el objeto JavaScript a una cadena JSON
+                contentType: 'application/json',
+                data: JSON.stringify(dataToSend),
                 success: function(response) {
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
@@ -257,16 +262,12 @@
                         mostrarNotificacion("error", "Error: " + response.message);
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function(xhr) {
                     let errorMessage = "Error al procesar la solicitud.";
-                    // Intenta obtener un mensaje de error más específico del servidor
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage += ": " + xhr.responseJSON.message;
-                    } else if (xhr.responseText) { // Si hay respuesta de texto pero no JSON
-                        errorMessage += ": " + xhr.responseText.substring(0, Math.min(xhr.responseText.length, 100)) + "...";
                     }
                     mostrarNotificacion("error", errorMessage);
-                    console.error("Error AJAX al guardar IGV:", error, xhr.responseText, xhr);
                 }
             });
         }
@@ -287,7 +288,7 @@
                     console.log("Eliminando IGV con ID:", id);
                     $.ajax({
                         type: "GET", // La eliminación lógica es un GET aquí
-                        url: '/igv/eliminar/' + id,
+                        url: '/tasa/eliminar/' + id,
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
@@ -319,7 +320,7 @@
         function recargarListaIgvCompleta() {
             $.ajax({
                 type: "GET",
-                url: '/igv/all',
+                url: '/tasa/all',
                 dataType: "json",
                 success: function(response) {
                     allIgvs = response;
@@ -327,7 +328,7 @@
                 },
                 error: function(xhr, status, error) {
                     console.error("Error al recargar la lista completa de IGV:", error);
-                    mostrarNotificacion("error", "Error al recargar la lista de IGV. Verifica el endpoint /igv/all en tu backend.");
+                    mostrarNotificacion("error", "Error al recargar la lista de IGV. Verifica el endpoint /tasa/all en tu backend.");
                 }
             });
         }
@@ -338,17 +339,17 @@
 
             if (searchTerm) {
                 if (searchTerm === 'activo') {
-                    filteredIgvs = allIgvs.filter(igv => igv.estado === 1);
+                    filteredIgvs = allIgvs.filter(tasa => tasa.estado === 1);
                 } else if (searchTerm === 'inactivo') {
-                    filteredIgvs = allIgvs.filter(igv => igv.estado === 0);
+                    filteredIgvs = allIgvs.filter(tasa => tasa.estado === 0);
                 } else {
-                    filteredIgvs = allIgvs.filter(igv => {
-                        const estadoText = igv.estado === 1 ? 'activo' : 'inactivo';
+                    filteredIgvs = allIgvs.filter(tasa => {
+                        const estadoText = tasa.estado === 1 ? 'activo' : 'inactivo';
                         // Convertir el valor numérico a string para buscar en porcentaje
-                        const igvValuePercentageString = igv.igv ? (parseFloat(igv.igv) * 100).toFixed(0).toString() : '';
+                        const igvValuePercentageString = tasa.tasa ? (parseFloat(tasa.tasa) * 100).toFixed(0).toString() : '';
                         return (
                             igvValuePercentageString.includes(searchTerm) ||
-                            (igv.descripcion && igv.descripcion.toLowerCase().includes(searchTerm)) ||
+                            (tasa.descripcion && tasa.descripcion.toLowerCase().includes(searchTerm)) ||
                             estadoText.includes(searchTerm)
                         );
                     });
