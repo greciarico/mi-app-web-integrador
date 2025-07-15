@@ -335,7 +335,7 @@
                     // dentro de recargarListaVentasCompleta():
                 fetch('/tasa/activos')
                   .then(r => {
-                    if (!r.ok) throw new Error('');
+                    if (!r.ok) throw new Error('Error al cargar tasas activas');
                     return r.json();
                   })
                   .then(data => {
@@ -507,17 +507,23 @@ window.ejecutarGenerarReporteVentas = function() {
                                 })
                                 // 1) Cada vez que cambie la tasa, recalcula
                                 .on('change', calculateTotalGeneral);
-                            
+
                               // 2) Al cargar el modal la primera vez, forzamos el cálculo
                               calculateTotalGeneral();
                             }
                             if (igvSelectInModal.length) {
-                                igvSelectInModal.select2({
-                                    placeholder: "-- Seleccione el IGV --",
-                                    allowClear: true,
-                                    width: '100%',
-                                    dropdownParent: ventaModalElement
-                                });
+                              igvSelectInModal
+                                .select2({
+                                  placeholder: "-- Seleccione el IGV --",
+                                  allowClear: true,
+                                  width: '100%',
+                                  dropdownParent: ventaModalElement
+                                })
+                                // 1) Cada vez que cambie la tasa, recalcula
+                                .on('change', calculateTotalGeneral);
+
+                              // 2) Al cargar el modal la primera vez, forzamos el cálculo
+                              calculateTotalGeneral();
                             }
 
                             $('#modalContentContainer').find('.detalle-item select[id^="producto-"]').each(function() {
@@ -990,17 +996,16 @@ window.ejecutarGenerarReporteVentas = function() {
                     });
                 });
                 const data = {
-                    idVenta: idVenta ? parseInt(idVenta) : null,
-                    cliente: { idCliente: idCliente ? parseInt(idCliente) : null },
-                    usuario: { idUsuario: 1 }, // Asignar usuario ID 1 por defecto
-                    total: total,
-                    tipoDocumento: tipoDocumento,
-                    numDocumento: numDocumento,
-                    tipoPago: tipoPago,
-                    tasa: igvCalculatedAmount,
-                    igvEntity: { idIgv: idIgv ? parseInt(idIgv) : null },
-                    detalleVentas: detallesVentas
-                };
+                  idVenta: idVenta ? parseInt(idVenta) : null,
+                  cliente:       { idCliente: parseInt(idCliente) },
+                  total:           total,
+                  tipoDocumento:  tipoDocumento,
+                  numDocumento:    numDocumento,
+                  tipoPago:        tipoPago,
+                  tasa:            igvCalculatedAmount,
+                  igvEntity:    { idIgv: parseInt(idIgv) },
+                  detalleVentas:   detallesVentas
+                  };
                 // --- AÑADIDO PARA DEPURACIÓN ---
                 console.log("JSON de la venta a enviar:");
                 console.log(JSON.stringify(data, null, 2)); // El 'null, 2' formatea el JSON para que sea legible
