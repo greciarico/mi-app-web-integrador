@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletResponse; // Importar
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -116,22 +118,44 @@ public class VentaController {
     @PostMapping("/guardar")
     @ResponseBody
     public ResponseEntity<Map<String, String>> guardarVenta(@RequestBody Venta venta) {
-        Map<String, String> response = new HashMap<>(); // Declarado una vez aquí
+        Map<String,String> response = new HashMap<>();
+
+        // 1) Recupera el DNI del usuario autenticado
+        String dni = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        // 2) Busca la entidad Usuario por ese DNI
+        Usuario realUser = usuarioService
+                .obtenerUsuarioPorDni(dni)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                "Usuario no encontrado con DNI: " + dni));
+
+        // 3) Asócialo a la venta *antes* de guardar
+        venta.setUsuario(realUser);
+
         try {
+            // 4) Guarda la venta y actualiza stock
             ventaService.guardarVenta(venta);
-            response.put("status", "success");
+
+            response.put("status",  "success");
             response.put("message", "Venta guardada exitosamente y stock de productos actualizado!");
             return ResponseEntity.ok(response);
+
         } catch (IllegalArgumentException e) {
-            response.put("status", "error");
+            response.put("status",  "error");
             response.put("message", "Error de validación: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
-        } catch (RuntimeException e) { // Captura excepciones de negocio como stock insuficiente
-            response.put("status", "error");
+
+        } catch (RuntimeException e) {
+            response.put("status",  "error");
             response.put("message", "Error de negocio: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         } catch (Exception e) {
-            response.put("status", "error");
+            response.put("status",  "error");
             response.put("message", "Error interno al guardar la Venta: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
