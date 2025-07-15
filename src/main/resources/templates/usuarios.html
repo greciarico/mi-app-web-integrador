@@ -134,12 +134,9 @@
         }
 
         // Función para limpiar todos los mensajes de error
-        function clearErrors(container) {
-          const $c = (container instanceof HTMLElement)
-            ? $(container)
-            : $(container);
-          $c.find('.text-danger').text('');
-          $c.find('.is-invalid').removeClass('is-invalid');
+        function clearErrors() {
+            $('.text-danger').text('');
+            $('.form-control').removeClass('is-invalid');
         }
 
         // Función para mostrar un mensaje de error específico
@@ -331,7 +328,7 @@
         // ===========================================
 
         async function validarFormulario() {
-             clearErrors('#formUsuario'); // Clear all errors before re-validating
+            clearErrors(); // Clear all errors before re-validating
 
             let isValid = true;
 
@@ -425,7 +422,7 @@
                         icon: 'error',
                         title: 'Error al cargar formulario',
                         text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
-                        footer: Detalles: ${xhr.status} ${xhr.statusText}
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
                     });
                 } else {
                     console.log("Formulario cargado exitosamente. Contenido:", response.substring(0, 200) + "...");
@@ -438,9 +435,6 @@
                     $('#correo').on('input', function() { validateCorreo('correo', 'correoError'); });
                     $('#contrasena').on('input', function() { validateContrasena('contrasena', $('#idUsuario').val() === '' ? 'contrasenaValidation' : 'contrasenaError', $('#idUsuario').val() === ''); });
 
-
-                  // Limpiamos solo los errores previos del formulario de usuario:
-                    clearErrors('#formUsuario');
 
                     $('#formUsuario').off('submit').on('submit', async function(e) {
                         e.preventDefault();
@@ -461,7 +455,7 @@
         function cerrarFormulario() {
             $('#usuarioModal').modal('hide');
             $('#modalFormContent').empty();
-            clearErrors('#formUsuario');
+            clearErrors();
             console.log("Modal de usuario cerrado.");
         }
 
