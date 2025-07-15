@@ -52,7 +52,7 @@ public class SecurityConfig {
 
                         // Endponts activos
                         .requestMatchers("/productos/activos").permitAll()
-                        .requestMatchers("/igv/activos").permitAll()
+                        .requestMatchers("/tasa/activos").permitAll()
                         .requestMatchers("/clientes/activos").permitAll()
 
                         // permisos
