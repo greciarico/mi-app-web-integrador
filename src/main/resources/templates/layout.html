@@ -8,6 +8,33 @@
   <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
   <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
   <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+      <style>
+          /* Hacemos que la sidebar sea un contenedor flex vertical */
+        .main-sidebar .sidebar {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          overflow: hidden;
+        }
+      
+      
+        .main-sidebar .sidebar nav {
+          flex: 1;
+          overflow-y: auto;
+        }
+      
+        .sidebar-footer {
+          padding: 1.5rem 0;
+        }
+        .sidebar-footer .nav-link {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          color: #dc3545;
+          font-weight: 500;
+        }
+        </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 
@@ -158,11 +185,12 @@
         </ul>
       </nav>
 
-      <div class="p-3 mt-auto">
-        <a href="/logout" class="d-flex align-items-center justify-content-center text-danger">
-          <i class="fas fa-sign-out-alt"></i>
+      <div class="sidebar-footer text-center">
+        <a href="/logout" class="nav-link text-danger d-inline-flex align-items-center">
+          <i class="fas fa-sign-out-alt mr-2"></i>
+          <span>Cerrar sesión</span>
         </a>
-      </div>
+      </div>
     </div>
   </aside>
   <!-- /.Main Sidebar Container -->
