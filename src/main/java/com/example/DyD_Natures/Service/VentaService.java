@@ -64,140 +64,87 @@ public class VentaService {
     public Venta guardarVenta(Venta ventaForm) {
         Venta ventaToManage;
 
-        // 1. Obtener/Crear la entidad Venta gestionada
+        // 1) Obtener/Crear la entidad Venta gestionada
         if (ventaForm.getIdVenta() == null) {
             ventaToManage = new Venta();
             ventaToManage.setFechaRegistro(LocalDate.now());
-            Usuario usuarioPorDefecto = usuarioRepository.findById(1)
-                    .orElseThrow(() -> new RuntimeException("Usuario por defecto con ID 1 no encontrado."));
-            ventaToManage.setUsuario(usuarioPorDefecto);
+
+            // → En lugar de “usuarioPorDefecto”, usa el que vino del Controller
+            if (ventaForm.getUsuario() == null || ventaForm.getUsuario().getIdUsuario() == null) {
+                throw new IllegalArgumentException("No se pudo determinar el usuario autenticado para la venta.");
+            }
+            ventaToManage.setUsuario(ventaForm.getUsuario());
         } else {
             ventaToManage = ventaRepository.findById(ventaForm.getIdVenta())
                     .orElseThrow(() -> new RuntimeException("Venta con ID " + ventaForm.getIdVenta() + " no encontrada para editar."));
-
-            Set<Integer> incomingDetalleIds = ventaForm.getDetalleVentas().stream()
-                    .filter(d -> d.getIdDetalleVenta() != null)
-                    .map(DetalleVenta::getIdDetalleVenta)
-                    .collect(Collectors.toSet());
-
-            Iterator<DetalleVenta> iterator = ventaToManage.getDetalleVentas().iterator();
-            while (iterator.hasNext()) {
-                DetalleVenta existingDetalle = iterator.next();
-                if (existingDetalle.getIdDetalleVenta() != null && !incomingDetalleIds.contains(existingDetalle.getIdDetalleVenta())) {
-                    updateProductStock(existingDetalle.getProducto().getIdProducto(), existingDetalle.getCantidad());
-                    iterator.remove();
-                }
-            }
+            // (opcional) podrías permitir cambiar el usuario aquí, si quisieras:
+            // ventaToManage.setUsuario(ventaForm.getUsuario());
         }
 
-        // 2. Actualizar las propiedades principales de la venta
+        // 2) Actualizar las propiedades principales de la venta
         ventaToManage.setTipoDocumento(ventaForm.getTipoDocumento());
         ventaToManage.setNumDocumento(ventaForm.getNumDocumento());
         ventaToManage.setTipoPago(ventaForm.getTipoPago());
 
-        // 3. Validar y adjuntar Cliente e IGV
-        if (ventaForm.getCliente() == null || ventaForm.getCliente().getIdCliente() == null) {
-            throw new IllegalArgumentException("El ID del cliente es obligatorio para la venta.");
-        }
-        Cliente cliente = clienteRepository.findById(ventaForm.getCliente().getIdCliente())
-                .orElseThrow(() -> new IllegalArgumentException("Cliente con ID " + ventaForm.getCliente().getIdCliente() + " no encontrado."));
-        ventaToManage.setCliente(cliente);
+        // 3) Validar y adjuntar Cliente e IGV
+        Cliente cliente = clienteRepository.findById(
+                Optional.ofNullable(ventaForm.getCliente())
+                        .map(Cliente::getIdCliente)
+                        .orElseThrow(() -> new IllegalArgumentException("El ID del cliente es obligatorio para la venta."))
+        ).orElseThrow(() -> new IllegalArgumentException(
+                "Cliente con ID " + ventaForm.getCliente().getIdCliente() + " no encontrado."));
 
-        if (ventaForm.getIgvEntity() == null || ventaForm.getIgvEntity().getIdIgv() == null) {
-            throw new IllegalArgumentException("El ID del IGV es obligatorio para la venta.");
-        }
-        Igv igvEntity = igvRepository.findById(ventaForm.getIgvEntity().getIdIgv())
-                .orElseThrow(() -> new IllegalArgumentException("IGV con ID " + ventaForm.getIgvEntity().getIdIgv() + " no encontrado."));
+        Igv igvEntity = igvRepository.findById(
+                Optional.ofNullable(ventaForm.getIgvEntity())
+                        .map(Igv::getIdIgv)
+                        .orElseThrow(() -> new IllegalArgumentException("El ID del IGV es obligatorio para la venta."))
+        ).orElseThrow(() -> new IllegalArgumentException(
+                "IGV con ID " + ventaForm.getIgvEntity().getIdIgv() + " no encontrado."));
+
+        ventaToManage.setCliente(cliente);
         ventaToManage.setIgvEntity(igvEntity);
 
+        // 4) Procesar detalles, stock, subtotal, IGV y total...
         BigDecimal currentSubtotal = BigDecimal.ZERO;
+        List<DetalleVenta> detallesToSave = new ArrayList<>();
 
-        // 4. Procesar los detalles de venta
-        if (ventaForm.getDetalleVentas() == null || ventaForm.getDetalleVentas().isEmpty()) {
-            throw new IllegalArgumentException("La venta debe tener al menos un producto.");
-        }
+        for (DetalleVenta dForm : ventaForm.getDetalleVentas()) {
+            // ...validaciones, búsqueda de producto, ajuste de stock...
+            Producto prod = productoRepository.findById(dForm.getProducto().getIdProducto())
+                    .orElseThrow(() -> new RuntimeException("Producto con ID " + dForm.getProducto().getIdProducto() + " no encontrado."));
 
-        Map<Integer, DetalleVenta> managedDetallesByProductId = ventaToManage.getDetalleVentas().stream()
-                .filter(d -> d.getProducto() != null)
-                .collect(Collectors.toMap(d -> d.getProducto().getIdProducto(), d -> d, (existing, replacement) -> existing));
+            int qty = dForm.getCantidad();
+            BigDecimal price = Optional.ofNullable(dForm.getPrecioUnitario()).orElse(prod.getPrecio1());
+            BigDecimal totalDetalle = price.multiply(BigDecimal.valueOf(qty));
 
-        List<DetalleVenta> detallesToAddOrUpdate = new ArrayList<>();
-
-        for (DetalleVenta incomingDetalle : ventaForm.getDetalleVentas()) {
-            if (incomingDetalle.getProducto() == null || incomingDetalle.getProducto().getIdProducto() == null) {
-                throw new IllegalArgumentException("Detalle de venta inválido: Producto es obligatorio.");
+            // actualizar stock
+            if (prod.getStock() < qty) {
+                throw new RuntimeException("Stock insuficiente para el producto: " + prod.getNombre());
             }
-            if (incomingDetalle.getCantidad() == null || incomingDetalle.getCantidad() <= 0) {
-                throw new IllegalArgumentException("Detalle de venta inválido: Cantidad debe ser mayor a 0.");
-            }
+            updateProductStock(prod.getIdProducto(), -qty);
 
-            Producto productoExistente = productoRepository.findById(incomingDetalle.getProducto().getIdProducto())
-                    .orElseThrow(() -> new RuntimeException("Producto con ID " + incomingDetalle.getProducto().getIdProducto() + " no encontrado."));
+            // montar detalle
+            DetalleVenta detalle = new DetalleVenta();
+            detalle.setProducto(prod);
+            detalle.setCantidad(qty);
+            detalle.setPrecioUnitario(price);
+            detalle.setTotal(totalDetalle);
+            detalle.setVenta(ventaToManage);
 
-            BigDecimal finalPrecioUnitario = incomingDetalle.getPrecioUnitario();
-            if (finalPrecioUnitario == null || finalPrecioUnitario.compareTo(BigDecimal.ZERO) < 0) {
-                finalPrecioUnitario = productoExistente.getPrecio1();
-                if (finalPrecioUnitario == null) {
-                    throw new IllegalArgumentException("El producto " + productoExistente.getNombre() + " no tiene un precio unitario definido.");
-                }
-            }
-            incomingDetalle.setPrecioUnitario(finalPrecioUnitario);
-
-            DetalleVenta existingDetailInManagedList = null;
-            if (incomingDetalle.getIdDetalleVenta() != null) {
-                existingDetailInManagedList = ventaToManage.getDetalleVentas().stream()
-                        .filter(d -> Objects.equals(d.getIdDetalleVenta(), incomingDetalle.getIdDetalleVenta()))
-                        .findFirst().orElse(null);
-            }
-            if (existingDetailInManagedList == null) {
-                existingDetailInManagedList = managedDetallesByProductId.get(productoExistente.getIdProducto());
-            }
-
-            if (existingDetailInManagedList != null) {
-                int oldQuantity = existingDetailInManagedList.getCantidad();
-                int newQuantity = incomingDetalle.getCantidad();
-                int quantityDifference = newQuantity - oldQuantity;
-
-                if (quantityDifference != 0) {
-                    if (productoExistente.getStock() < quantityDifference) {
-                        throw new RuntimeException("Stock insuficiente para el producto: " + productoExistente.getNombre());
-                    }
-                    updateProductStock(productoExistente.getIdProducto(), -quantityDifference);
-                }
-                existingDetailInManagedList.setCantidad(newQuantity);
-                existingDetailInManagedList.setPrecioUnitario(finalPrecioUnitario);
-                existingDetailInManagedList.setTotal(finalPrecioUnitario.multiply(new BigDecimal(newQuantity)));
-                detallesToAddOrUpdate.add(existingDetailInManagedList);
-            } else {
-                if (productoExistente.getStock() < incomingDetalle.getCantidad()) {
-                    throw new RuntimeException("Stock insuficiente para el producto: " + productoExistente.getNombre());
-                }
-                updateProductStock(productoExistente.getIdProducto(), -incomingDetalle.getCantidad());
-                incomingDetalle.setProducto(productoExistente);
-                incomingDetalle.setVenta(ventaToManage);
-                incomingDetalle.setTotal(finalPrecioUnitario.multiply(new BigDecimal(incomingDetalle.getCantidad())));
-                detallesToAddOrUpdate.add(incomingDetalle);
-            }
-            currentSubtotal = currentSubtotal.add(incomingDetalle.getTotal());
+            detallesToSave.add(detalle);
+            currentSubtotal = currentSubtotal.add(totalDetalle);
         }
 
         ventaToManage.getDetalleVentas().clear();
-        ventaToManage.getDetalleVentas().addAll(detallesToAddOrUpdate);
+        ventaToManage.getDetalleVentas().addAll(detallesToSave);
 
-        // --- 5. Calcular IGV y Total final (CORREGIDO) ---
-
-        // CORRECCIÓN 1: No se divide entre 100, ya que la tasa en la BD está como decimal (ej: 0.18)
-        BigDecimal porcentajeIgv = igvEntity.getTasa();
-
-        // Se calcula el monto del IGV basado en el subtotal
-        BigDecimal montoIgv = currentSubtotal.multiply(porcentajeIgv);
-
-        // CORRECCIÓN 2 (CLAVE): Se asigna el monto al campo 'igv', que es el que se guarda en la BD.
+        // 5) Calcular IGV y total final
+        BigDecimal porcentajeIgv = igvEntity.getTasa();           // ej. 0.18
+        BigDecimal montoIgv     = currentSubtotal.multiply(porcentajeIgv);
         ventaToManage.setIgv(montoIgv);
-
-        // Se calcula el total final de la venta
         ventaToManage.setTotal(currentSubtotal.add(montoIgv));
 
+        // 6) Guarda y devuelve
         return ventaRepository.save(ventaToManage);
     }
 
