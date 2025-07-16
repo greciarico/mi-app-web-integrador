@@ -59,11 +59,26 @@ public class ProductoService {
      */
     public Producto guardarProducto(Producto producto) {
         if (producto.getIdProducto() == null) {
-            producto.setEstado((byte) 1); // Nuevo producto por defecto es Activo (Byte)
-            producto.setFechaRegistro(LocalDate.now()); // Establecer fecha de registro si es nuevo
+            // Nuevo producto: validar nombre + descripción
+            if (productoRepository.existsByNombreAndDescripcion(producto.getNombre(), producto.getDescripcion())) {
+                throw new IllegalArgumentException("Ya existe un producto con el mismo nombre y descripción.");
+            }
+            producto.setEstado((byte) 1);
+            producto.setFechaRegistro(LocalDate.now());
+        } else {
+            // Edición de producto: validar duplicidad excluyendo su propio ID
+            if (productoRepository.existsByNombreAndDescripcionAndIdProductoIsNot(
+                    producto.getNombre(),
+                    producto.getDescripcion(),
+                    producto.getIdProducto()
+            )) {
+                throw new IllegalArgumentException("Ya existe otro producto con el mismo nombre y descripción.");
+            }
         }
         return productoRepository.save(producto);
     }
+
+
 
     /**
      * Realiza una eliminación lógica de un producto, cambiando su estado a '2'.
