@@ -132,10 +132,18 @@
             });
         }
 
-        // Función para limpiar todos los mensajes de error (genérica)
-        function clearErrors() {
-            $('.text-danger').text('');
-            $('.form-control').removeClass('is-invalid');
+         /**
+         * Limpia mensajes de error y clases inválidas
+         * SOLO dentro del contenedor que le pases.
+         *
+         * @param {string|HTMLElement} container – selector o elemento DOM
+         */
+        function clearErrors(container) {
+          const $c = (container instanceof HTMLElement)
+            ? $(container)
+            : $(container);
+          $c.find('.text-danger').text('');
+          $c.find('.is-invalid').removeClass('is-invalid');
         }
 
         // Función para mostrar un mensaje de error específico (genérica)
@@ -378,7 +386,7 @@
 
         // Función principal de validación del formulario de Proveedor
         async function validarFormularioProveedor() {
-            clearErrors();
+            clearErrors('#formProveedor');
             let isValid = true;
 
             // Validaciones de campos obligatorios
@@ -408,37 +416,52 @@
         // ===========================================
 
         function abrirFormularioProveedor(url) {
-            console.log("Intentando abrir formulario de proveedor desde URL:", url);
-            $('#modalFormContentProveedor').load(url, function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de proveedor:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar formulario',
-                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    console.log("Formulario de proveedor cargado exitosamente.");
+          console.log("Intentando abrir formulario de proveedor desde URL:", url);
+          $('#modalFormContentProveedor').load(url, function(response, status, xhr) {
+            if (status === "error") {
+              console.error("Error al cargar el formulario de proveedor:", xhr.status, xhr.statusText, response);
+              Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar formulario',
+                text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+              });
+              return;
+            }
 
-                    // Asegúrate de adjuntar los escuchadores de validación en tiempo real aquí
-                    attachRealTimeValidationListenersProveedor();
+            console.log("Formulario de proveedor cargado exitosamente.");
 
-                    $('#formProveedor').off('submit').on('submit', async function(e) {
-                        e.preventDefault();
-                        const formIsValid = await validarFormularioProveedor();
-                        if (formIsValid) {
-                            guardarProveedorAjax($(this));
-                        } else {
-                            console.log("Formulario de proveedor inválido. No se envía.");
-                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
-                        }
-                    });
-                    $('#proveedorModal').modal('show');
-                    console.log("Modal de proveedor intentando mostrarse.");
-                }
+            // 1) Limpia SOLO los errores de este formulario
+            clearErrors('#formProveedor');
+
+            // 2) Adjunta tus validaciones en tiempo real
+            attachRealTimeValidationListenersProveedor();
+
+            // 3) Manejo del submit
+            $('#formProveedor').off('submit').on('submit', async function(e) {
+              e.preventDefault();
+              const formIsValid = await validarFormularioProveedor();
+              if (formIsValid) {
+                guardarProveedorAjax($(this));
+              } else {
+                console.log("Formulario de proveedor inválido. No se envía.");
+                mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+              }
             });
+
+            // 4) Finalmente, muestra el modal
+            $('#proveedorModal').modal('show');
+            console.log("Modal de proveedor intentando mostrarse.");
+          });
         }
+
+        function cerrarFormularioProveedor() {
+          $('#proveedorModal').modal('hide');
+          $('#modalFormContentProveedor').empty();
+          clearErrors('#formProveedor');
+          console.log("Modal de proveedor cerrado.");
+        }
+
 
         // Función para adjuntar todos los escuchadores de validación en tiempo real para proveedores
         function attachRealTimeValidationListenersProveedor() {
@@ -459,7 +482,7 @@
                 $('.modal-backdrop').remove(); // Limpiar el fondo oscuro del modal si se queda
                 $('body').removeClass('modal-open'); // Quitar la clase que bloquea el scroll
             }, 300); // 300ms, coincide con la duración de la transición del modal
-            clearErrors();
+            clearErrors('#formProveedor');
             console.log("Modal de proveedor cerrado.");
         }
 
