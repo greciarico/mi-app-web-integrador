@@ -59,18 +59,97 @@ function mostrarFormularioEditarRol(id) {
 }
 
 function bindFormularioRol() {
-  $("#formRol").off("submit").on("submit", function (e) {
+  $("#formRol").off("submit").on("submit", async function (e) {
     e.preventDefault();
-    $.post("/roles/guardar", $(this).serialize(), () => {
-      $("#modalFormRol").modal("hide");
-      cargarRoles();
+
+    const nombreInput = $("#tipoRol");
+    const nombre = nombreInput.val().trim().toLowerCase();
+    const idRol = $("#formRol input[name='idRol']").val(); // puede ser vacío o null
+
+    const esValido = await validarNombreRolUnico(nombre, idRol);
+
+    if (!esValido) return;
+
+    $.post("/roles/guardar", $(this).serialize(), (respuesta) => {
+      if (respuesta.status === "success") {
+        $("#modalFormRol").modal("hide");
+        cargarRoles();
+      } else if (respuesta.status === "error") {
+        alert(respuesta.message); // o muestra el mensaje en el modal si deseas
+      }
     });
   });
 }
 
+async function validarNombreRolUnico(nombre, idActual) {
+  try {
+    const roles = await $.get("/roles/all");
+
+    const existe = roles.some(rol =>
+      rol.tipoRol.trim().toLowerCase() === nombre &&
+      rol.idRol != idActual
+    );
+
+    if (existe) {
+      $("#tipoRol").addClass("is-invalid");
+
+      Swal.fire({
+        icon: 'warning',
+        title: 'Nombre duplicado',
+        text: 'Ya existe un rol con ese nombre. Usa uno diferente.',
+        confirmButtonColor: '#3085d6'
+      });
+
+      return false;
+    } else {
+      $("#tipoRol").removeClass("is-invalid");
+      return true;
+    }
+  } catch (error) {
+    console.error("Error al validar nombre de rol:", error);
+    return true; // Evita bloqueo si hay un error inesperado
+  }
+}
+
+
+
 function eliminarRol(id) {
-  if (!confirm("¿Estás seguro de eliminar este rol?")) return;
-  $.get(`/roles/eliminar/${id}`, () => {
-    cargarRoles();
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: 'Esta acción no se puede deshacer.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#183D00',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      $.get(`/roles/eliminar/${id}`, (response) => {
+        if (response.status === 'success') {
+          Swal.fire({
+            icon: 'success',
+            title: 'Eliminado',
+            text: 'El rol ha sido eliminado correctamente.',
+            timer: 2000,
+            showConfirmButton: false
+          });
+          cargarRoles();
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo eliminar el rol.',
+          });
+        }
+      }).fail((xhr) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de servidor',
+          text: xhr.responseText || 'Ocurrió un error inesperado.',
+        });
+      });
+    }
   });
 }
+
