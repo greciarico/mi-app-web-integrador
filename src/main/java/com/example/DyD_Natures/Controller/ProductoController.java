@@ -219,7 +219,7 @@ public class ProductoController {
             filtrosAplicados.append("- Nombre: ").append(filterDTO.getNombre()).append("\n");
         }
         if (filterDTO.getDescripcion() != null && !filterDTO.getDescripcion().isEmpty()) {
-            filtrosAplicados.append("- Descripción: ").append(filterDTO.getDescripcion()).append("\n");
+            filtrosAplicados.append("- Presentación: ").append(filterDTO.getDescripcion()).append("\n");
         }
         if (filterDTO.getIdCategoria() != null) {
             Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(filterDTO.getIdCategoria());
@@ -286,7 +286,7 @@ public class ProductoController {
         Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
         Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
 
-        String[] headers = {"ID", "Nombre", "Descripción", "Categoría", "Precio 1", "Precio 2", "Stock", "Estado", "F. Registro"};
+        String[] headers = {"ID", "Nombre", "Presentación", "Categoría", "Precio 1", "Precio 2", "Stock", "Estado", "F. Registro"};
         for (String header : headers) {
             cell = new PdfPCell(new Phrase(header, fontHeader));
             cell.setBackgroundColor(new BaseColor(24, 61, 0));
