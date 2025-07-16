@@ -77,25 +77,28 @@ public class RolUsuarioController {
      */
     @PostMapping("/guardar")
     @ResponseBody
-    public ResponseEntity<Map<String,String>> guardar(
+    public ResponseEntity<Map<String, String>> guardar(
             @ModelAttribute RolUsuario rol,
             @RequestParam(value = "permisos", required = false) List<Integer> permisosIds
     ) {
-        // 1) Construimos el set de Permiso a partir de los IDs recibidos
-        Set<Permiso> permisos = Optional.ofNullable(permisosIds)
-                .map(ids -> ids.stream()
-                        .map(id -> permisoService.obtenerPermisoPorId(id)
-                                .orElseThrow(() -> new IllegalArgumentException("Permiso inválido: " + id)))
-                        .collect(Collectors.toSet()))
-                .orElse(new HashSet<>());
+        try {
+            Set<Permiso> permisos = Optional.ofNullable(permisosIds)
+                    .map(ids -> ids.stream()
+                            .map(id -> permisoService.obtenerPermisoPorId(id)
+                                    .orElseThrow(() -> new IllegalArgumentException("Permiso inválido: " + id)))
+                            .collect(Collectors.toSet()))
+                    .orElse(new HashSet<>());
 
-        // 2) Asignamos al rol y guardamos
-        rol.setPermisos(permisos);
-        rolService.guardarRol(rol);
+            rol.setPermisos(permisos);
+            rolService.guardarRol(rol);
 
-        // 3) Devolvemos OK
-        return ResponseEntity.ok(Map.of("status","success"));
+            return ResponseEntity.ok(Map.of("status", "success"));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
     }
+
 
     /**
      * Elimina un rol por su ID; responde con {status: "success"}
