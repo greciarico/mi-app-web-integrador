@@ -149,11 +149,20 @@
             });
         }
 
-        // Función para limpiar todos los mensajes de error (genérica)
-        function clearErrors() {
-            $('.text-danger').text('');
-            $('.form-control').removeClass('is-invalid');
+          /**
+         * Limpia mensajes de error y clases inválidas
+         * SOLO dentro del contenedor que le pases.
+         *
+         * @param {string|HTMLElement} container – selector o elemento DOM
+         */
+        function clearErrors(container) {
+          const $c = (container instanceof HTMLElement)
+            ? $(container)
+            : $(container);
+          $c.find('.text-danger').text('');
+          $c.find('.is-invalid').removeClass('is-invalid');
         }
+
 
         // Función para mostrar un mensaje de error específico (genérica)
         function displayError(elementId, message) {
@@ -478,7 +487,7 @@
         // ===========================================
 
         async function validarFormularioCliente() {
-            clearErrors(); // Limpiar errores antes de la validación final
+            clearErrors("#formCliente"); // Limpiar errores antes de la validación final
 
             let isValid = true;
             const idTipoCliente = parseInt($('#idTipoCliente').val(), 10);
@@ -522,7 +531,7 @@
         // Función para alternar campos visibles según el tipo de cliente
         function toggleClientFields() {
             const tipoCliente = parseInt($('#idTipoCliente').val(), 10);
-            clearErrors(); // Limpiar errores al cambiar el tipo de cliente
+            clearErrors("#formCliente");// Limpiar errores al cambiar el tipo de cliente
 
             if (tipoCliente === 1) { // Persona Natural
                 $('#naturalFields').show();
@@ -582,43 +591,51 @@
         // ===========================================
 
         function abrirFormularioCliente(url) {
-            console.log("Intentando abrir formulario de Cliente desde URL:", url);
-            $('#modalFormContentCliente').load(url, function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de Cliente:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar formulario',
-                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    console.log("Formulario de Cliente cargado exitosamente.");
+          console.log("Intentando abrir formulario de Cliente desde URL:", url);
 
-                    // Asegúrate de que el select de tipos de cliente tenga el manejador de cambio
-                    $('#idTipoCliente').off('change').on('change', function() {
-                        toggleClientFields(); // Llama a la función para alternar campos
-                    });
+          // Cargo el formulario en el modal
+          $('#modalFormContentCliente').load(url, function(response, status, xhr) {
+            if (status === "error") {
+              console.error("Error al cargar el formulario de Cliente:", xhr.status, xhr.statusText, response);
+              Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar formulario',
+                text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+              });
+              return;
+            }
 
-                    // Llama a toggleClientFields una vez al cargar el formulario
-                    // para establecer el estado inicial correcto y adjuntar listeners
-                    toggleClientFields();
+            console.log("Formulario de Cliente cargado exitosamente.");
 
-                    $('#formCliente').off('submit').on('submit', async function(e) {
-                        e.preventDefault();
-                        const formIsValid = await validarFormularioCliente();
-                        if (formIsValid) {
-                            guardarClienteAjax();
-                        } else {
-                            console.log("Formulario de Cliente inválido. No se envía.");
-                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
-                        }
-                    });
-                    $('#clienteModal').modal('show');
-                    console.log("Modal de Cliente intentando mostrarse.");
-                }
+            // 1) Limpio SOLO los errores de este formulario
+            clearErrors('#formCliente');
+
+            // 2) Inicializo el toggle de campos según tipo de cliente
+            $('#idTipoCliente')
+              .off('change')
+              .on('change', toggleClientFields);
+            // Ejecutarlo una vez para el estado inicial
+            toggleClientFields();
+
+            // 3) Preparo el submit
+            $('#formCliente').off('submit').on('submit', async function(e) {
+              e.preventDefault();
+              const formIsValid = await validarFormularioCliente();
+              if (formIsValid) {
+                guardarClienteAjax();
+              } else {
+                console.log("Formulario de Cliente inválido. No se envía.");
+                mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+              }
             });
+
+            // 4) Muestro el modal
+            $('#clienteModal').modal('show');
+            console.log("Modal de Cliente intentando mostrarse.");
+          });
         }
+
 
         function cerrarFormularioCliente() {
             $('#clienteModal').modal('hide');
@@ -627,7 +644,7 @@
                 $('.modal-backdrop').remove();
                 $('body').removeClass('modal-open');
             }, 300);
-            clearErrors();
+            clearErrors("#formCliente");
             console.log("Modal de Cliente cerrado.");
         }
 
