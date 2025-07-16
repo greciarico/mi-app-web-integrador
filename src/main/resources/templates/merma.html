@@ -142,11 +142,19 @@
             });
         }
 
-        // Función para limpiar todos los mensajes de error (genérica)
-        function clearErrors() {
-            $('.text-danger').text('');
-            $('.form-control').removeClass('is-invalid');
-        }
+        /**
+       * Limpia mensajes de error y clases inválidas
+       * SOLO dentro del contenedor que le pases.
+       *
+       * @param {string|HTMLElement} container – selector o elemento DOM
+       */
+      function clearErrors(container) {
+        const $c = (container instanceof HTMLElement)
+          ? $(container)
+          : $(container);
+        $c.find('.text-danger').text('');
+        $c.find('.is-invalid').removeClass('is-invalid');
+      }
 
         // Función para mostrar un mensaje de error específico (genérica)
         function displayError(elementId, message) {
@@ -187,7 +195,7 @@
 
         // Función principal de validación del formulario de Merma
         async function validarFormularioMerma() {
-            clearErrors();
+            clearErrors('#formMerma');
             let isValid = true;
 
             if (!validateProductoMerma('idProducto', 'productoError')) isValid = false;
@@ -202,45 +210,54 @@
         // ===========================================
 
         function abrirFormularioMerma(url) {
-            console.log("Intentando abrir formulario de Merma desde URL:", url);
-            $('#modalFormContentMerma').load(url, function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de Merma:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar formulario',
-                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
+          console.log("Intentando abrir formulario de Merma desde URL:", url);
+          $('#modalFormContentMerma').load(url, function(response, status, xhr) {
+            if (status === "error") {
+              console.error("Error al cargar el formulario de Merma:", xhr.status, xhr.statusText, response);
+              Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar formulario',
+                text: 'Hubo un problema al cargar el formulario de Merma. Por favor, inténtalo de nuevo.',
+                footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+              });
+              return;
+            }
+
+            console.log("Formulario de Merma cargado exitosamente.");
+
+            // 1) Limpia errores previos SOLO de este form
+            clearErrors('#formMerma');
+
+            // 2) Inicializa Select2 en #idProducto dentro del modal
+            //    Usamos un pequeño timeout para garantizar que el DOM ya esté renderizado
+            setTimeout(() => {
+              $('#idProducto').select2({
+                placeholder: "-- Seleccione o Busque un Producto --",
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#mermaModal')
+              });
+              console.log("Select2 inicializado en #idProducto.");
+            }, 100);
+
+            // 3) Captura el submit y valida antes de enviar
+            $('#formMerma')
+              .off('submit')
+              .on('submit', async function(e) {
+                e.preventDefault();
+                const formIsValid = await validarFormularioMerma();
+                if (formIsValid) {
+                  guardarMermaAjax();  // tu función AJAX de guardado
                 } else {
-                    console.log("Formulario de Merma cargado exitosamente.");
-
-                    // NUEVO: Inicializar Select2 en el campo de producto
-                    // Un pequeño retraso para asegurar que el DOM esté completamente renderizado después del .load()
-                    setTimeout(() => {
-                        $('#idProducto').select2({
-                            placeholder: "-- Seleccione o Busque un Producto --",
-                            allowClear: true, // Permite deseleccionar
-                            width: '100%', // Ancho completo
-                            dropdownParent: $('#mermaModal') // Importante para que el dropdown se muestre correctamente en el modal
-                        });
-                        console.log("Select2 inicializado en #idProducto.");
-                    }, 100); // Pequeño retraso
-
-                    $('#formMerma').off('submit').on('submit', async function(e) {
-                        e.preventDefault();
-                        const formIsValid = await validarFormularioMerma();
-                        if (formIsValid) {
-                            guardarMermaAjax();
-                        } else {
-                            console.log("Formulario de Merma inválido. No se envía.");
-                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
-                        }
-                    });
-                    $('#mermaModal').modal('show');
-                    console.log("Modal de Merma intentando mostrarse.");
+                  console.log("Formulario de Merma inválido. No se envía.");
+                  mostrarNotificacion("error", "Por favor, corrige los errores en el formulario de Merma.");
                 }
-            });
+              });
+
+            // 4) Mostrar modal
+            $('#mermaModal').modal('show');
+            console.log("Modal de Merma intentando mostrarse.");
+          });
         }
 
         function cerrarFormularioMerma() {
@@ -257,7 +274,7 @@
                 $('.modal-backdrop').remove();
                 $('body').removeClass('modal-open');
             }, 300);
-            clearErrors();
+            clearErrors('#formMerma');
             console.log("Modal de Merma cerrado.");
         }
 
