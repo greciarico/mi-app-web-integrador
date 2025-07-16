@@ -262,29 +262,37 @@
         function validateContrasena(inputElementId, errorElementId, isNewUser) {
             const input = $('#' + inputElementId);
             const value = input.val();
-            const minLength = 6;
+            const minLength = 8;
+            const regexSegura = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-={}[\]:;"'<>,.?/~`\\|]).{8,}$/;
+
+            // Mostrar requisitos dinámicamente (opcional)
+            $('#reqLongitud').text(value.length >= minLength ? '✅ Al menos 8 caracteres' : '❌ Al menos 8 caracteres');
+            $('#reqMayuscula').text(/[A-Z]/.test(value) ? '✅ Una letra mayúscula' : '❌ Una letra mayúscula');
+            $('#reqEspecial').text(/[!@#$%^&*()_+\-={}[\]:;"\'<>,.?/~`\\|]/.test(value) ? '✅ Un carácter especial' : '❌ Un carácter especial');
 
             if (isNewUser) {
                 if (value === "") {
                     displayError(errorElementId, "La contraseña es obligatoria.");
                     input.addClass('is-invalid');
                     return false;
-                } else if (value.length < minLength) {
-                    displayError(errorElementId, `La contraseña debe tener al menos ${minLength} caracteres.`);
+                } else if (!regexSegura.test(value)) {
+                    displayError(errorElementId, "Debe contener al menos 8 caracteres, una mayúscula y un símbolo.");
                     input.addClass('is-invalid');
                     return false;
                 }
             } else {
-                if (value.length > 0 && value.length < minLength) {
-                    displayError(errorElementId, `La contraseña debe tener al menos ${minLength} caracteres (si se proporciona una nueva).`);
+                if (value.length > 0 && !regexSegura.test(value)) {
+                    displayError(errorElementId, "Debe contener al menos 8 caracteres, una mayúscula y un símbolo.");
                     input.addClass('is-invalid');
                     return false;
                 }
             }
+
             input.removeClass('is-invalid');
             displayError(errorElementId, '');
             return true;
         }
+
 
         // Función asíncrona para verificar la unicidad del DNI
         async function checkDniUnico(dniInputId, dniErrorId, userId) {
