@@ -15,6 +15,8 @@
                         <div class="form-group">
                             <label for="tipoRol">Nombre del Rol</label>
                             <input type="text" id="tipoRol" th:field="*{tipoRol}" class="form-control" placeholder="Ej. ADMIN" required/>
+                            <div class="invalid-feedback">Ya existe un rol con ese nombre.</div>
+
                         </div>
                         <!-- BLOQUE DE PERMISOS RENOVADO -->
                         <div class="form-group">
