@@ -51,10 +51,27 @@
 
             <div class="form-group">
                 <label for="contrasena">Contraseña:</label>
-                <input type="password" id="contrasena" th:field="*{contrasena}" th:required="${usuario.idUsuario == null}" placeholder="Contraseña de Usuario" class="form-control"/>
-                <small id="contrasenaError" class="text-muted" th:if="${usuario.idUsuario != null}">Dejar en blanco para mantener la contraseña actual.</small>
+                <input type="password" id="contrasena"
+                       th:field="*{contrasena}"
+                       th:required="${usuario.idUsuario == null}"
+                       placeholder="Contraseña de Usuario"
+                       class="form-control"/>
+
+                <!-- Mensaje si es edición -->
+                <small class="text-muted" th:if="${usuario.idUsuario != null}">Dejar en blanco para mantener la contraseña actual.</small>
+
+                <!-- Mensaje de error / validación -->
+                <small id="contrasenaError" class="text-danger"></small>
                 <small id="contrasenaValidation" class="text-danger" th:if="${usuario.idUsuario == null}"></small>
+
+                <!-- Requisitos visibles -->
+                <ul id="contrasenaRequisitos" class="text-muted small pl-3">
+                    <li id="reqLongitud">🔸 Al menos 8 caracteres</li>
+                    <li id="reqMayuscula">🔸 Una letra mayúscula</li>
+                    <li id="reqEspecial">🔸 Un carácter especial</li>
+                </ul>
             </div>
+
 
             <div class="form-group">
                 <label for="estado">Estado:</label>
