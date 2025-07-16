@@ -1287,10 +1287,21 @@ window.ejecutarGenerarReporteVentas = function() {
 
             // ... (resto de la inicialización de $(document).ready y funciones para Ventas) ...
 
-            // Ejemplo: Asegúrate de que esta función exista y recargue tus clientes en el select de ventas
             function recargarListaVentasCompleta() {
-                // ... tu lógica para recargar los datos de ventas y clientes asociados
-            }
+                $.ajax({
+                    type: "GET",
+                    url: '/ventas/all', // Este endpoint DEBE existir en tu backend y devolver JSON
+                    dataType: "json",
+                    success: function(response) {
+                        allVentas = response; // Actualizar la variable global con los nuevos datos
+                        aplicarFiltrosVenta(); // Aplicar el filtro actual a la nueva lista (mantener el término de búsqueda)
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error al recargar la lista completa de centas:", error);
+                        mostrarNotificacion("error", "Error al recargar la lista de ventas. Verifica el endpoint /ventas/all en tu backend.");
+                    }
+                });
+                }
 
             // Estas funciones son genéricas y deben estar en tu venta.html
             window.clearErrors = function() {
