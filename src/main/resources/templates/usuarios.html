@@ -87,7 +87,7 @@
         // Variable global para almacenar todos los usuarios
         // Thymeleaf pasa la lista de usuarios del modelo a esta variable JavaScript
         // Usamos 'let' para poder reasignarla después de operaciones CRUD
-        let allUsers = /*[[${usuarios}]]*/ [];
+        allUsers = /*[[${usuarios}]]*/ [];
 
        // Función para renderizar la tabla con una lista de usuarios
         function renderizarTabla(usersToDisplay) {
