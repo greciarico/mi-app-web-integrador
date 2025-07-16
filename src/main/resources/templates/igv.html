@@ -132,10 +132,18 @@
             });
         }
 
-        // Función para limpiar todos los mensajes de error (genérica)
-        function clearErrors() {
-            $('.text-danger').text('');
-            $('.form-control').removeClass('is-invalid');
+        /**
+         * Limpia mensajes de error y clases inválidas
+         * SOLO dentro del contenedor que le pases.
+         *
+         * @param {string|HTMLElement} container – selector o elemento DOM
+         */
+        function clearErrors(container) {
+          const $c = (container instanceof HTMLElement)
+            ? $(container)
+            : $(container);
+          $c.find('.text-danger').text('');
+          $c.find('.is-invalid').removeClass('is-invalid');
         }
 
         // Función para mostrar un mensaje de error específico (genérica)
@@ -170,7 +178,7 @@
 
         // Función principal de validación del formulario de IGV
         async function validarFormularioIgv() {
-            clearErrors();
+            clearErrors('#formIgv');
             let isValid = true;
 
             // Llamamos a la nueva función de validación para el campo 'tasa'
@@ -185,43 +193,51 @@
         // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE IGV
         // ===========================================
 
-        function abrirFormularioIgv(url) {
-            console.log("Intentando abrir formulario de IGV desde URL:", url);
-            $('#modalFormContentIgv').load(url, function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de IGV:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar formulario',
-                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    console.log("Formulario de IGV cargado exitosamente.");
+       function abrirFormularioIgv(url) {
+          console.log("Intentando abrir formulario de IGV desde URL:", url);
+          $('#modalFormContentIgv').load(url, function(response, status, xhr) {
+            if (status === "error") {
+              console.error("Error al cargar el formulario de IGV:", xhr.status, xhr.statusText, response);
+              Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar formulario',
+                text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+              });
+              return;
+            }
 
-                    // El valor inicial del porcentaje ya lo gestiona th:value en el HTML.
-                    // Ahora, solo nos preocupamos por la validación y el envío.
+            console.log("Formulario de IGV cargado exitosamente.");
 
-                    $('#formIgv').off('submit').on('submit', async function(e) {
-                        e.preventDefault();
-                        const formIsValid = await validarFormularioIgv();
-                        if (formIsValid) {
-                            guardarIgvAjax(); // Llama a guardarIgvAjax sin pasar el formulario directamente
-                        } else {
-                            console.log("Formulario de IGV inválido. No se envía.");
-                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
-                        }
-                    });
-                    $('#igvModal').modal('show');
-                    console.log("Modal de IGV intentando mostrarse.");
-                }
+            // 1) Limpia errores previos SOLO de este form
+            clearErrors('#formIgv');
+
+            // 2) Adjunta validaciones en tiempo real (si las tienes)
+            // p.ej. $('#tasa').on('input', ...);
+
+            // 3) Captura el submit
+            $('#formIgv').off('submit').on('submit', async function(e) {
+              e.preventDefault();
+              const formIsValid = await validarFormularioIgv();
+              if (formIsValid) {
+                guardarIgvAjax(); // tu función que envía el AJAX
+              } else {
+                console.log("Formulario de IGV inválido. No se envía.");
+                mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+              }
             });
+
+            // 4) Muestra el modal
+            $('#igvModal').modal('show');
+            console.log("Modal de IGV intentando mostrarse.");
+          });
         }
+
 
         function cerrarFormularioIgv() {
             $('#igvModal').modal('hide');
             $('#modalFormContentIgv').empty();
-            clearErrors();
+            clearErrors('#formIgv');
             console.log("Modal de IGV cerrado.");
         }
 
