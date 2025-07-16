@@ -137,11 +137,19 @@
             });
         }
 
-        // Función para limpiar todos los mensajes de error (genérica)
-        function clearErrors() {
-            $('.text-danger').text('');
-            $('.form-control').removeClass('is-invalid');
-        }
+        /**
+           * Limpia mensajes de error y clases inválidas
+           * SOLO dentro del contenedor que le pases.
+           *
+           * @param {string|HTMLElement} container – selector o elemento DOM
+           */
+          function clearErrors(container) {
+            const $c = (container instanceof HTMLElement)
+              ? $(container)
+              : $(container);
+            $c.find('.text-danger').text('');
+            $c.find('.is-invalid').removeClass('is-invalid');
+          }
 
         // Función para mostrar un mensaje de error específico (genérica)
         function displayError(elementId, message) {
@@ -195,7 +203,7 @@
 
         // Función principal de validación del formulario de Categoría
         async function validarFormularioCategoria() {
-            clearErrors();
+            clearErrors('#formCategoria');
             let isValid = true;
 
             if (!validateNombreCategoria('nombreCategoria', 'nombreCategoriaError')) isValid = false;
@@ -213,39 +221,52 @@
         // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE CATEGORÍA
         // ===========================================
 
-        function abrirFormularioCategoria(url) {
-            console.log("Intentando abrir formulario de categoría desde URL:", url);
+         function abrirFormularioCategoria(url) {
+            console.log("Intentando abrir formulario de categoria desde URL:", url);
             $('#modalFormContentCategoria').load(url, function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de categoría:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar formulario',
-                        text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    console.log("Formulario de categoría cargado exitosamente. Contenido:", response.substring(0, 200) + "...");
-                    $('#formCategoria').off('submit').on('submit', async function(e) {
-                        e.preventDefault();
-                        const formIsValid = await validarFormularioCategoria();
-                        if (formIsValid) {
-                            guardarCategoriaAjax($(this));
-                        } else {
-                            console.log("Formulario de categoría inválido. No se envía.");
-                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
-                        }
-                    });
-                    $('#categoriaModal').modal('show');
-                    console.log("Modal de categoría intentando mostrarse.");
-                }
+              if (status === "error") {
+                console.error("Error al cargar el formulario de categoria:", xhr.status, xhr.statusText, response);
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error al cargar formulario',
+                  text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                  footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                });
+                return;
+              }
+
+              console.log("Formulario de categoria cargado exitosamente.");
+
+              // 1) Limpia errores previos SOLO de este form
+              clearErrors('#formCategoria');
+
+              // 2) (Opcional) Adjunta validaciones en tiempo real
+              // p.ej. $('#nombreCategoria').on('input', () => validarNombreProducto());
+
+              // 3) Captura el submit
+              $('#formCategoria')
+                .off('submit')
+                .on('submit', async function(e) {
+                  e.preventDefault();
+                  const formIsValid = await validarFormularioProducto();
+                  if (formIsValid) {
+                    guardarProductoAjax($(this));
+                  } else {
+                    console.log("Formulario de categoria inválido. No se envía.");
+                    mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+                  }
+                });
+
+              // 4) Mostrar modal
+              $('#categoriaModal').modal('show');
+              console.log("Modal de producto intentando mostrarse.");
             });
-        }
+          }
 
         function cerrarFormularioCategoria() {
             $('#categoriaModal').modal('hide');
             $('#modalFormContentCategoria').empty();
-            clearErrors();
+            clearErrors('#formCategoria');
             console.log("Modal de categoría cerrado.");
         }
 
