@@ -136,19 +136,19 @@
         /*<![CDATA[*/
 
         // Variables globales para los datos iniciales y el contador de detalles
-        let allDocumentosCompra = []; // Inicializar como array vacío, siempre se cargará por AJAX
-        let allProductosData = /*[[${productos}]]*/ []; // Pasados desde el controlador
-        let allProveedoresData = /*[[${proveedores}]]*/ []; // Pasados desde el controlador
+        allDocumentosCompra = []; // Inicializar como array vacío, siempre se cargará por AJAX
+        allProductosData = /*[[${productos}]]*/ []; // Pasados desde el controlador
+        allProveedoresData = /*[[${proveedores}]]*/ []; // Pasados desde el controlador
 
         // Elementos del DOM del modal principal
-        const documentoCompraModalElement = $('#documentoCompraModal'); // Usando jQuery para el modal Bootstrap
-        const viewDocumentoCompraModalElement = $('#viewDocumentoCompraModal'); // Nuevo modal para visualizar
-        const deleteConfirmModalElement = $('#deleteConfirmModal'); // Usando jQuery
-        const modalFormContent = document.getElementById('modalFormContent');
-        const modalViewContent = document.getElementById('modalViewContent'); // Contenido para el modal de visualización
+        documentoCompraModalElement = $('#documentoCompraModal'); // Usando jQuery para el modal Bootstrap
+        viewDocumentoCompraModalElement = $('#viewDocumentoCompraModal'); // Nuevo modal para visualizar
+        deleteConfirmModalElement = $('#deleteConfirmModal'); // Usando jQuery
+        modalFormContent = document.getElementById('modalFormContent');
+        modalViewContent = document.getElementById('modalViewContent'); // Contenido para el modal de visualización
 
-        let detalleCount = 0; // Contador para generar IDs únicos para los detalles
-        let documentIdToDelete = null; // ID del documento a eliminar
+        detalleCount = 0; // Contador para generar IDs únicos para los detalles
+        documentIdToDelete = null; // ID del documento a eliminar
 
         // ===============================================
         // FUNCIONES DE UTILIDAD (NOTIFICACIONES, ERRORES)
