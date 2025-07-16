@@ -30,8 +30,15 @@ public class RolUsuarioServiceImpl implements RolUsuarioService {
 
     @Override
     public RolUsuario guardarRol(RolUsuario rol) {
+        Optional<RolUsuario> existente = rolRepo.findByTipoRolIgnoreCase(rol.getTipoRol());
+
+        if (existente.isPresent() && !existente.get().getIdRol().equals(rol.getIdRol())) {
+            throw new IllegalArgumentException("Ya existe un rol con ese nombre.");
+        }
+
         return rolRepo.save(rol);
     }
+
 
     @Override
     public void eliminarRol(Integer id) {
