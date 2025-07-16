@@ -156,6 +156,13 @@ public class UsuarioController {
             usuario.setRolUsuario(rol);
 
             // ——————————————————————————————
+            // Estado por defecto si es nulo
+            // ——————————————————————————————
+            if (usuario.getEstado() == null) {
+                usuario.setEstado((byte) 1); // Activo por defecto
+            }
+
+            // ——————————————————————————————
             // Persistencia
             // ——————————————————————————————
             usuarioService.guardarUsuario(usuario);
@@ -361,6 +368,37 @@ public class UsuarioController {
         } catch (DocumentException e) {
             // Manejo de errores de iText
             throw new IOException("Error al generar el PDF", e);
+        }
+    }
+    @GetMapping("/cambiarEstado/{id}")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> cambiarEstadoUsuario(@PathVariable("id") Integer idUsuario) {
+        Map<String, String> response = new HashMap<>();
+        try {
+            Optional<Usuario> optionalUsuario = usuarioService.obtenerUsuarioPorId(idUsuario);
+
+            if (optionalUsuario.isPresent()) {
+                Usuario usuario = optionalUsuario.get();
+
+                // Cambiar el estado: 1 -> 0 o 0 -> 1
+                byte nuevoEstado = (usuario.getEstado() == 1) ? (byte) 0 : (byte) 1;
+                usuario.setEstado(nuevoEstado);
+
+                usuarioService.guardarUsuario(usuario); // Reutiliza tu método existente
+
+                response.put("status", "success");
+                response.put("message", "Estado del usuario actualizado correctamente.");
+                return ResponseEntity.ok(response);
+            } else {
+                response.put("status", "error");
+                response.put("message", "Usuario no encontrado.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Error al cambiar el estado del usuario: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }
