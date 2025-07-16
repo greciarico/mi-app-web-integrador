@@ -105,7 +105,7 @@
 
         // Variable global para almacenar todos los registros de Cliente (no se usa si se filtra desde el backend)
         // Usamos esta para guardar los clientes cuando vienen del backend filtrados y aplicar filtros solo por UI si es necesario
-        let allClientes = /*[[${clientes}]]*/ [];
+        allClientes = /*[[${clientes}]]*/ [];
 
         // Función para renderizar la tabla con una lista de Cliente
         function renderizarTablaCliente(clientesToDisplay) {
