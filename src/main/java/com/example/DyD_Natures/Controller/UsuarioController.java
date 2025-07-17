@@ -8,6 +8,7 @@ import com.example.DyD_Natures.Service.UsuarioService;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,8 @@ public class UsuarioController {
      * @return El nombre de la vista (usuarios.html).
      */
     @GetMapping
-    public String listarUsuarios(Model model) {
+    public String listarUsuarios(HttpServletRequest request, Model model) {
+        model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("usuarios", usuarioService.listarUsuariosActivos());
         model.addAttribute("todosRoles", rolUsuarioService.listarRoles());
         return "usuarios"; // Devuelve la vista principal usuarios.html
