@@ -19,16 +19,39 @@
                     </span>
                     <span th:unless="${venta.cliente != null}">N/A</span>
                 </p>
-                <p><strong>Usuario:</strong> <span th:text="${venta.usuario?.nombre ?: 'N/A'}"></span></p>
+                <p><strong>Usuario Vendedor:</strong> <span th:text="${venta.usuario?.nombre ?: 'N/A'}"></span></p>
             </div>
             <div class="col-md-6">
                 <p><strong>Tipo Documento:</strong> <span th:text="${venta.tipoDocumento}"></span></p>
                 <p><strong>N° Documento:</strong> <span th:text="${venta.numDocumento}"></span></p>
                 <p><strong>Tipo Pago:</strong> <span th:text="${venta.tipoPago}"></span></p>
                 <p><strong>IGV Aplicado:</strong> <span th:text="${#numbers.formatPercent(venta.igvEntity?.tasa, 1, 0)}"></span></p>
+                <p><strong>Estado:</strong>
+                    <span th:if="${venta.estado == 1}" class="badge badge-success">Activa</span>
+                    <span th:if="${venta.estado == 0}" class="badge badge-danger">Anulada</span>
+                </p>
             </div>
         </div>
 
+        <div th:if="${venta.estado == 0}" class="card card-danger card-outline mt-3">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Detalles de Anulación</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Fecha y Hora de Anulación:</strong>
+                            <span th:text="${venta.fechaAnulacion != null ? #temporals.format(venta.fechaAnulacion, 'dd/MM/yyyy HH:mm:ss') : 'N/A'}"></span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Anulada Por:</strong>
+                            <span th:text="${venta.usuarioAnulacion?.nombre ?: 'N/A'}"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <hr/>
         <h5>Productos de la Venta</h5>
         <div class="table-responsive">
