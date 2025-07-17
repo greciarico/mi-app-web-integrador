@@ -68,10 +68,18 @@ public class CategoriaService {
      * @return true si existe otra categoría con ese nombre, false en caso contrario.
      */
     public boolean existsByNombreCategoriaExcludingId(String nombreCategoria, Integer idCategoria) {
+        Byte eliminado = (byte) 2;  // el valor de estado que consideramos "eliminado"
         if (idCategoria != null) {
-            return categoriaRepository.existsByNombreCategoriaAndIdCategoriaIsNot(nombreCategoria, idCategoria);
+            return categoriaRepository
+                    .existsByNombreCategoriaAndIdCategoriaIsNotAndEstadoNot(
+                            nombreCategoria, idCategoria, eliminado
+                    );
+        } else {
+            return categoriaRepository
+                    .existsByNombreCategoriaAndEstadoNot(
+                            nombreCategoria, eliminado
+                    );
         }
-        return categoriaRepository.existsByNombreCategoria(nombreCategoria);
     }
     /**
      * Busca categorías aplicando filtros dinámicamente para la generación de reportes.
