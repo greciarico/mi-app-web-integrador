@@ -1,10 +1,10 @@
 <div th:fragment="formContent" id="ventaFormModalContent" xmlns:th="http://www.w3.org/1999/xhtml">
-    <div class="modal-header">
+    <div class="modal-header text-white" style="background-color: #183D00;">
         <h4 class="modal-title" id="ventaModalLabel"
             th:text="${venta.idVenta != null ? 'Editar Venta: #' + venta.idVenta : 'Registrar Nueva Venta'}">
             Registrar Nueva Venta
         </h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeFormModal()">
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="closeFormModal()">
             <span aria-hidden="true">&times;</span>
         </button>
     </div>
@@ -14,121 +14,151 @@
             <input type="hidden" th:field="*{fechaRegistro}" id="fechaRegistro"/>
             <input type="hidden" th:field="*{usuario.idUsuario}" th:value="1" id="idUsuario"/>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="clienteSelect">Cliente:</label>
-                        <div class="input-group">
-                            <select id="clienteSelect" th:field="*{cliente.idCliente}" class="form-control" required>
-                                <option value="">-- Seleccione un Cliente --</option>
-                                <option th:each="cliente : ${clientes}"
-                                        th:value="${cliente.idCliente}"
-                                        th:text="${cliente.razonSocial != null and cliente.razonSocial.trim() != '' ? cliente.razonSocial : (cliente.nombre + ' ' + cliente.apPaterno + ' ' + cliente.apMaterno)}">
-                                    Nombre Cliente
+            <fieldset class="border p-3 mb-3 rounded shadow-sm">
+                <legend class="w-auto px-2 h5" style="color: #183D00;">Datos de la Venta</legend>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label for="clienteSelect" class="font-weight-bold mb-1">Cliente:</label>
+                            <div class="input-group">
+                                <select id="clienteSelect" th:field="*{cliente.idCliente}" class="form-control form-control-sm" required>
+                                    <option value="">-- Seleccione un Cliente --</option>
+                                    <option th:each="cliente : ${clientes}"
+                                            th:value="${cliente.idCliente}"
+                                            th:text="${cliente.razonSocial != null and cliente.razonSocial.trim() != '' ? cliente.razonSocial : (cliente.nombre + ' ' + cliente.apPaterno + ' ' + cliente.apMaterno)}">
+                                        Nombre Cliente
+                                    </option>
+                                </select>
+                            </div>
+                            <span class="text-danger small" id="clienteSelectError"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label for="tipoDocumentoVentaSelect" class="font-weight-bold mb-1">Tipo de Documento:</label>
+                            <select id="tipoDocumentoVentaSelect" name="tipoDocumento" class="form-control form-control-sm" required>
+                                <option value="">Seleccione un Tipo</option>
+                                <option value="BOLETA_VENTA">Boleta de Venta</option>
+                                <option value="FACTURA_VENTA">Factura de Venta</option>
+                            </select>
+                            <span class="text-danger small" id="tipoDocumentoVentaError"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label for="numDocumentoVenta" class="font-weight-bold mb-1">Número de Documento:</label>
+                            <input type="text" id="numDocumentoVenta" name="numDocumento" class="form-control form-control-sm" placeholder="Generado automáticamente" readonly required>
+                            <span class="text-danger small" id="numDocumentoVentaError"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label for="igvSelect" class="font-weight-bold mb-1">IGV:</label>
+                            <select id="igvSelect" th:field="*{igvEntity.idIgv}" class="form-control form-control-sm" required>
+                                <option value="">-- Seleccione el IGV --</option>
+                                <option th:each="tasa : ${igvs}"
+                                        th:value="${tasa.idIgv}"
+                                        th:text="${tasa.tasa + '%'}">
+                                    18%
                                 </option>
                             </select>
+                            <span class="text-danger small" id="igvSelectError"></span>
                         </div>
-                        <span class="text-danger" id="clienteSelectError"></span>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="tipoDocumentoVentaSelect">Tipo de Documento</label>
-                        <select id="tipoDocumentoVentaSelect" name="tipoDocumento" class="form-control" required>
-                            <option value="">Seleccione un Tipo</option>
-                            <option value="BOLETA_VENTA">Boleta de Venta</option>
-                            <option value="FACTURA_VENTA">Factura de Venta</option>
-                        </select>
-                        <span class="text-danger" id="tipoDocumentoVentaError"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="numDocumentoVenta">Número de Documento</label>
-                        <input type="text" id="numDocumentoVenta" name="numDocumento" class="form-control" placeholder="Generado automáticamente" readonly required>
-                        <span class="text-danger" id="numDocumentoVentaError"></span>
-                    </div>
-                </div>
-            </div>
+            </fieldset>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="tipoPago">Tipo de Pago:</label>
-                        <select id="tipoPago" th:field="*{tipoPago}" class="form-control" required>
-                            <option value="">-- Seleccione --</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Tarjeta">Yape</option>
-                        </select>
-                        <span class="text-danger" id="tipoPagoError"></span>
-                    </div>
+            <fieldset class="border p-3 mb-3 rounded shadow-sm">
+                <legend class="w-auto px-2 h5" style="color: #183D00;">Detalles de la Venta</legend>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm" id="detalleVentasTable">
+                        <thead class="thead-light">
+                        <tr>
+                            <th style="width: 35%;">Producto</th>
+                            <th style="width: 15%;">Cantidad</th>
+                            <th style="width: 20%;">Precio Unitario</th>
+                            <th style="width: 20%;">Total</th>
+                            <th style="width: 10%;">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody id="detalleVentasContainer">
+                        </tbody>
+                    </table>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="igvSelect">IGV:</label>
-                        <select id="igvSelect" th:field="*{igvEntity.idIgv}" class="form-control" required>
-                            <option value="">-- Seleccione el IGV --</option>
-                            <option th:each="tasa : ${igvs}"
-                                    th:value="${tasa.idIgv}"
-                                    th:text="${tasa.tasa + '%'}">
-                                18%
-                            </option>
-                        </select>
-                        <span class="text-danger" id="igvSelectError"></span>
-                    </div>
-                </div>
-            </div>
+                <button type="button" onclick="addDetalleVenta()" class="btn btn-primary btn-sm mt-2" style="background-color: #183D00; border-color: #183D00;">
+                    <i class="fas fa-plus"></i> Añadir Producto
+                </button>
 
-            <hr/>
-            <h5>Detalles de la Venta</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered" id="detalleVentasTable">
-                    <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                        <th>Precio Unitario</th>
-                        <th>Total</th>
-                        <th>Acciones</th>
-                    </tr>
-                    </thead>
-                    <tbody id="detalleVentasContainer">
-                    </tbody>
-                </table>
-            </div>
-            <button type="button" onclick="addDetalleVenta()" class="btn btn-secondary btn-sm mt-3">
-                <i class="fas fa-plus"></i> Añadir Producto
-            </button>
+                <div class="row justify-content-end mt-3">
+                    <div class="col-md-4 col-sm-6 mb-2">
+                        <div class="form-group mb-0"> <label for="subtotalDisplay" class="font-weight-bold mb-1">Subtotal:</label>
+                            <input type="text" id="subtotalDisplay" class="form-control form-control-sm text-right bg-light" readonly/>
+                        </div>
+                    </div>
+                </div>
+                <div class="row justify-content-end">
+                    <div class="col-md-4 col-sm-6 mb-2">
+                        <div class="form-group mb-0">
+                            <label for="igvCalculatedDisplay" class="font-weight-bold mb-1">Monto IGV:</label>
+                            <input type="text" id="igvCalculatedDisplay" class="form-control form-control-sm text-right bg-light" readonly/>
+                        </div>
+                    </div>
+                </div>
+                <div class="row justify-content-end">
+                    <div class="col-md-4 col-sm-6"> <div class="form-group mb-0">
+                        <label for="totalGeneralDisplay" class="font-weight-bold mb-1">Total General:</label>
+                        <input type="text" id="totalGeneralDisplay" th:field="*{total}" class="form-control form-control-sm text-right font-weight-bold" style="background-color: #183D00; color: white;" readonly/>
+                    </div>
+                    </div>
+                </div>
+            </fieldset>
 
-            <div class="row mt-4">
-                <div class="col-md-6 offset-md-6">
-                    <div class="form-group">
-                        <label for="subtotalDisplay">Subtotal:</label>
-                        <input type="text" id="subtotalDisplay" class="form-control" readonly/>
+            <fieldset class="border p-3 mb-3 rounded shadow-sm">
+                <legend class="w-auto px-2 h5" style="color: #183D00;">Medios de Pago</legend>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label for="cashPayment" class="font-weight-bold mb-1">Efectivo (S/):</label>
+                            <input type="number" id="cashPayment" name="efectivo" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label for="yapePayment" class="font-weight-bold mb-1">Yape (S/):</label>
+                            <input type="number" id="yapePayment" name="yape" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6 offset-md-6">
-                    <div class="form-group">
-                        <label for="igvCalculatedDisplay">Monto IGV:</label>
-                        <input type="text" id="igvCalculatedDisplay" class="form-control" readonly/>
+                <div class="row justify-content-end mt-2">
+                    <div class="col-md-4 col-sm-6 mb-2">
+                        <div class="form-group mb-0">
+                            <label for="totalPaidAmount" class="font-weight-bold mb-1">TOTAL PAGADO:</label>
+                            <input type="text" id="totalPaidAmount" class="form-control form-control-sm text-right font-weight-bold" style="background-color: #e6ffe6; border-color: #a3e6a3;" readonly/>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6 offset-md-6">
-                    <div class="form-group">
-                        <label for="totalGeneralDisplay">Total General:</label>
-                        <input type="text" id="totalGeneralDisplay" th:field="*{total}" class="form-control" readonly/>
+                <div class="row justify-content-end">
+                    <div class="col-md-4 col-sm-6">
+                        <div class="form-group mb-0">
+                            <label for="changeAmount" class="font-weight-bold mb-1">CAMBIO:</label>
+                            <input type="text" id="changeAmount" class="form-control form-control-sm text-right font-weight-bold" style="background-color: #fffacd; border-color: #ffd700;" readonly/>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </fieldset>
 
         </div>
         <div class="modal-footer justify-content-between">
-            <button type="button" class="btn btn-default" data-dismiss="modal" onclick="closeFormModal()">Cerrar</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeFormModal()">Cerrar</button>
             <button type="button" class="btn btn-primary" onclick="saveVenta(event)" style="background-color:#183D00 !important; border-color:#183D00 !important;">Guardar Venta</button>
         </div>
     </form>
 
     <script th:inline="javascript">
         /*<![CDATA[*/
-        // Esta función se llama desde venta.html para inicializar el modal
+        // Pasa los datos necesarios al script principal a través de una función global
         window.initializeModalDetails(
             /*[[${productos}]]*/ [],
             /*[[${venta}]]*/ null,
