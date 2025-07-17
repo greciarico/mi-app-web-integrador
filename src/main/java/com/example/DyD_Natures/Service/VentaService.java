@@ -13,6 +13,8 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification; // Importar Specification
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
@@ -50,7 +52,27 @@ public class VentaService {
 
     @Transactional(readOnly = true)
     public List<Venta> listarVentas() {
-        return ventaRepository.findAll();
+        // 1) Recuperar DNI del usuario logueado
+        String dni = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        // 2) Traer la entidad Usuario
+        Usuario currentUser = usuarioRepository
+                .findByDni(dni)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("Usuario no encontrado con DNI: " + dni));
+
+        // 3) Comprobar rol
+        String tipoRol = currentUser.getRolUsuario().getTipoRol();
+        boolean isAdmin = "Administrador".equalsIgnoreCase(tipoRol);
+
+        // 4) Filtrar según rol
+        if (isAdmin) {
+            return ventaRepository.findAll();
+        } else {
+            return ventaRepository.findAllByUsuario_IdUsuario(currentUser.getIdUsuario());
+        }
     }
 
     @Transactional(readOnly = true)
