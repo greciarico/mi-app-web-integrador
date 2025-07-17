@@ -1,8 +1,10 @@
+
 package com.example.DyD_Natures.Repository;
 
 import com.example.DyD_Natures.Model.Venta;
+import com.example.DyD_Natures.Model.TurnoCaja; // Importar TurnoCaja
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor; // Importar
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -42,5 +44,12 @@ public interface VentaRepository extends JpaRepository<Venta, Integer>, JpaSpeci
 
     List<Venta> findAllByUsuario_IdUsuario(Integer idUsuario);
 
+    // --- NUEVO MÉTODO PARA EL CUADRE DE CAJA ---
+    /**
+     * Busca todas las ventas asociadas a un TurnoCaja específico.
+     * @param turnoCaja El objeto TurnoCaja al cual están asociadas las ventas.
+     * @return Una lista de ventas.
+     */
+    List<Venta> findByTurnoCaja(TurnoCaja turnoCaja);
+    // --- FIN NUEVO MÉTODO ---
 }
-
