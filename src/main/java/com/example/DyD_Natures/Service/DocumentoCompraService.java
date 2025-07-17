@@ -1,10 +1,7 @@
 package com.example.DyD_Natures.Service;
 
 import com.example.DyD_Natures.Dto.DocumentoCompraFilterDTO; // Importa el DTO
-import com.example.DyD_Natures.Model.DetalleCompra;
-import com.example.DyD_Natures.Model.DocumentoCompra;
-import com.example.DyD_Natures.Model.DocumentoSequence;
-import com.example.DyD_Natures.Model.Producto;
+import com.example.DyD_Natures.Model.*;
 import com.example.DyD_Natures.Repository.DocumentoCompraRepository;
 import com.example.DyD_Natures.Repository.DocumentoSequenceRepository;
 import com.example.DyD_Natures.Repository.ProductoRepository;
@@ -17,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +30,11 @@ public class DocumentoCompraService {
 
     @Autowired
     private DocumentoSequenceRepository documentoSequenceRepository; // Inyectar el nuevo repositorio
+    // --- CAMBIOS PARA ANULAR COMPRA ---
+    // Inyectar UsuarioService para la búsqueda de usuario por DNI
+    @Autowired
+    private UsuarioService usuarioService;
+    // --- FIN CAMBIOS ANULAR COMPRA ---
 
     private static final String BOLETA_PREFIX = "B001-"; // Prefijo de ejemplo para Boleta
     private static final String FACTURA_PREFIX = "F001-"; // Prefijo de ejemplo para Factura
@@ -243,65 +246,67 @@ public class DocumentoCompraService {
         return documentoCompraRepository.findByNumDocumento(numDocumento).isPresent();
     }
 
+    // --- CAMBIOS PARA ANULAR COMPRA (ANTES 'eliminarDocumentoCompra') ---
     /**
-     * Elimina un DocumentoCompra y sus DetalleCompra asociados, revirtiendo el stock de los productos.
-     * @param id El ID del documento de compra a eliminar.
+     * Anula lógicamente un Documento de Compra (cambia su estado a 0) y revierte el stock de los productos.
+     * Realiza validación de fecha (solo mismo día) y requiere un usuario administrador.
+     * @param idCompra El ID del documento de compra a anular.
+     * @param usuarioAnulacion El objeto Usuario que realiza la anulación (debe ser un administrador).
      * @throws EntityNotFoundException Si el documento de compra no se encuentra.
-     * @throws RuntimeException Si un producto asociado no se encuentra o el stock se volvería negativo.
+     * @throws IllegalArgumentException Si el documento ya está anulado o no cumple la validación de fecha.
      */
-    @Transactional // Asegura que toda la operación sea atómica
-    public void eliminarDocumentoCompra(Integer id) {
-        Optional<DocumentoCompra> documentoOpt = documentoCompraRepository.findById(id);
-        if (documentoOpt.isEmpty()) {
-            throw new EntityNotFoundException("Documento de Compra no encontrado con ID: " + id);
-        }
-        // Mueve esta línea AQUÍ, antes de usar 'documento'
-        DocumentoCompra documento = documentoOpt.get();
+    @Transactional
+    public void anularDocumentoCompra(Integer idCompra, Usuario usuarioAnulacion) {
+        DocumentoCompra documentoCompra = documentoCompraRepository.findById(idCompra)
+                .orElseThrow(() -> new EntityNotFoundException("Documento de Compra no encontrado con ID: " + idCompra));
 
-        // ¡Verificamos si ya está inactivo (estado == 0) para evitar operaciones redundantes!
-        if (documento.getEstado() != null && documento.getEstado() == 0) {
-            throw new IllegalArgumentException("El Documento de Compra con ID " + id + " ya está inactivo.");
+        // 1. Validación de fecha: Solo se pueden anular compras del mismo día
+        if (!documentoCompra.getFechaRegistro().isEqual(LocalDate.now())) {
+            throw new IllegalArgumentException("Solo se pueden anular documentos de compra registrados el mismo día.");
         }
 
-        // Revertir el stock de los productos de los detalles de compra
-        if (documento.getDetalleCompras() != null && !documento.getDetalleCompras().isEmpty()) {
-            documento.getDetalleCompras().size(); // Forzar la carga de la colección si es LAZY
-            for (DetalleCompra detalle : new ArrayList<>(documento.getDetalleCompras())) {
+        // 2. Verificar si ya está anulado
+        if (documentoCompra.getEstado() != null && documentoCompra.getEstado() == 0) {
+            throw new IllegalArgumentException("El Documento de Compra con ID " + idCompra + " ya está anulado.");
+        }
+
+        // 3. Revertir el stock de los productos
+        if (documentoCompra.getDetalleCompras() != null && !documentoCompra.getDetalleCompras().isEmpty()) {
+            documentoCompra.getDetalleCompras().forEach(detalle -> {
                 if (detalle.getProducto() != null) {
-                    detalle.getProducto().getIdProducto(); // Forzar la carga del producto si es LAZY
-                    updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad()); // LLAMA CON CANTIDAD NEGATIVA PARA RESTAR EL STOCK
+                    // Revertir el stock: restar la cantidad comprada para simular anulación de entrada
+                    // En compras, cuando se anula, se debería REDUCIR el stock que se añadió.
+                    // Si la compra añadió 10 unidades, al anular la compra, esas 10 unidades se quitan.
+                    // Por lo tanto, la operación es RESTA aquí.
+                    updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad());
                 }
-            }
+            });
         }
 
-        documento.setEstado((byte) 0);
-        documentoCompraRepository.save(documento);
+        // 4. Actualizar el estado del documento y registrar la auditoría de anulación
+        documentoCompra.setEstado((byte) 0); // Cambia el estado a 0 (anulada)
+        documentoCompra.setFechaAnulacion(LocalDateTime.now()); // Establece la fecha y hora de anulación
+        documentoCompra.setUsuarioAnulacion(usuarioAnulacion); // Establece el usuario que anuló
+        documentoCompraRepository.save(documentoCompra); // Persiste el cambio
     }
+    // --- FIN CAMBIOS ANULAR COMPRA ---
 
-    /**
-     * Actualiza el stock de un producto sumando o restando una cantidad.
-     * @param idProducto El ID del producto.
-     * @param cantidadChange La cantidad a cambiar del stock. Positiva para sumar, negativa para restar.
-     * @throws EntityNotFoundException si el producto no se encuentra.
-     * @throws RuntimeException si el stock se vuelve negativo después de la operación de resta.
-     */
-    private void updateProductStock(Integer idProducto, Integer cantidadChange) {
+    // Método auxiliar para actualizar stock (usado en anularDocumentoCompra)
+    @Transactional
+    private void updateProductStock(Integer idProducto, Integer quantityChange) {
         Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new EntityNotFoundException("Producto con ID " + idProducto + " no encontrado para actualizar stock."));
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado para actualizar stock: ID " + idProducto));
 
-        int currentStock = producto.getStock();
-        int newStock = currentStock + cantidadChange;
-
-        // Validar stock negativo SOLO si la operación es una RESTA (cantidadChange < 0)
-        if (cantidadChange < 0 && newStock < 0) {
-            throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre() +
-                    ". Stock actual: " + currentStock + ", intento de reducir en: " + (-cantidadChange) +
-                    ". El stock resultante sería: " + newStock);
+        // quantityChange puede ser positivo (suma) o negativo (resta)
+        int newStock = producto.getStock() + quantityChange;
+        if (newStock < 0) {
+            // Esto es una advertencia o error, no debería permitir stock negativo
+            throw new IllegalArgumentException("No se puede anular la compra, el stock del producto '" + producto.getNombre() + "' sería negativo.");
         }
-
         producto.setStock(newStock);
         productoRepository.save(producto);
     }
+
     /**
      * Busca documentos de compra aplicando filtros dinámicos.
      * Carga eagermente las relaciones necesarias para el reporte.
