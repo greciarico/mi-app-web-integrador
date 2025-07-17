@@ -236,62 +236,94 @@
                 }
                 return 'Cliente Desconocido';
             }
+        //la cambie para anular venta
+          function renderMainTable(ventasToDisplay) {
+                    const tableBody = document.getElementById('ventasTableBody');
+                    if (!tableBody) {
+                        return;
+                    }
+                    tableBody.innerHTML = '';
+                    if (ventasToDisplay.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas registradas.</td></tr>';
+                        return;
+                    }
 
-           function renderMainTable(ventasToDisplay) {
-            const tableBody = document.getElementById('ventasTableBody');
-            if (!tableBody) {
-                return;
-            }
-            tableBody.innerHTML = '';
-            if (ventasToDisplay.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas registradas.</td></tr>';
-                return;
-            }
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Establecer la hora a 00:00:00 para comparar solo la fecha
 
-            ventasToDisplay.forEach(venta => {
-                const rowClass = venta.estado === 0 ? 'cancelled-sale' : '';
-                const row = document.createElement('tr');
-                if (rowClass) {
-                    row.classList.add(rowClass);
+                    ventasToDisplay.forEach(venta => {
+                        const rowClass = venta.estado === 0 ? 'cancelled-sale' : '';
+                        const row = document.createElement('tr');
+                        if (rowClass) {
+                            row.classList.add(rowClass);
+                        }
+
+                        // --- INICIO DE LA CORRECCIÓN DE FECHA ---
+                        let fechaFormatted = 'N/A';
+                        let ventaDateForComparison; // Variable para la comparación de la fecha de anulación
+
+                        if (venta.fechaRegistro) {
+                            // Divide la cadena "YYYY-MM-DD" en componentes
+                            const dateParts = venta.fechaRegistro.split('-'); // ["YYYY", "MM", "DD"]
+                            const year = parseInt(dateParts[0]);
+                            // Los meses en JavaScript son 0-indexados (0 para Enero, 11 para Diciembre)
+                            const month = parseInt(dateParts[1]) - 1;
+                            const day = parseInt(dateParts[2]);
+
+                            // Crea un objeto Date en el huso horario local
+                            const localDate = new Date(year, month, day);
+                            fechaFormatted = localDate.toLocaleDateString('es-ES');
+
+                            // También para la comparación: asegúrate de que sea la fecha correcta
+                            ventaDateForComparison = new Date(year, month, day);
+                            ventaDateForComparison.setHours(0, 0, 0, 0); // Limpiar la hora para la comparación
+                        } else {
+                            ventaDateForComparison = new Date(0); // Fecha por defecto si no hay fecha de registro (ej: 1970-01-01)
+                        }
+                        // --- FIN DE LA CORRECCIÓN DE FECHA ---
+
+                        const totalFormatted = parseFloat(venta.total).toFixed(2);
+                        const clientDisplayName = getClientDisplayName(venta.cliente);
+
+                        // --- Lógica para deshabilitar botón de cancelar (usando ventaDateForComparison) ---
+                        // Compara si la fecha de la venta (sin hora) es igual a la fecha de hoy (sin hora)
+                        const isSameDay = ventaDateForComparison.getTime() === today.getTime();
+                        const canCancel = venta.estado !== 0 && isSameDay; // Solo si no está cancelada y es del mismo día
+                        // --- Fin de la lógica para deshabilitar botón ---
+
+                        row.innerHTML = `
+                            <td>${venta.idVenta}</td>
+                            <td>${fechaFormatted}</td>
+                            <td>${clientDisplayName}</td>
+                            <td>${venta.usuario ? venta.usuario.nombre : 'N/A'}</td>
+                            <td>${venta.tipoDocumento}</td>
+                            <td>${venta.numDocumento}</td>
+                            <td>S/ ${totalFormatted}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" onclick="openViewModal(${venta.idVenta})"
+                                            class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <a href="/ventas/comprobante/${venta.idVenta}" target="_blank"
+                                       class="btn btn-info btn-sm ml-1">
+                                        <i class="fas fa-file-invoice"></i> </a>
+                                    ${canCancel ? `
+                                    <button type="button" onclick="confirmCancelVenta(${venta.idVenta})"
+                                            class="btn btn-danger btn-sm ml-1">
+                                        <i class="fas fa-times-circle"></i>
+                                    </button>
+                                    ` : `
+                                    <button type="button" class="btn btn-secondary btn-sm ml-1" disabled title="${venta.estado === 0 ? 'Venta ya cancelada' : 'Solo se pueden anular ventas del día actual.'}">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                    `}
+                                </div>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
                 }
-
-                const fechaFormatted = venta.fechaRegistro ? new Date(venta.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
-                const totalFormatted = parseFloat(venta.total).toFixed(2);
-                const clientDisplayName = getClientDisplayName(venta.cliente);
-
-                row.innerHTML = `
-                    <td>${venta.idVenta}</td>
-                    <td>${fechaFormatted}</td>
-                    <td>${clientDisplayName}</td>
-                    <td>${venta.usuario ? venta.usuario.nombre : 'N/A'}</td>
-                    <td>${venta.tipoDocumento}</td>
-                    <td>${venta.numDocumento}</td>
-                    <td>S/ ${totalFormatted}</td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" onclick="openViewModal(${venta.idVenta})"
-                                    class="btn btn-primary btn-sm">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <a href="/ventas/comprobante/${venta.idVenta}" target="_blank"
-                               class="btn btn-info btn-sm ml-1">
-                                <i class="fas fa-file-invoice"></i> </a>
-                            ${venta.estado !== 0 ? `
-                            <button type="button" onclick="confirmCancelVenta(${venta.idVenta})"
-                                    class="btn btn-danger btn-sm ml-1">
-                                <i class="fas fa-times-circle"></i>
-                            </button>
-                            ` : `
-                            <button type="button" class="btn btn-secondary btn-sm ml-1" disabled>
-                                <i class="fas fa-ban"></i>
-                            </button>
-                            `}
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-            }
 
             window.recargarListaVentasCompleta = function() {
                 Promise.all([
@@ -1034,46 +1066,77 @@ window.ejecutarGenerarReporteVentas = function() {
             }
 
             // ===============================================
-            // NUEVAS FUNCIONES PARA CANCELAR VENTA
+            // NUEVAS FUNCIONES PARA CANCELAR VENTA (cambioo para anular)
             // ===============================================
 
             window.confirmCancelVenta = function(idVenta) {
                 Swal.fire({
-                    title: '¿Está seguro?',
-                    text: "¡No podrás revertir esto!",
+                    title: 'Anular Venta',
+                    html: `
+                        <p>¿Está seguro de que desea anular esta venta? Esta acción no se puede revertir y el stock de productos será repuesto.</p>
+                        <input type="password" id="adminPassword" class="swal2-input" placeholder="Contraseña de Administrador" autocomplete="new-password">
+                        <div id="passwordError" class="text-danger" style="display:none; margin-top: 5px;"></div>
+                    `,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, cancelar venta',
-                    cancelButtonText: 'No, mantener'
+                    confirmButtonColor: '#d33', // Rojo para anular
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, Anular',
+                    cancelButtonText: 'Cancelar',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const password = Swal.getPopup().querySelector('#adminPassword').value;
+                        if (!password) {
+                            Swal.getPopup().querySelector('#passwordError').textContent = 'La contraseña es obligatoria.';
+                            Swal.getPopup().querySelector('#passwordError').style.display = 'block';
+                            return false; // Evita que el modal se cierre
+                        }
+                        Swal.getPopup().querySelector('#passwordError').style.display = 'none';
+                        return { password: password };
+                    }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        cancelarVenta(idVenta);
+                        cancelarVenta(idVenta, result.value.password);
                     }
                 });
             }
 
-            async function cancelarVenta(idVenta) {
+            async function cancelarVenta(idVenta, adminPassword) {
+                // Muestra un loader mientras se procesa la solicitud
+                Swal.fire({
+                    title: 'Anulando Venta...',
+                    text: 'Por favor, espera.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 try {
                     const response = await fetch(`/ventas/cancelar/${idVenta}`, {
-                        method: 'POST', // O 'PUT' dependiendo de tu API REST
+                        method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        body: JSON.stringify({ password: adminPassword }) // Enviar la contraseña en el cuerpo
                     });
+
+                    Swal.close(); // Cierra el loader
 
                     if (!response.ok) {
                         const errorData = await response.json();
-                        throw new Error(errorData.message || 'Error al cancelar la venta.');
+                        // Muestra el mensaje de error del backend
+                        showNotification('error', errorData.message || 'Error al cancelar la venta.');
+                        return; // Detiene la ejecución si hay un error
                     }
 
                     const result = await response.json();
                     showNotification('success', result.message || 'Venta cancelada exitosamente.');
                     recargarListaVentasCompleta(); // Recarga la tabla para reflejar el cambio de estado y color
                 } catch (error) {
+                    Swal.close(); // Asegúrate de cerrar el loader incluso si hay un error de red
                     console.error('Error al cancelar la venta:', error);
-                    showNotification('error', error.message || 'Ocurrió un error al intentar cancelar la venta.');
+                    showNotification('error', error.message || 'Ocurrió un error de red o interno al intentar cancelar la venta.');
                 }
             }
 
