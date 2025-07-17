@@ -3,6 +3,7 @@ package com.example.DyD_Natures.Controller;
 import com.example.DyD_Natures.Model.Igv;
 import com.example.DyD_Natures.Service.IgvService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,8 @@ public class IgvController {
     private IgvService igvService;
 
     @GetMapping
-    public String listarIgv(Model model) {
+    public String listarIgv(HttpServletRequest request,Model model) {
+        model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("igvs", igvService.listarSoloIgvActivos());
         return "igv";
     }
