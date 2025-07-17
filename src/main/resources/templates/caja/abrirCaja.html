@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{dashboard}"> <!-- Asegúrate que 'dashboard' es el nombre correcto de tu layout principal -->
+<head>
+    <title layout:fragment="title">Abrir Turno de Caja</title>
+</head>
+<section layout:fragment="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Apertura de Turno de Caja</h3>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <!-- Mensajes flash de Spring (éxito/error) -->
+                        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <span th:text="${successMessage}"></span>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <span th:text="${errorMessage}"></span>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+
+                        <form th:action="@{/caja/abrir}" method="post">
+                            <div class="form-group">
+                                <label for="fondoInicialEfectivo">Fondo Inicial de Efectivo (S/)</label>
+                                <input type="number" step="0.01" class="form-control" id="fondoInicialEfectivo"
+                                       name="fondoInicialEfectivo" th:value="${fondoInicial}" required
+                                       min="0.00" placeholder="Ej: 100.00">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Abrir Caja</button>
+                        </form>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+            <!-- /.col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+</section>
+</html>
