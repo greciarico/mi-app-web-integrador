@@ -2,6 +2,7 @@ package com.example.DyD_Natures.Controller;
 
 import com.example.DyD_Natures.Model.Usuario;
 import com.example.DyD_Natures.Service.UsuarioService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -15,7 +16,7 @@ public class DashboardController {
     private UsuarioService usuarioService;
 
     @GetMapping("/") // Mapea la ruta raíz de tu aplicación
-    public String home(Model model, Authentication authentication) {
+    public String home(HttpServletRequest request, Model model, Authentication authentication) {
         // Verifica si hay un usuario autenticado
         if (authentication != null && authentication.isAuthenticated()) {
             // El nombre de usuario en el Authentication object será el DNI,
@@ -27,6 +28,7 @@ public class DashboardController {
                 model.addAttribute("currentUser", usuario);
             });
         }
-        return "layout";  // Retorna el nombre de tu plantilla Thymeleaf (layout.html)
+        model.addAttribute("currentUri", request.getRequestURI());
+        return "dashboard";  // Retorna el nombre de tu plantilla Thymeleaf (layout.html)
     }
 }
