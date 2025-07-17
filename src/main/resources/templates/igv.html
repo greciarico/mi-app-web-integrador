@@ -1,20 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de IGV</title>
-    <!-- Incluye CSS AdminLTE y dependencias -->
-    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
-    <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
-    <!-- Más estilos -->
-    <script src="/plugins/jquery/jquery.min.js"></script>
-    <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/dist/js/adminlte.min.js"></script>
+    <title layout:fragment="title">Gestión de IGV</title>
 </head>
-<body class="hold-transition sidebar-mini">
-<section th:fragment="contenido" class="content">
+
+<section layout:fragment="content">
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -85,7 +77,8 @@
             </div>
         </div>
     </div>
-
+</section>
+<th:block layout:fragment="scripts">
     <script th:inline="javascript">
         /*<![CDATA[*/
 
@@ -397,6 +390,5 @@
 
         /*]]>*/
     </script>
-</section>
-</body>
+</th:block>
 </html>
