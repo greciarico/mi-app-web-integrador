@@ -10,6 +10,7 @@
     <script src="/plugins/jquery/jquery.min.js"></script>
     <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="/dist/js/adminlte.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         /* Estilos generales para los modales Bootstrap/AdminLTE */
         .modal-xl {
@@ -79,9 +80,7 @@
                                 </tr>
                                 </thead>
                                 <tbody id="documentosCompraTableBody">
-                                <!-- ELIMINADO: La tabla ahora se renderiza completamente con JavaScript -->
-                                <!-- <tr th:each="doc : ${documentosCompra}">...</tr> -->
-                                <!-- <tr th:if="${#lists.isEmpty(documentosCompra)}">...</tr> -->
+
                                 </tbody>
                             </table>
                         </div>
@@ -747,7 +746,7 @@ function ejecutarGenerarReporteDocumentoCompra() {
             const idCompra = document.getElementById('idCompra') ? document.getElementById('idCompra').value : null; // Añadido null check
             const fechaRegistro = document.getElementById('fechaRegistro') ? document.getElementById('fechaRegistro').value : ''; // Añadido null check
             const idProveedor = document.getElementById('proveedorSelect') ? document.getElementById('proveedorSelect').value : null; // Añadido null check
-            const tipoDocumento = document.getElementById('tipoDocumento') ? document.getElementById('tipoDocumento').value : ''; // Añadido null check
+            const tipoDocumento = document.getElementById('tipoDocumentoSelect') ? document.getElementById('tipoDocumentoSelect').value : '';
             const numDocumento = document.getElementById('numDocumento') ? document.getElementById('numDocumento').value : ''; // Añadido null check
             const totalElement = document.getElementById('totalGeneralDisplay'); // Obtener elemento antes
             const total = totalElement ? parseFloat(totalElement.value) : 0; // Añadido null check y parseFloat
@@ -838,6 +837,61 @@ function ejecutarGenerarReporteDocumentoCompra() {
             }
         });
 
+        // Función para predecir el número de documento y rellenar el campo
+        function predictDocumentNumber() {
+            const tipoDocumento = $('#tipoDocumentoSelect').val(); // Obtiene el valor seleccionado
+            const numDocumentoInput = $('#numDocumento'); // El campo donde se mostrará el número
+
+            if (tipoDocumento === 'BOLETA' || tipoDocumento === 'FACTURA') {
+                $.ajax({
+                    url: '/documento-compra/next-num-documento',
+                    type: 'GET',
+                    data: { tipoDocumento: tipoDocumento },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            numDocumentoInput.val(response.nextNumDocumento); // Rellena el campo con el número predicho
+                        } else {
+                            showNotification('error', response.message || 'Error al predecir el número de documento.');
+                            numDocumentoInput.val(''); // Limpiar si hay error
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', status, error);
+                        showNotification('error', 'Error de comunicación al predecir el número.');
+                        numDocumentoInput.val(''); // Limpiar si hay error
+                    }
+                });
+            } else {
+                numDocumentoInput.val(''); // Limpiar si no es Boleta ni Factura (ej. "Seleccione")
+            }
+        }
+
+
+
+
+    // ===============================================
+    // Event Listeners (Añade estos dos si no los tienes)
+    // ===============================================
+
+    // 1. Listener para cuando cambia la selección del "Tipo Documento"
+    // Esto es crucial para que el número se genere al seleccionar Boleta/Factura.
+    // Utiliza delegación de eventos si el modal se carga dinámicamente con AJAX.
+    $(document).on('change', '#tipoDocumentoSelect', function() {
+        predictDocumentNumber();
+    });
+
+    // 2. Listener para cuando el modal de registro/edición se muestra
+    // 'modalDocumentoCompra' debe ser el ID de tu modal de Bootstrap.
+    // Esto asegura que al abrir el modal para una NUEVA compra, se intente predecir el número.
+    $('#modalDocumentoCompra').on('show.bs.modal', function () {
+        // Ejecutar predictDocumentNumber solo si el formulario es de CREACIÓN (idCompra está vacío)
+        const idCompraField = $('#idCompra');
+        if (!idCompraField.length || !idCompraField.val()) { // Si el campo no existe o está vacío
+            predictDocumentNumber(); // Predice el número al abrir el modal (solo para nuevo)
+        }
+    });
+
+
         // ===============================================
         // INICIALIZACIÓN
         // ===============================================
@@ -848,6 +902,7 @@ function ejecutarGenerarReporteDocumentoCompra() {
             // Asegúrate de que esta sea la ÚNICA llamada a recargarListaDocumentosCompraCompleta() al cargar la página
             recargarListaDocumentosCompraCompleta();
         });
+
 
         /*]]>*/
     </script>
