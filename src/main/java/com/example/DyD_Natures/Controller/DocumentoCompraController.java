@@ -3,9 +3,11 @@ package com.example.DyD_Natures.Controller;
 import com.example.DyD_Natures.Dto.DocumentoCompraFilterDTO;
 import com.example.DyD_Natures.Model.DocumentoCompra;
 import com.example.DyD_Natures.Model.Proveedor;
+import com.example.DyD_Natures.Model.Usuario;
 import com.example.DyD_Natures.Service.DocumentoCompraService;
 import com.example.DyD_Natures.Service.ProductoService;
 import com.example.DyD_Natures.Service.ProveedorService;
+import com.example.DyD_Natures.Service.UsuarioService;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
@@ -16,9 +18,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.password.PasswordEncoder; //
 
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
@@ -38,6 +43,12 @@ public class DocumentoCompraController {
 
     @Autowired
     private ProductoService productoService;
+    // --- CAMBIOS PARA ANULAR COMPRA ---
+    @Autowired
+    private UsuarioService usuarioService; // Para obtener el usuario autenticado
+    @Autowired
+    private PasswordEncoder passwordEncoder; // Para comparar contraseñas
+    // --- FIN CAMBIOS ANULAR COMPRA ---
 
 
     /**
@@ -153,40 +164,77 @@ public class DocumentoCompraController {
         }
     }
 
+    // --- CAMBIOS PARA ANULAR COMPRA (ANTES 'eliminar/{id}') ---
     /**
-     * Elimina un DocumentoCompra y sus DetalleCompra.
+     * Anula lógicamente un Documento de Compra (cambia de estado a 0) y revierte el stock de los productos.
+     * Requiere la contraseña del administrador para confirmación y valida que la compra sea del mismo día.
      * @param id El ID del documento de compra.
-     * @return ResponseEntity con el resultado.
+     * @param requestBody Un mapa que contiene la contraseña del administrador {"password": "adminPassword"}.
+     * @return ResponseEntity con el resultado de la operación.
      */
-    @GetMapping("/eliminar/{id}") // Manteniendo GET como lo tienes para facilidad de prueba
-    public ResponseEntity<Map<String, String>> eliminarDocumentoCompra(@PathVariable("id") Integer id) {
+    @PostMapping("/anular/{id}")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> anularDocumentoCompra(@PathVariable("id") Integer id,
+                                                                     @RequestBody Map<String, String> requestBody) {
         Map<String, String> response = new HashMap<>();
+        String adminPassword = requestBody.get("password");
+
+        if (adminPassword == null || adminPassword.isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "La contraseña del administrador es obligatoria para anular la compra.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
         try {
-            documentoCompraService.eliminarDocumentoCompra(id);
+            // Obtener el DNI del usuario autenticado de Spring Security
+            String currentUserName = SecurityContextHolder.getContext().getAuthentication().getName();
+            Usuario currentUser = usuarioService.obtenerUsuarioPorDni(currentUserName)
+                    .orElseThrow(() -> new UsernameNotFoundException("Usuario autenticado no encontrado."));
+
+            // Verificar si el usuario autenticado tiene el rol de ADMINISTRADOR
+            // Asumiendo que el rol ADMINISTRADOR es el que puede anular
+            boolean isAdmin = currentUser.getRolUsuario() != null &&
+                    "ADMINISTRADOR".equalsIgnoreCase(currentUser.getRolUsuario().getTipoRol());
+
+            if (!isAdmin) {
+                response.put("status", "error");
+                response.put("message", "Solo los usuarios con rol de ADMINISTRADOR pueden anular compras.");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            // Validar la contraseña del usuario autenticado contra la contraseña proporcionada
+            if (!passwordEncoder.matches(adminPassword, currentUser.getContrasena())) {
+                response.put("status", "error");
+                response.put("message", "Contraseña de administrador incorrecta.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            // Si todas las validaciones pasan, llamar al servicio para anular
+            documentoCompraService.anularDocumentoCompra(id, currentUser); // Pasar el usuario que anula
+
             response.put("status", "success");
-            response.put("message", "Documento de Compra eliminado exitosamente y stock de productos revertido!");
-            return ResponseEntity.ok(response); // 200 OK
+            response.put("message", "Documento de Compra anulado exitosamente y stock de productos revertido!");
+            return ResponseEntity.ok(response);
+
         } catch (EntityNotFoundException e) {
-            // Este catch es para cuando el documento o un producto asociado no se encuentra
-            // System.err.println("ERROR al eliminar (recurso no encontrado): " + e.getMessage()); // Eliminado
             response.put("status", "error");
-            response.put("message", "Error al eliminar el Documento de Compra: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response); // 404 Not Found
-        } catch (RuntimeException e) {
-            // Este catch es para RuntimeException, como la que lanzarías por "stock insuficiente"
-            // System.err.println("ERROR al eliminar (problema de lógica de negocio): " + e.getMessage()); // Eliminado
+            response.put("message", "Error al anular la Compra: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (IllegalArgumentException e) {
             response.put("status", "error");
-            response.put("message", "Error al eliminar el Documento de Compra: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(response); // 409 Conflict o 400 Bad Request
+            response.put("message", "Error de negocio al anular la Compra: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        } catch (UsernameNotFoundException e) {
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         } catch (Exception e) {
-            // Este catch es para cualquier otra excepción inesperada
-            // e.printStackTrace(); // Eliminado
-            // System.err.println("ERROR interno inesperado al eliminar el Documento de Compra: " + e.getMessage()); // Eliminado
             response.put("status", "error");
-            response.put("message", "Error interno al eliminar el Documento de Compra: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response); // 500 Internal Server Error
+            response.put("message", "Error interno al anular la Compra: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+    // --- FIN CAMBIOS ANULAR COMPRA --
 
     /**
      * Muestra los detalles de un documento de compra específico.
