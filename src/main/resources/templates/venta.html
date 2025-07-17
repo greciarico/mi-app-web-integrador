@@ -521,25 +521,24 @@ window.ejecutarGenerarReporteVentas = function() {
         }
     }, 300);
 }
+// ===============================================
+// LÓGICA DEL FORMULARIO MODAL (CREAR VENTA SOLAMENTE)
+// ===============================================
 
-            // ===============================================
-            // LÓGICA DEL FORMULARIO MODAL (CREAR VENTA SOLAMENTE)
-            // ===============================================
+// Declarar loadAndShowModalContent a nivel global
+function loadAndShowModalContent(idVenta, url) {
+    modalContentContainer.innerHTML = '';
+    $('.modal-backdrop').remove();
+    $('body').removeClass('modal-open');
 
-            // Declarar loadAndShowModalContent a nivel global
-           function loadAndShowModalContent(idVenta, url) {
-                   modalContentContainer.innerHTML = '';
-                   $('.modal-backdrop').remove();
-                   $('body').removeClass('modal-open');
-
-                   $.ajax({
-                       url: url,
-                       type: 'GET',
-                       success: function(html) {
-                           $(modalContentContainer).html(html);
-                           setTimeout(() => {
-                               const clienteSelectInModal = $('#modalContentContainer #clienteSelect');
-                               const igvSelectInModal = $('#modalContentContainer #igvSelect');
+    $.ajax({
+        url: url,
+        type: 'GET',
+        success: function(html) {
+            $(modalContentContainer).html(html);
+            setTimeout(() => {
+                const clienteSelectInModal = $('#modalContentContainer #clienteSelect');
+                const igvSelectInModal = $('#modalContentContainer #igvSelect');
 
                                 if (igvSelectInModal.length && !igvSelectInModal.hasClass('select2-hidden-accessible')) {
                                   igvSelectInModal
@@ -554,293 +553,384 @@ window.ejecutarGenerarReporteVentas = function() {
                                   calculateTotalGeneral();
                                 }
 
-                               $('#modalContentContainer').find('.detalle-item select[id^="producto-"]').each(function() {
-                                   if (!$(this).data('select2')) {
-                                       $(this).select2({
-                                           placeholder: "-- Seleccione un Producto --",
-                                           allowClear: true,
-                                           width: '100%',
-                                           dropdownParent: $('#ventaModal .modal-content')
-
-                                       });
-                                   }
-                               });
-                               ventaModalElement.modal('show');
-                               modalIsTransitioning = false;
-                           }, 150);
-                       },
-                       error: function(xhr, status, error) {
-                           showNotification('error', 'No se pudo cargar el formulario de venta. Inténtalo de nuevo.');
-                           modalIsTransitioning = false;
-                       }
-                   });
-               }
-
-
-            window.openFormModal = function(idVenta) {
-                console.log("DEBUG: openFormModal - Función llamada."); // <--- AÑADE ESTA LÍNEA
-                if (modalIsTransitioning) {
-                    return;
-                }
-                modalIsTransitioning = true;
-                clearErrors();
-                detalleCount = 0;
-
-                let url = '/ventas/nuevo'; // Siempre carga el formulario para CREAR
-
-                if (ventaModalElement.hasClass('show')) {
-                    ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url));
-                    ventaModalElement.modal('hide');
-                } else {
-                    loadAndShowModalContent(idVenta, url);
-                }
-            }
-
-            window.closeFormModal = function() {
-                if (modalIsTransitioning) {
-                    return;
-                }
-                modalIsTransitioning = true;
-                ventaModalElement.modal('hide');
-                ventaModalElement.one('hidden.bs.modal', function () {
-                    $('#modalContentContainer').find('select.select2-hidden-accessible').each(function() {
-                        if ($(this).data('select2')) {
-                            $(this).select2('destroy');
-                        }
-                    });
-
-                    modalContentContainer.innerHTML = '';
-                    modalIsTransitioning = false;
-                    $('.modal-backdrop').remove();
-                    $('body').removeClass('modal-open');
-                });
-                clearErrors();
-            }
-
-            // ===============================================
-            // LÓGICA DEL MODAL DE VISUALIZACIÓN
-            // ===============================================
-
-            window.openViewModal = function(idVenta) {
-                if (modalIsTransitioning) {
-                    return;
-                }
-                modalIsTransitioning = true;
-                if (!idVenta) {
-                    showNotification('error', 'ID de venta no proporcionado para visualizar.');
-                    modalIsTransitioning = false;
-                    return;
-                }
-                let url = `/ventas/visualizar/${idVenta}`;
-                // Reutilizar loadAndShowModalContent, adaptado para la vista
-                if (ventaModalElement.hasClass('show')) {
-                    ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url));
-                    // Reutilizar y pasar argumentos
-                    ventaModalElement.modal('hide');
-                } else {
-                    loadAndShowModalContent(idVenta, url);
-                    // Reutilizar y pasar argumentos
-                }
-            }
-
-            window.closeViewModal = function() {
-                if (modalIsTransitioning) {
-                    return;
-                }
-                modalIsTransitioning = true;
-                ventaModalElement.modal('hide');
-                ventaModalElement.one('hidden.bs.modal', function () {
-                    modalContentContainer.innerHTML = '';
-                    modalIsTransitioning = false;
-                    $('.modal-backdrop').remove();
-                    $('body').removeClass('modal-open');
-                });
-            }
-
-            // ===============================================
-            // LÓGICA DE DETALLES DE VENTA EN EL FORMULARIO MODAL
-            // ===============================================
-
-            window.initializeModalDetails = function(modalProducts, modalSale, modalClients, modalIgvs) {
-                allProductosData = modalProducts;
-                allClientesData = modalClients;
-                allIgvData = modalIgvs;
-
-                const detalleVentasContainer = document.getElementById('detalleVentasContainer');
-                if (!detalleVentasContainer) {
-                    return;
-                }
-                detalleVentasContainer.innerHTML = '';
-                if (modalSale && modalSale.detalleVentas && modalSale.detalleVentas.length > 0) {
-                    modalSale.detalleVentas.forEach(detalle => {
-                        addDetalleVenta(detalle, allProductosData);
-                    });
-                } else {
-                    addDetalleVenta(null, allProductosData);
-                }
-                calculateTotalGeneral();
-            }
-
-            window.addDetalleVenta = function(detalle = null, productsArray = allProductosData) {
-                const index = detalleCount++;
-                const detalleDiv = document.createElement('tr');
-                detalleDiv.classList.add('detalle-item');
-                detalleDiv.setAttribute('data-index', index);
-                detalleDiv.id = `detalleRow-${index}`;
-                let activos = productsArray.filter(p => p.estado === 1);
-
-                let productoOptions = activos.map(p =>
-                  `<option value="${p.idProducto}"
-                          data-precio1="${p.precio1 || ''}"
-                          data-precio2="${p.precio2 || ''}"
-                          data-stock="${p.stock}"
-                          ${detalle && detalle.producto && detalle.producto.idProducto === p.idProducto ? 'selected' : ''}>
-                      ${p.nombre} (Stock: ${p.stock})
-                   </option>`
-                ).join('');
-
-                const initialCantidad = detalle ? (detalle.cantidad || '') : '';
-                const initialPrecioUnitario = detalle && detalle.precioUnitario ? (parseFloat(detalle.precioUnitario).toFixed(2) || '') : '';
-                const initialTotalDetalle = detalle && detalle.total ? (parseFloat(detalle.total) || 0).toFixed(2) : '0.00';
-                detalleDiv.innerHTML = `
-                    <td>
-                        <input type="hidden" name="detalleVentas[${index}].idDetalleVenta" value="${detalle ? detalle.idDetalleVenta || '' : ''}">
-                        <select name="detalleVentas[${index}].producto.idProducto" id="producto-${index}" required
-                               class="form-control">
-                            <option value="">Seleccione un Producto</option>
-                            ${productoOptions}
-                        </select>
-                        <span class="text-danger" id="productoError-${index}"></span>
-                    </td>
-                    <td>
-                        <input type="number" name="detalleVentas[${index}].cantidad" id="cantidad-${index}" placeholder="Cantidad" required min="1"
-                               value="${initialCantidad}"
-                               class="form-control">
-                        <span class="text-danger" id="cantidadError-${index}"></span>
-                    </td>
-                    <td>
-                        <input type="number" step="0.01" class="form-control" id="precioUnitario-${index}" placeholder="Precio Unitario" min="0" value="${initialPrecioUnitario}">
-                        <span class="text-danger" id="precioUnitarioError-${index}"></span>
-                        <div class="mt-1">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setProductPrice(${index}, 'precio1')">P1</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="setProductPrice(${index}, 'precio2')">P2</button>
-                        </div>
-                    </td>
-                    <td>
-                        <input type="text" class="form-control total-detalle-display bg-light" id="detalleTotalDisplay-${index}" value="${initialTotalDetalle}" readonly>
-                    </td>
-                    <td>
-                        <button type="button" onclick="removeDetalleVenta(this)"
-                                class="btn btn-danger btn-sm">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </td>
-                `;
-                const detalleVentasContainer = document.getElementById('detalleVentasContainer');
-                if (detalleVentasContainer) {
-                    detalleVentasContainer.appendChild(detalleDiv);
-                } else {
-                    return;
-                }
-
-                setTimeout(() => {
-                    const newProductoSelect = $(`#producto-${index}`);
-                    if (newProductoSelect.length && !newProductoSelect.data('select2')) {
-                        newProductoSelect.select2({
+                $('#modalContentContainer').find('.detalle-item select[id^="producto-"]').each(function() {
+                    if (!$(this).data('select2')) {
+                        $(this).select2({
                             placeholder: "-- Seleccione un Producto --",
                             allowClear: true,
                             width: '100%',
                             dropdownParent: $('#ventaModal .modal-content')
                         });
                     }
-                }, 10);
-                const cantidadInput = document.getElementById(`cantidad-${index}`);
-                const precioInput = document.getElementById(`precioUnitario-${index}`);
-                const productoSelect = document.getElementById(`producto-${index}`);
+                });
 
-                if (cantidadInput) cantidadInput.addEventListener('input', () => updateDetalleTotal(index));
-                if (precioInput) precioInput.addEventListener('input', () => updateDetalleTotal(index));
-                if (productoSelect) {
-                    productoSelect.addEventListener('change', () => {
-                        const selectedOption = productoSelect.options[productoSelect.selectedIndex];
-                        const precio1 = selectedOption.dataset.precio1;
-                        if (precio1 && (initialPrecioUnitario === '' || parseFloat(precioInput.value) === 0 || precioInput.value === '')) {
-                             precioInput.value = parseFloat(precio1).toFixed(2);
-                        } else if (precio1 && !precioInput.value) { // Si no hay valor previo, usa precio1
-                            precioInput.value = parseFloat(precio1).toFixed(2);
-                        }
-                        updateDetalleTotal(index);
-                    });
+                // Inicializa los listeners para los campos de pago una vez que el modal se carga
+                const cashPaymentInput = document.getElementById('cashPayment');
+                const yapePaymentInput = document.getElementById('yapePayment');
+                if (cashPaymentInput) {
+                    cashPaymentInput.addEventListener('input', calculatePaymentAndChange);
+                }
+                if (yapePaymentInput) {
+                    yapePaymentInput.addEventListener('input', calculatePaymentAndChange);
                 }
 
-                // Si el precio unitario no se inicializó desde el detalle (es decir, es una nueva línea vacía)
-                // Y si el producto ya está seleccionado, intenta usar precio1
-                if (detalle && initialPrecioUnitario === '' && productoSelect && productoSelect.value) {
-                    const selectedOption = productoSelect.options[productoSelect.selectedIndex];
-                    const precio1 = selectedOption.dataset.precio1;
-                    if (precio1) {
-                        precioInput.value = parseFloat(precio1).toFixed(2);
-                    }
-                } else if (!detalle && productoSelect && productoSelect.value) {
-                     const selectedOption = productoSelect.options[productoSelect.selectedIndex];
-                     const precio1 = selectedOption.dataset.precio1;
-                     if (precio1) {
-                         precioInput.value = parseFloat(precio1).toFixed(2);
+                // Importante: También añadir un listener al select de IGV si no lo tenía ya
+                // para que los cambios en el IGV actualicen los totales
+                const igvSelectElement = document.getElementById('igvSelect');
+                if (igvSelectElement) {
+                    // Asegúrate de que solo se añada una vez
+                    if (!igvSelectElement.dataset.listenerAdded) {
+                        igvSelectElement.addEventListener('change', calculateTotalGeneral);
+                        igvSelectElement.dataset.listenerAdded = 'true';
                     }
                 }
-                updateDetalleTotal(index);
+
+                ventaModalElement.modal('show');
+                modalIsTransitioning = false;
+
+                // Asegúrate de calcular los totales y pagos iniciales después de cargar el modal
+                // Esto es crucial para la edición o si hay valores predeterminados.
+                calculateTotalGeneral();
+            }, 150);
+        },
+        error: function(xhr, status, error) {
+            showNotification('error', 'No se pudo cargar el formulario de venta. Inténtalo de nuevo.');
+            modalIsTransitioning = false;
+        }
+    });
+}
+
+
+window.openFormModal = function(idVenta) {
+    console.log("DEBUG: openFormModal - Función llamada.");
+    if (modalIsTransitioning) {
+        return;
+    }
+    modalIsTransitioning = true;
+    clearErrors();
+    detalleCount = 0;
+
+    let url = '/ventas/nuevo';
+
+    if (ventaModalElement.hasClass('show')) {
+        ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url));
+        ventaModalElement.modal('hide');
+    } else {
+        loadAndShowModalContent(idVenta, url);
+    }
+}
+
+window.closeFormModal = function() {
+    if (modalIsTransitioning) {
+        return;
+    }
+    modalIsTransitioning = true;
+    ventaModalElement.modal('hide');
+    ventaModalElement.one('hidden.bs.modal', function() {
+        // Al cerrar el modal, limpia los listeners de IGV para evitar duplicados si se reabre
+        const igvSelectElement = document.getElementById('igvSelect');
+        if (igvSelectElement && igvSelectElement.dataset.listenerAdded === 'true') {
+            igvSelectElement.removeEventListener('change', calculateTotalGeneral);
+            delete igvSelectElement.dataset.listenerAdded; // Elimina la bandera
+        }
+
+        $('#modalContentContainer').find('select.select2-hidden-accessible').each(function() {
+            if ($(this).data('select2')) {
+                $(this).select2('destroy');
             }
+        });
 
-            window.setProductPrice = function(index, priceType) {
-                const productoSelect = document.getElementById(`producto-${index}`);
-                const precioInput = document.getElementById(`precioUnitario-${index}`);
+        modalContentContainer.innerHTML = '';
+        modalIsTransitioning = false;
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+    });
+    clearErrors();
+}
 
-                if (productoSelect && precioInput && productoSelect.value) {
-                    const selectedOption = productoSelect.options[productoSelect.selectedIndex];
-                    let priceValue;
-                    if (priceType === 'precio1') {
-                        priceValue = selectedOption.dataset.precio1;
-                    } else if (priceType === 'precio2') {
-                        priceValue = selectedOption.dataset.precio2;
-                    }
+// ===============================================
+// LÓGICA DEL MODAL DE VISUALIZACIÓN
+// ===============================================
 
-                    if (priceValue) {
-                        precioInput.value = parseFloat(priceValue).toFixed(2);
-                        updateDetalleTotal(index);
-                    }
-                } else {
-                    showNotification('info', 'Por favor, selecciona un producto primero para fijar el precio.');
-                }
+window.openViewModal = function(idVenta) {
+    if (modalIsTransitioning) {
+        return;
+    }
+    modalIsTransitioning = true;
+    if (!idVenta) {
+        showNotification('error', 'ID de venta no proporcionado para visualizar.');
+        modalIsTransitioning = false;
+        return;
+    }
+    let url = `/ventas/visualizar/${idVenta}`;
+    if (ventaModalElement.hasClass('show')) {
+        ventaModalElement.one('hidden.bs.modal', () => loadAndShowModalContent(idVenta, url));
+        ventaModalElement.modal('hide');
+    } else {
+        loadAndShowModalContent(idVenta, url);
+    }
+}
+
+window.closeViewModal = function() {
+    if (modalIsTransitioning) {
+        return;
+    }
+    modalIsTransitioning = true;
+    ventaModalElement.modal('hide');
+    ventaModalElement.one('hidden.bs.modal', function() {
+        modalContentContainer.innerHTML = '';
+        modalIsTransitioning = false;
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+    });
+}
+
+// ===============================================
+// LÓGICA DE DETALLES DE VENTA EN EL FORMULARIO MODAL
+// ===============================================
+
+// Declaraciones globales necesarias para los nuevos campos de pago
+let cashPaymentInput;
+let yapePaymentInput;
+let totalPaidAmountInput;
+let changeAmountInput;
+
+
+window.initializeModalDetails = function(modalProducts, modalSale, modalClients, modalIgvs) {
+    allProductosData = modalProducts;
+    allClientesData = modalClients;
+    allIgvData = modalIgvs; // Esto es crucial para que calculateTotalGeneral tenga los datos del IGV
+
+    const detalleVentasContainer = document.getElementById('detalleVentasContainer');
+    if (!detalleVentasContainer) {
+        return;
+    }
+    detalleVentasContainer.innerHTML = '';
+
+    // Asigna los elementos de pago a las variables globales aquí, después de que el HTML del modal se haya cargado
+    cashPaymentInput = document.getElementById('cashPayment');
+    yapePaymentInput = document.getElementById('yapePayment');
+    totalPaidAmountInput = document.getElementById('totalPaidAmount');
+    changeAmountInput = document.getElementById('changeAmount');
+
+    if (modalSale && modalSale.detalleVentas && modalSale.detalleVentas.length > 0) {
+        modalSale.detalleVentas.forEach(detalle => {
+            addDetalleVenta(detalle, allProductosData);
+        });
+    } else {
+        addDetalleVenta(null, allProductosData);
+    }
+
+    // Si estamos editando una venta, inicializa los campos de pago y otros
+    if (modalSale && modalSale.idVenta != null) {
+        if (cashPaymentInput && modalSale.efectivo !== undefined && modalSale.efectivo !== null) {
+            cashPaymentInput.value = parseFloat(modalSale.efectivo).toFixed(2);
+        }
+        if (yapePaymentInput && modalSale.yape !== undefined && modalSale.yape !== null) {
+            yapePaymentInput.value = parseFloat(modalSale.yape).toFixed(2);
+        }
+        const tipoDocumentoVentaSelect = document.getElementById('tipoDocumentoVentaSelect');
+        const numDocumentoVenta = document.getElementById('numDocumentoVenta');
+        const igvSelect = document.getElementById('igvSelect');
+        const fechaRegistroInput = document.getElementById('fechaRegistro');
+
+        if (tipoDocumentoVentaSelect && modalSale.tipoDocumento) {
+            tipoDocumentoVentaSelect.value = modalSale.tipoDocumento;
+        }
+        if (numDocumentoVenta && modalSale.numDocumento) {
+            numDocumentoVenta.value = modalSale.numDocumento;
+        }
+        if (igvSelect && modalSale.igvEntity && modalSale.igvEntity.idIgv) {
+            igvSelect.value = modalSale.igvEntity.idIgv;
+        }
+        if (fechaRegistroInput && modalSale.fechaRegistro) {
+            // Asegúrate de que el formato de fecha sea compatible con el input type="hidden"
+            fechaRegistroInput.value = modalSale.fechaRegistro.substring(0, 10); // Asume formato "YYYY-MM-DDTHH:MM:SS"
+        }
+
+    } else {
+        // Para una nueva venta, asegúrate de que los campos de pago estén en 0.00
+        if (cashPaymentInput) cashPaymentInput.value = '0.00';
+        if (yapePaymentInput) yapePaymentInput.value = '0.00';
+        // Genera un nuevo número de documento para una nueva venta
+        document.getElementById('numDocumentoVenta').value = `VTA-${Math.floor(100000 + Math.random() * 900000)}`;
+        // Establece la fecha actual para una nueva venta
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('fechaRegistro').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    calculateTotalGeneral();
+}
+
+// Resto de funciones como addDetalleVenta, setProductPrice, removeDetalleVenta, updateDetalleTotal
+// quedan prácticamente igual. Solo asegúrate de que los IDs y clases coincidan.
+
+window.addDetalleVenta = function(detalle = null, productsArray = allProductosData) {
+    const index = detalleCount++;
+    const detalleDiv = document.createElement('tr');
+    detalleDiv.classList.add('detalle-item');
+    detalleDiv.setAttribute('data-index', index);
+    detalleDiv.id = `detalleRow-${index}`;
+    let activos = productsArray.filter(p => p.estado === 1);
+
+    let productoOptions = activos.map(p =>
+        `<option value="${p.idProducto}"
+                 data-precio1="${p.precio1 || ''}"
+                 data-precio2="${p.precio2 || ''}"
+                 data-stock="${p.stock}"
+                 ${detalle && detalle.producto && detalle.producto.idProducto === p.idProducto ? 'selected' : ''}>
+             ${p.nombre} (Stock: ${p.stock})
+          </option>`
+    ).join('');
+
+    const initialCantidad = detalle ? (detalle.cantidad || '') : '';
+    const initialPrecioUnitario = detalle && detalle.precioUnitario ? (parseFloat(detalle.precioUnitario).toFixed(2) || '') : '';
+    const initialTotalDetalle = detalle && detalle.total ? (parseFloat(detalle.total) || 0).toFixed(2) : '0.00';
+    detalleDiv.innerHTML = `
+        <td>
+            <input type="hidden" name="detalleVentas[${index}].idDetalleVenta" value="${detalle ? detalle.idDetalleVenta || '' : ''}">
+            <select name="detalleVentas[${index}].producto.idProducto" id="producto-${index}" required
+                   class="form-control">
+                <option value="">Seleccione un Producto</option>
+                ${productoOptions}
+            </select>
+            <span class="text-danger" id="productoError-${index}"></span>
+        </td>
+        <td>
+            <input type="number" name="detalleVentas[${index}].cantidad" id="cantidad-${index}" placeholder="Cantidad" required min="1"
+                   value="${initialCantidad}"
+                   class="form-control">
+            <span class="text-danger" id="cantidadError-${index}"></span>
+        </td>
+        <td>
+            <input type="number" step="0.01" class="form-control" id="precioUnitario-${index}" placeholder="Precio Unitario" min="0" value="${initialPrecioUnitario}">
+            <span class="text-danger" id="precioUnitarioError-${index}"></span>
+            <div class="mt-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setProductPrice(${index}, 'precio1')">P1</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="setProductPrice(${index}, 'precio2')">P2</button>
+            </div>
+        </td>
+        <td>
+            <input type="text" class="form-control total-detalle-display bg-light" id="detalleTotalDisplay-${index}" value="${initialTotalDetalle}" readonly>
+        </td>
+        <td>
+            <button type="button" onclick="removeDetalleVenta(this)"
+                    class="btn btn-danger btn-sm">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </td>
+    `;
+    const detalleVentasContainer = document.getElementById('detalleVentasContainer');
+    if (detalleVentasContainer) {
+        detalleVentasContainer.appendChild(detalleDiv);
+    } else {
+        return;
+    }
+
+    setTimeout(() => {
+        const newProductoSelect = $(`#producto-${index}`);
+        if (newProductoSelect.length && !newProductoSelect.data('select2')) {
+            newProductoSelect.select2({
+                placeholder: "-- Seleccione un Producto --",
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#ventaModal .modal-content')
+            });
+        }
+    }, 10);
+    const cantidadInput = document.getElementById(`cantidad-${index}`);
+    const precioInput = document.getElementById(`precioUnitario-${index}`);
+    const productoSelect = document.getElementById(`producto-${index}`);
+
+    if (cantidadInput) cantidadInput.addEventListener('input', () => updateDetalleTotal(index));
+    if (precioInput) precioInput.addEventListener('input', () => updateDetalleTotal(index));
+    if (productoSelect) {
+        productoSelect.addEventListener('change', () => {
+            const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+            const precio1 = selectedOption.dataset.precio1;
+            // Si el precio unitario inicial no tiene valor o es 0, o si se selecciona un nuevo producto
+            // y tiene precio1, se asigna.
+            if (precio1 && (initialPrecioUnitario === '' || parseFloat(precioInput.value) === 0 || precioInput.value === '')) {
+                precioInput.value = parseFloat(precio1).toFixed(2);
+            } else if (precio1 && !precioInput.value) { // Si no hay valor previo, usa precio1
+                precioInput.value = parseFloat(precio1).toFixed(2);
             }
+            updateDetalleTotal(index);
+        });
+    }
+
+    // Si el precio unitario no se inicializó desde el detalle (es decir, es una nueva línea vacía)
+    // Y si el producto ya está seleccionado, intenta usar precio1
+    if (detalle && initialPrecioUnitario === '' && productoSelect && productoSelect.value) {
+        const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+        const precio1 = selectedOption.dataset.precio1;
+        if (precio1) {
+            precioInput.value = parseFloat(precio1).toFixed(2);
+        }
+    } else if (!detalle && productoSelect && productoSelect.value) {
+        const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+        const precio1 = selectedOption.dataset.precio1;
+        if (precio1) {
+            precioInput.value = parseFloat(precio1).toFixed(2);
+        }
+    }
+    updateDetalleTotal(index);
+}
+
+window.setProductPrice = function(index, priceType) {
+    const productoSelect = document.getElementById(`producto-${index}`);
+    const precioInput = document.getElementById(`precioUnitario-${index}`);
+
+    if (productoSelect && precioInput && productoSelect.value) {
+        const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+        let priceValue;
+        if (priceType === 'precio1') {
+            priceValue = selectedOption.dataset.precio1;
+        } else if (priceType === 'precio2') {
+            priceValue = selectedOption.dataset.precio2;
+        }
+
+        if (priceValue) {
+            precioInput.value = parseFloat(priceValue).toFixed(2);
+            updateDetalleTotal(index);
+        }
+    } else {
+        showNotification('info', 'Por favor, selecciona un producto primero para fijar el precio.');
+    }
+}
 
 
-            window.removeDetalleVenta = function(button) {
-                const detalleDiv = button.closest('tr.detalle-item');
-                if (detalleDiv) {
-                    const productoSelect = detalleDiv.querySelector('select[id^="producto-"]');
-                    if (productoSelect && $(productoSelect).data('select2')) {
-                        $(productoSelect).select2('destroy');
-                    }
-                    detalleDiv.remove();
-                    calculateTotalGeneral();
-                }
-            }
+window.removeDetalleVenta = function(button) {
+    const detalleDiv = button.closest('tr.detalle-item');
+    if (detalleDiv) {
+        const productoSelect = detalleDiv.querySelector('select[id^="producto-"]');
+        if (productoSelect && $(productoSelect).data('select2')) {
+            $(productoSelect).select2('destroy');
+        }
+        detalleDiv.remove();
+        calculateTotalGeneral();
+    }
+}
 
-            window.updateDetalleTotal = function(index) {
-                const cantidadInput = document.getElementById(`cantidad-${index}`);
-                const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
-                const totalDisplay = document.getElementById(`detalleTotalDisplay-${index}`);
+window.updateDetalleTotal = function(index) {
+    const cantidadInput = document.getElementById(`cantidad-${index}`);
+    const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
+    const totalDisplay = document.getElementById(`detalleTotalDisplay-${index}`);
 
-                if (cantidadInput && precioUnitarioInput && totalDisplay) {
-                    const cantidad = parseFloat(cantidadInput.value) || 0;
-                    const precioUnitario = parseFloat(precioUnitarioInput.value) || 0;
-                    const totalDetalle = cantidad * precioUnitario;
-                    totalDisplay.value = totalDetalle.toFixed(2);
-                    calculateTotalGeneral();
-                }
-            }
+    if (cantidadInput && precioUnitarioInput && totalDisplay) {
+        const cantidad = parseFloat(cantidadInput.value) || 0;
+        const precioUnitario = parseFloat(precioUnitarioInput.value) || 0;
+        const totalDetalle = cantidad * precioUnitario;
+        totalDisplay.value = totalDetalle.toFixed(2);
+        calculateTotalGeneral();
+    }
+}
 
-            window.calculateTotalGeneral = function() {
+
+window.calculateTotalGeneral = function() {
                 let subtotal = 0;
                 document.querySelectorAll('.detalle-item').forEach(detalleDiv => {
                     const totalDisplay = detalleDiv.querySelector('.total-detalle-display');
@@ -879,116 +969,139 @@ window.ejecutarGenerarReporteVentas = function() {
             }
 
 
-            // ===============================================
-            // VALIDACIÓN DEL FORMULARIO
-            // ===============================================
+// ** NUEVA FUNCIÓN: Calcular Pagos y Cambio **
+window.calculatePaymentAndChange = function() {
+    const totalSale = parseFloat(document.getElementById('totalGeneralDisplay').value) || 0;
+    const cash = parseFloat(cashPaymentInput.value) || 0;
+    const yape = parseFloat(yapePaymentInput.value) || 0;
 
-            async function validateForm() {
-                clearErrors();
-                let isValid = true;
+    const totalPaid = cash + yape;
+    totalPaidAmountInput.value = totalPaid.toFixed(2);
 
-                const tipoDocumentoInput = document.getElementById('tipoDocumento');
-                if (tipoDocumentoInput && !tipoDocumentoInput.value) {
-                    displayError('tipoDocumentoError', 'El tipo de documento es obligatorio.');
-                    tipoDocumentoInput.classList.add('is-invalid');
-                    isValid = false;
-                } else if (tipoDocumentoInput) {
-                    tipoDocumentoInput.classList.remove('is-invalid');
-                }
-                const numDocumentoInput = document.getElementById('numDocumento');
-                if (numDocumentoInput && !numDocumentoInput.value.trim()) {
-                    displayError('numDocumentoError', 'El número de documento es obligatorio.');
-                    numDocumentoInput.classList.add('is-invalid');
-                    isValid = false;
-                } else if (numDocumentoInput) {
-                    numDocumentoInput.classList.remove('is-invalid');
-                }
-                const clienteSelect = document.getElementById('clienteSelect');
-                if (clienteSelect && !clienteSelect.value) {
-                    displayError('clienteSelectError', 'Debe seleccionar un cliente.');
-                    clienteSelect.classList.add('is-invalid');
-                    isValid = false;
-                } else if (clienteSelect) {
-                    clienteSelect.classList.remove('is-invalid');
-                }
-                const igvSelect = document.getElementById('igvSelect');
-                if (igvSelect && !igvSelect.value) {
-                    displayError('igvSelectError', 'Debe seleccionar un tipo de IGV.');
-                    igvSelect.classList.add('is-invalid');
-                    isValid = false;
-                } else if (igvSelect) {
-                    igvSelect.classList.remove('is-invalid');
-                }
-                const tipoPagoInput = document.getElementById('tipoPago');
-                if (tipoPagoInput && !tipoPagoInput.value) {
-                    displayError('tipoPagoError', 'El tipo de pago es obligatorio.');
-                    tipoPagoInput.classList.add('is-invalid');
-                    isValid = false;
-                } else if (tipoPagoInput) {
-                    tipoPagoInput.classList.remove('is-invalid');
-                }
-                const detalleRows = document.querySelectorAll('.detalle-item');
-                if (detalleRows.length === 0) {
-                    showNotification('error', 'Debe añadir al menos un producto a la venta.');
-                    isValid = false;
-                }
-                for (const row of detalleRows) {
-                    const index = row.getAttribute('data-index');
-                    const productoSelect = document.getElementById(`producto-${index}`);
-                    const cantidadInput = document.getElementById(`cantidad-${index}`);
-                    const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
-                    if (productoSelect && !productoSelect.value) {
-                        displayError(`productoError-${index}`, 'Seleccione un producto.');
-                        productoSelect.classList.add('is-invalid');
-                        isValid = false;
-                    } else if (productoSelect) {
-                        productoSelect.classList.remove('is-invalid');
-                    }
-                    const cantidad = parseFloat(cantidadInput ? cantidadInput.value : '');
-                    if (cantidadInput && (isNaN(cantidad) || cantidad <= 0)) {
-                        displayError(`cantidadError-${index}`, 'Cantidad > 0.');
-                        cantidadInput.classList.add('is-invalid');
-                        isValid = false;
-                    } else if (cantidadInput) {
-                        cantidadInput.classList.remove('is-invalid');
-                    }
-                    if (productoSelect && cantidadInput) {
-                        const selectedOption = productoSelect.options[productoSelect.selectedIndex];
-                        const availableStock = parseInt(selectedOption.dataset.stock || '0');
-                        const currentSaleId = document.getElementById('idVenta') ? document.getElementById('idVenta').value : null;
-                        let oldQuantityInThisDetail = 0;
-                        if (currentSaleId) {
-                            const oldSale = allVentas.find(v => v.idVenta == currentSaleId);
-                            if (oldSale && oldSale.detalleVentas) {
-                                const oldDetailForProduct = oldSale.detalleVentas.find(d => d.producto && d.producto.idProducto == productoSelect.value );
-                                if (oldDetailForProduct) {
-                                    oldQuantityInThisDetail = oldDetailForProduct.cantidad;
-                                }
-                            }
-                        }
-                        const effectiveAvailableStock = availableStock + oldQuantityInThisDetail;
-                        if (cantidad > effectiveAvailableStock) {
-                            displayError(`cantidadError-${index}`, `Stock insuficiente. Disponible: ${availableStock} (cantidad previa en esta venta: ${oldQuantityInThisDetail}).`);
-                            cantidadInput.classList.add('is-invalid');
-                            isValid = false;
-                        }
-                    }
-                    const precio = parseFloat(precioUnitarioInput ? precioUnitarioInput.value : '');
-                    if (precioUnitarioInput && (isNaN(precio) || precio < 0)) {
-                        displayError(`precioUnitarioError-${index}`, 'Precio >= 0.');
-                        precioUnitarioInput.classList.add('is-invalid');
-                        isValid = false;
-                    } else if (precioUnitarioInput) {
-                        precioUnitarioInput.classList.remove('is-invalid');
+    let change = 0;
+    if (totalPaid > totalSale) {
+        change = totalPaid - totalSale;
+    } else if (totalPaid < totalSale) {
+        change = 0; // O si prefieres mostrar un negativo: change = totalPaid - totalSale;
+    }
+    changeAmountInput.value = change.toFixed(2);
+};
+
+
+// ===============================================
+// VALIDACIÓN DEL FORMULARIO
+// ===============================================
+
+async function validateForm() {
+    clearErrors();
+    let isValid = true;
+
+    const tipoDocumentoInput = document.getElementById('tipoDocumentoVentaSelect');
+    if (tipoDocumentoInput && !tipoDocumentoInput.value) {
+        displayError('tipoDocumentoVentaError', 'El tipo de documento es obligatorio.');
+        tipoDocumentoInput.classList.add('is-invalid');
+        isValid = false;
+    } else if (tipoDocumentoInput) {
+        tipoDocumentoInput.classList.remove('is-invalid');
+    }
+    const numDocumentoInput = document.getElementById('numDocumentoVenta');
+    if (numDocumentoInput && !numDocumentoInput.value.trim()) {
+        displayError('numDocumentoVentaError', 'El número de documento es obligatorio.');
+        numDocumentoInput.classList.add('is-invalid');
+        isValid = false;
+    } else if (numDocumentoInput) {
+        numDocumentoInput.classList.remove('is-invalid');
+    }
+    const clienteSelect = document.getElementById('clienteSelect');
+    if (clienteSelect && !clienteSelect.value) {
+        displayError('clienteSelectError', 'Debe seleccionar un cliente.');
+        clienteSelect.classList.add('is-invalid');
+        isValid = false;
+    } else if (clienteSelect) {
+        clienteSelect.classList.remove('is-invalid');
+    }
+
+    // Validación de igvSelect
+    const igvSelect = document.getElementById('igvSelect');
+    if (igvSelect && !igvSelect.value) {
+        displayError('igvSelectError', 'Debe seleccionar un tipo de IGV.');
+        igvSelect.classList.add('is-invalid');
+        isValid = false;
+    } else if (igvSelect) {
+        igvSelect.classList.remove('is-invalid');
+    }
+
+    const detalleRows = document.querySelectorAll('.detalle-item');
+    if (detalleRows.length === 0) {
+        showNotification('error', 'Debe añadir al menos un producto a la venta.');
+        isValid = false;
+    }
+    for (const row of detalleRows) {
+        const index = row.getAttribute('data-index');
+        const productoSelect = document.getElementById(`producto-${index}`);
+        const cantidadInput = document.getElementById(`cantidad-${index}`);
+        const precioUnitarioInput = document.getElementById(`precioUnitario-${index}`);
+        if (productoSelect && !productoSelect.value) {
+            displayError(`productoError-${index}`, 'Seleccione un producto.');
+            productoSelect.classList.add('is-invalid');
+            isValid = false;
+        } else if (productoSelect) {
+            productoSelect.classList.remove('is-invalid');
+        }
+        const cantidad = parseFloat(cantidadInput ? cantidadInput.value : '');
+        if (cantidadInput && (isNaN(cantidad) || cantidad <= 0)) {
+            displayError(`cantidadError-${index}`, 'Cantidad > 0.');
+            cantidadInput.classList.add('is-invalid');
+            isValid = false;
+        } else if (cantidadInput) {
+            cantidadInput.classList.remove('is-invalid');
+        }
+        if (productoSelect && cantidadInput) {
+            const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+            const availableStock = parseInt(selectedOption.dataset.stock || '0');
+            const currentSaleId = document.getElementById('idVenta') ? document.getElementById('idVenta').value : null;
+            let oldQuantityInThisDetail = 0;
+            if (currentSaleId) {
+                const oldSale = allVentas.find(v => v.idVenta == currentSaleId);
+                if (oldSale && oldSale.detalleVentas) {
+                    const oldDetailForProduct = oldSale.detalleVentas.find(d => d.producto && d.producto.idProducto == productoSelect.value);
+                    if (oldDetailForProduct) {
+                        oldQuantityInThisDetail = oldDetailForProduct.cantidad;
                     }
                 }
-                return isValid;
             }
-            // ===============================================
+            const effectiveAvailableStock = availableStock + oldQuantityInThisDetail;
+            if (cantidad > effectiveAvailableStock) {
+                displayError(`cantidadError-${index}`, `Stock insuficiente. Disponible: ${availableStock} (cantidad previa en esta venta: ${oldQuantityInThisDetail}).`);
+                cantidadInput.classList.add('is-invalid');
+                isValid = false;
+            }
+        }
+        const precio = parseFloat(precioUnitarioInput ? precioUnitarioInput.value : '');
+        if (precioUnitarioInput && (isNaN(precio) || precio < 0)) {
+            displayError(`precioUnitarioError-${index}`, 'Precio >= 0.');
+            precioUnitarioInput.classList.add('is-invalid');
+            isValid = false;
+        } else if (precioUnitarioInput) {
+            precioUnitarioInput.classList.remove('is-invalid');
+        }
+    }
+
+    const totalSaleAmount = parseFloat(document.getElementById('totalGeneralDisplay').value) || 0;
+    const totalPaidAmount = parseFloat(document.getElementById('totalPaidAmount').value) || 0;
+
+    if (totalPaidAmount < totalSaleAmount) {
+        showNotification('error', `El monto pagado (S/ ${totalPaidAmount.toFixed(2)}) es menor que el total de la venta (S/ ${totalSaleAmount.toFixed(2)}).`);
+        isValid = false;
+    }
+
+    return isValid;
+}
+// ===============================================
 // LÓGICA DE GUARDADO DE LA VENTA (EN EL CLIENTE)
 // ===============================================
 window.saveVenta = async function(event) {
-    event.preventDefault(); // Evita el envío del formulario por defecto
+    event.preventDefault();
 
     if (!(await validateForm())) {
         showNotification('error', 'Por favor, corrige los errores en el formulario.');
@@ -998,14 +1111,26 @@ window.saveVenta = async function(event) {
     const idVenta = document.getElementById('idVenta') ? document.getElementById('idVenta').value : null;
     const idCliente = document.getElementById('clienteSelect') ? document.getElementById('clienteSelect').value : null;
 
-    // *** AQUÍ ESTÁ EL CAMBIO CLAVE ***
-    // Usa los IDs correctos para los elementos select e input
     const tipoDocumento = document.getElementById('tipoDocumentoVentaSelect') ? document.getElementById('tipoDocumentoVentaSelect').value : '';
     const numDocumento = document.getElementById('numDocumentoVenta') ? document.getElementById('numDocumentoVenta').value : '';
-    // **********************************
 
-    const tipoPago = document.getElementById('tipoPago') ? document.getElementById('tipoPago').value : '';
-    const idIgv = document.getElementById('igvSelect') ? document.getElementById('igvSelect').value : null;
+    const efectivo = parseFloat(document.getElementById('cashPayment').value) || 0;
+    const yape = parseFloat(document.getElementById('yapePayment').value) || 0;
+
+    let tipoPagoCalculado = '';
+    if (efectivo > 0 && yape > 0) {
+        tipoPagoCalculado = 'MIXTO';
+    } else if (efectivo > 0) {
+        tipoPagoCalculado = 'EFECTIVO';
+    } else if (yape > 0) {
+        tipoPagoCalculado = 'YAPE';
+    } else {
+        tipoPagoCalculado = 'SIN_PAGO'; // O un valor por defecto si no hay pago
+    }
+
+    const igvSelect = document.getElementById('igvSelect');
+    const idIgv = igvSelect ? parseInt(igvSelect.value) : null;
+
     const totalElement = document.getElementById('totalGeneralDisplay');
     const total = totalElement ? parseFloat(totalElement.value) : 0;
     const igvCalculatedAmount = document.getElementById('igvCalculatedDisplay') ? parseFloat(document.getElementById('igvCalculatedDisplay').value) : 0;
@@ -1017,7 +1142,7 @@ window.saveVenta = async function(event) {
             const element = detalleRow.querySelector(selector);
             return element ? element.value : '';
         };
-        const currentIdDetalleVenta = getVal(`input[name="detallesVenta[${index}].idDetalleVenta"]`);
+        const currentIdDetalleVenta = getVal(`input[name="detalleVentas[${index}].idDetalleVenta"]`);
         const parsedIdDetalleVenta = (currentIdDetalleVenta && currentIdDetalleVenta.trim() !== '') ? parseInt(currentIdDetalleVenta) : null;
 
         detallesVentas.push({
@@ -1025,20 +1150,22 @@ window.saveVenta = async function(event) {
             producto: { idProducto: getVal(`#producto-${index}`) ? parseInt(getVal(`#producto-${index}`)) : null },
             cantidad: getVal(`#cantidad-${index}`) ? parseInt(getVal(`#cantidad-${index}`)) : null,
             precioUnitario: getVal(`#precioUnitario-${index}`) ? parseFloat(getVal(`#precioUnitario-${index}`)) : null,
-            total: getVal(`#totalDetalle-${index}`) ? parseFloat(getVal(`#totalDetalle-${index}`)) : null // Usa #totalDetalle-${index} aquí
+            total: getVal(`#detalleTotalDisplay-${index}`) ? parseFloat(getVal(`#detalleTotalDisplay-${index}`)) : null
         });
     });
 
     const data = {
         idVenta: idVenta ? parseInt(idVenta) : null,
-        cliente:       { idCliente: parseInt(idCliente) },
-        total:           total,
-        tipoDocumento:  tipoDocumento, // Ahora contendrá el valor correcto
-        numDocumento:    numDocumento, // Ahora contendrá el valor correcto
-        tipoPago:        tipoPago,
-        tasa:            igvCalculatedAmount,
-        igvEntity:    { idIgv: parseInt(idIgv) },
-        detalleVentas:   detallesVentas
+        cliente: { idCliente: parseInt(idCliente) },
+        total: total,
+        tipoDocumento: tipoDocumento,
+        numDocumento: numDocumento,
+        efectivo: efectivo,
+        yape: yape,
+        tipoPago: tipoPagoCalculado,
+        tasa: igvCalculatedAmount, // Envía el monto calculado del IGV
+        igvEntity: { idIgv: idIgv }, // Envía el ID del IGV seleccionado
+        detalleVentas: detallesVentas
     };
 
     console.log("JSON de la venta a enviar:");
@@ -1069,8 +1196,7 @@ window.saveVenta = async function(event) {
         showNotification('error', error.message || 'Ocurrió un error de red o interno al guardar la venta.');
     }
 }
-
-            // ===============================================
+  // ===============================================
             // NUEVAS FUNCIONES PARA CANCELAR VENTA (cambioo para anular)
             // ===============================================
 
