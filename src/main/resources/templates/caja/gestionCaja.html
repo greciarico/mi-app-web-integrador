@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{dashboard}"> <!-- Asegúrate que 'dashboard' es el nombre correcto de tu layout principal -->
+<head>
+    <title layout:fragment="title">Gestión de Turno de Caja Abierto</title>
+</head>
+<section layout:fragment="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Detalles del Turno de Caja Actual</h3>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <!-- Mensajes flash de Spring (éxito/error) -->
+                        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <span th:text="${successMessage}"></span>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <span th:text="${errorMessage}"></span>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+
+                        <div th:if="${currentTurno != null}">
+                            <p><strong>ID Turno:</strong> <span th:text="${currentTurno.idTurnoCaja}"></span></p>
+                            <p><strong>Vendedor:</strong> <span th:text="${currentTurno.vendedor.nombre + ' ' + currentTurno.vendedor.apPaterno}"></span></p>
+                            <p><strong>Fecha Apertura:</strong> <span th:text="${#temporals.format(currentTurno.fechaApertura, 'dd/MM/yyyy HH:mm')}"></span></p>
+                            <p><strong>Fondo Inicial Efectivo:</strong> S/ <span id="fondoInicialDisplay" th:text="${#numbers.formatDecimal(currentTurno.fondoInicialEfectivo, 1, 2)}"></span></p>
+                            <p><strong>Ventas Efectivo (Sistema):</strong> S/ <span id="ventasEfectivoSistemaDisplay" th:text="${#numbers.formatDecimal(currentTurno.totalVentasEfectivoSistema, 1, 2)}"></span></p>
+                            <p><strong>Ventas Monedero Electrónico (Sistema):</strong> S/ <span id="ventasMonederoSistemaDisplay" th:text="${#numbers.formatDecimal(currentTurno.totalVentasMonederoElectronicoSistema, 1, 2)}"></span></p>
+                            <p><strong>Estado:</strong> <span th:text="${currentTurno.estadoCuadre}"></span></p>
+
+                            <hr>
+                            <h5>Cerrar Turno de Caja</h5>
+                            <form th:action="@{/caja/cerrar}" method="post">
+                                <input type="hidden" name="idTurnoCaja" th:value="${currentTurno.idTurnoCaja}">
+                                <div class="form-group">
+                                    <label for="conteoFinalEfectivo">Conteo Final de Efectivo (S/)</label>
+                                    <input type="number" step="0.01" class="form-control" id="conteoFinalEfectivo"
+                                           name="conteoFinalEfectivo" required min="0.00" placeholder="Ej: 500.00" value="0.00">
+                                </div>
+
+                                <!-- Nuevos campos para mostrar cálculos en tiempo real -->
+                                <div class="form-group">
+                                    <label>Efectivo Esperado (Sistema)</label>
+                                    <input type="text" class="form-control bg-light" id="efectivoEsperadoDisplay" readonly value="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Diferencia (Faltante/Sobrante)</label>
+                                    <input type="text" class="form-control" id="diferenciaDisplay" readonly value="0.00">
+                                </div>
+                                <!-- Fin nuevos campos -->
+
+                                <button type="submit" class="btn btn-danger">Cerrar y Cuadrar Caja</button>
+                            </form>
+                        </div>
+                        <div th:unless="${currentTurno != null}">
+                            <p class="text-info">No hay un turno de caja abierto para este usuario.</p>
+                            <a th:href="@{/caja/a-c-caja}" class="btn btn-primary">Abrir Nuevo Turno</a>
+                        </div>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+            <!-- /.col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+</section>
+
+<th:block layout:fragment="scripts">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        $(document).ready(function() {
+            const fondoInicial = parseFloat($('#fondoInicialDisplay').text().replace('S/ ', '')) || 0;
+            const ventasEfectivoSistema = parseFloat($('#ventasEfectivoSistemaDisplay').text().replace('S/ ', '')) || 0;
+            const ventasMonederoSistema = parseFloat($('#ventasMonederoSistemaDisplay').text().replace('S/ ', '')) || 0; // Obtener el valor de ventas por monedero
+            const conteoFinalEfectivoInput = $('#conteoFinalEfectivo');
+            const efectivoEsperadoDisplay = $('#efectivoEsperadoDisplay');
+            const diferenciaDisplay = $('#diferenciaDisplay');
+
+            // Función para calcular y actualizar los totales
+            function calcularCuadre() {
+                const conteoFinal = parseFloat(conteoFinalEfectivoInput.val()) || 0;
+                // Modificación aquí: Incluir ventasMonederoSistema en el cálculo del efectivo esperado
+                const efectivoEsperado = fondoInicial + ventasEfectivoSistema + ventasMonederoSistema;
+                const diferencia = conteoFinal - efectivoEsperado;
+
+                efectivoEsperadoDisplay.val(efectivoEsperado.toFixed(2));
+                diferenciaDisplay.val(diferencia.toFixed(2));
+
+                // Opcional: Cambiar color de la diferencia
+                if (diferencia.toFixed(2) === '0.00') {
+                    diferenciaDisplay.removeClass('bg-danger bg-warning').addClass('bg-success');
+                } else if (diferencia < 0) {
+                    diferenciaDisplay.removeClass('bg-success bg-warning').addClass('bg-danger');
+                } else {
+                    diferenciaDisplay.removeClass('bg-success bg-danger').addClass('bg-warning');
+                }
+            }
+
+            // Inicializar los cálculos al cargar la página
+            calcularCuadre();
+
+            // Escuchar cambios en el campo de conteo final para actualizar en tiempo real
+            conteoFinalEfectivoInput.on('input', calcularCuadre);
+        });
+        /*]]>*/
+    </script>
+</th:block>
+</html>
