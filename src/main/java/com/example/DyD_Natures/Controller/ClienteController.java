@@ -11,6 +11,7 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,11 +38,12 @@ public class ClienteController {
     private TipoClienteService tipoClienteService;
 
     @GetMapping
-    public String listarClientes(
-            Model model,
-            @RequestParam(required = false) Integer idTipoCliente,
-            @RequestParam(required = false) String searchTerm) {
+    public String listarClientes(HttpServletRequest request,
+                                 Model model,
+                                 @RequestParam(required = false) Integer idTipoCliente,
+                                 @RequestParam(required = false) String searchTerm) {
 
+        model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("clientes", clienteService.listarClientes(idTipoCliente, searchTerm));
         model.addAttribute("tiposCliente", tipoClienteService.listarTiposCliente());
         model.addAttribute("selectedTipoClienteId", idTipoCliente);
