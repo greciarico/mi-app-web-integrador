@@ -421,4 +421,30 @@ public class DocumentoCompraController {
         cell.setPadding(3);
         return cell;
     }
+
+    /**
+     * Endpoint para obtener el siguiente número de documento predicho (sin guardar).
+     * @param tipoDocumento El tipo de documento para el cual predecir el número.
+     * @return ResponseEntity con el número de documento predicho o un mensaje de error.
+     */
+    @GetMapping("/next-num-documento")
+    @ResponseBody // Para devolver JSON
+    public ResponseEntity<Map<String, String>> getNextDocumentNumber(@RequestParam("tipoDocumento") String tipoDocumento) {
+        Map<String, String> response = new HashMap<>();
+        try {
+            String nextNum = documentoCompraService.predictNextDocumentNumber(tipoDocumento);
+            response.put("status", "success");
+            response.put("nextNumDocumento", nextNum);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Error interno al predecir el número de documento: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
 }
