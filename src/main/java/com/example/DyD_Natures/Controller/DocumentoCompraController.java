@@ -11,6 +11,7 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -45,8 +46,9 @@ public class DocumentoCompraController {
      * @return El nombre de la vista (documento_compra.html).
      */
     @GetMapping
-    public String listarDocumentosCompra(Model model) {
+    public String listarDocumentosCompra(HttpServletRequest request, Model model) {
         try {
+            model.addAttribute("currentUri", request.getRequestURI());
             model.addAttribute("documentosCompra", documentoCompraService.listarDocumentosCompra());
             model.addAttribute("proveedores", proveedorService.listarSoloProveedoresActivos());
             model.addAttribute("productos", productoService.listarSoloProductosActivos());
