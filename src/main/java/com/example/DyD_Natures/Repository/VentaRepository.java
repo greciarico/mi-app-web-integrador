@@ -40,5 +40,7 @@ public interface VentaRepository extends JpaRepository<Venta, Integer>, JpaSpeci
             "ORDER BY month")
     List<Object[]> findTotalSalesByMonthForYear(@Param("year") int year);
 
+    List<Venta> findAllByUsuario_IdUsuario(Integer idUsuario);
+
 }
 
