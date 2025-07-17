@@ -15,11 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification; // Importar Specification
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
@@ -150,39 +150,52 @@ public class VentaService {
 
     // El resto de la clase (cancelarVenta, updateProductStock, etc.) se mantiene igual...
 
+    // METODO ACTUALIZADO PARA CANCELAR VENTA
     @Transactional
-    public void cancelarVenta(Integer id) {
-        Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada con ID: " + id));
+    public void cancelarVenta(Integer idVenta, Usuario usuarioAnulacion) { // Añadir Usuario como parámetro
+        Venta venta = ventaRepository.findById(idVenta)
+                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada con ID: " + idVenta));
+
+        // --- Nueva validación de fecha ---
+        if (!venta.getFechaRegistro().isEqual(LocalDate.now())) {
+            throw new IllegalArgumentException("Solo se pueden anular ventas realizadas el mismo día.");
+        }
+        // --- Fin nueva validación ---
 
         if (venta.getEstado() != null && venta.getEstado() == 0) {
-            throw new IllegalArgumentException("La Venta con ID " + id + " ya está cancelada.");
+            throw new IllegalArgumentException("La Venta con ID " + idVenta + " ya está cancelada.");
         }
 
         if (venta.getDetalleVentas() != null && !venta.getDetalleVentas().isEmpty()) {
             venta.getDetalleVentas().forEach(detalle -> {
                 if (detalle.getProducto() != null) {
+                    // Revertir el stock: sumar la cantidad vendida
                     updateProductStock(detalle.getProducto().getIdProducto(), detalle.getCantidad());
                 }
             });
         }
 
-        venta.setEstado((byte) 0);
-        ventaRepository.save(venta);
+        venta.setEstado((byte) 0); // Cambia el estado a 0 (cancelada)
+        venta.setFechaAnulacion(LocalDateTime.now()); // Establece la fecha y hora de anulación
+        venta.setUsuarioAnulacion(usuarioAnulacion); // Establece el usuario que anuló
+        ventaRepository.save(venta); // Persiste el cambio
     }
 
+    // Método auxiliar para actualizar stock (usado en cancelarVenta)
     @Transactional
     private void updateProductStock(Integer idProducto, Integer quantityChange) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado para actualizar stock: ID " + idProducto));
 
-        int newStock = producto.getStock() + quantityChange;
+        int newStock = producto.getStock() + quantityChange; // quantityChange es positivo (se suma)
         if (newStock < 0) {
-            throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre());
+            // Esto no debería ocurrir si la cantidad original era positiva, pero es una buena salvaguarda
+            throw new RuntimeException("Error: El stock resultante para el producto '" + producto.getNombre() + "' sería negativo.");
         }
         producto.setStock(newStock);
         productoRepository.save(producto);
     }
+
 
     // Métodos de utilidad que ya tenías
     public List<Cliente> listarClientesActivos() { return clienteRepository.findAll(); }
