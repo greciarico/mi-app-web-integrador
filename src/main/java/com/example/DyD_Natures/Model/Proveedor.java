@@ -15,7 +15,7 @@ public class Proveedor {
     @Column(name = "id_proveedor", nullable = false)
     private Integer idProveedor;
 
-    @JsonFormat(pattern = "dd/MM/yyyy")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
