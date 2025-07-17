@@ -66,4 +66,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer>, JpaS
 
     /** Si lo usas también para lectura: */
     Optional<Usuario> findByDniAndEstadoNot(String dni, Byte estadoExcluido);
+
+    // --- MÉTODO CORREGIDO ---
+    /**
+     * Busca un Usuario por su nombre.
+     * @param nombre El nombre a buscar.
+     * @return Un Optional que contiene el Usuario si se encuentra, o vacío si no.
+     */
+    Optional<Usuario> findByNombre(String nombre);
 }
