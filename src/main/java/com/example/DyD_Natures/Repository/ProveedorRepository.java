@@ -46,5 +46,14 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Integer>, 
      * @return true si existe otro proveedor con ese RUC (diferente al idProveedor proporcionado), false en caso contrario.
      */
     boolean existsByRucAndIdProveedorIsNot(String ruc, Integer idProveedor);
+
+    // Nuevo: comprueba existencia de RUC **ignorando** estado eliminado (2)
+    boolean existsByRucAndEstadoNot(String ruc, Byte estadoExcluido);
+
+    // Nuevo: comprueba existencia de RUC en otros registros (excluyendo este ID) e ignorando eliminados
+    boolean existsByRucAndIdProveedorIsNotAndEstadoNot(String ruc, Integer idProveedor, Byte estadoExcluido);
+    /** Para detectar si existe un registro con RUC y estado = eliminado */
+    Optional<Proveedor> findByRucAndEstado(String ruc, Byte estado);
+
 }
 
