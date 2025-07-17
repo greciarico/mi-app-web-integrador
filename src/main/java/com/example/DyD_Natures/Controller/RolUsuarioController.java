@@ -4,6 +4,7 @@ import com.example.DyD_Natures.Model.Permiso;
 import com.example.DyD_Natures.Model.RolUsuario;
 import com.example.DyD_Natures.Service.PermisoService;
 import com.example.DyD_Natures.Service.RolUsuarioService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -31,7 +32,8 @@ public class RolUsuarioController {
      * Vista principal: carga Thymeleaf para /roles
      */
     @GetMapping
-    public String listarRoles(Model model) {
+    public String listarRoles(HttpServletRequest request, Model model) {
+        model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("roles", rolService.listarRoles());
         return "roles";
     }
