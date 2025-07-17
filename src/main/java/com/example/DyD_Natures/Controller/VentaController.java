@@ -5,6 +5,7 @@ import com.example.DyD_Natures.Model.*;
 import com.example.DyD_Natures.Service.*;
 import com.itextpdf.text.DocumentException; // Importar
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse; // Importar
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -50,8 +51,9 @@ public class VentaController {
      * @return El nombre de la vista (venta.html).
      */
     @GetMapping
-    public String listarVentas(Model model) {
+    public String listarVentas(HttpServletRequest request, Model model) {
         try {
+            model.addAttribute("currentUri", request.getRequestURI());
             model.addAttribute("ventas", ventaService.listarVentas());
             // No cargamos productos, clientes, IGV aquí directamente, se harán por AJAX en el modal
             return "venta";
