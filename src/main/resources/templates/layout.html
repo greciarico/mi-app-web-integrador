@@ -1,40 +1,59 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>D&D Nature's</title>
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<!-- Fragmento editable por página -->
+<head layout:fragment="head">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title layout:fragment="title">D&D Nature’s</title>
+
+  <!-- === CSS GLOBAL === -->
+  <link rel="stylesheet"
+        href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css"/>
+  <!-- Incluye CSS AdminLTE y dependencias -->
   <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
   <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-      <style>
-          /* Hacemos que la sidebar sea un contenedor flex vertical */
-        .main-sidebar .sidebar {
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-          overflow: hidden;
+  <!-- Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <style>
+    .main-sidebar .sidebar { display:flex; flex-direction:column; height:100vh; }
+    .main-sidebar .sidebar nav { flex:1; overflow-y:auto; }
+    .sidebar-footer { padding:1.25rem 0; }
+    .sidebar-footer .nav-link { display:flex; align-items:center; justify-content:center; gap:.5rem; color:#dc3545; font-weight:500; }
+
+    /* CSS DE VENTA - SOLO LO TIENE VENTA */
+    /* Estilos generales para los modales Bootstrap/AdminLTE */
+        .modal-xl {
+            max-width: 900px; /* Ancho para el modal de venta */
         }
-      
-      
-        .main-sidebar .sidebar nav {
-          flex: 1;
-          overflow-y: auto;
+        .bg-light {
+            background-color: #f8f9fa !important; /* Color para campos readonly */
         }
-      
-        .sidebar-footer {
-          padding: 1.25rem 0;
+        .form-control-static {
+            padding-top: .5rem;
+            padding-bottom: .5rem;
+            margin-bottom: 0;
+            line-height: 1.25;
         }
-        .sidebar-footer .nav-link {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          color: #dc3545;
-          font-weight: 500;
-        }
-        </style>
+        /* Nuevo estilo para filas de ventas canceladas */
+        .cancelled-sale {
+            background-color: #f8d7da !important; /* Rojo claro para indicar cancelación */
+            color: #721c24 !important; /* Texto oscuro para contraste */
+        }
+        .cancelled-sale a, .cancelled-sale button {
+            color: #721c24 !important; /* Asegura que los enlaces y botones también se vean afectados */
+        }
+  </style>
+
+  <!-- === SCRIPTS CABECERA GLOBAL (si los hay) === -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- === STYLES POR PÁGINA === -->
+  <th:block layout:insert="~{::styles}"/>
+
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 
@@ -49,29 +68,25 @@
         </a>
       </li>
       <li class="nav-item d-none d-sm-inline-block">
-        <a href="/" class="nav-link">Inicio</a>
+        <a th:href="@{ / }" class="nav-link">Inicio</a>
       </li>
     </ul>
-
     <ul class="navbar-nav ml-auto">
-      <!-- Muestra el nombre completo si hay usuario en sesión -->
       <li class="nav-item">
-        <span th:if="${currentUser != null}"
-              th:text="${currentUser.nombre} + ' ' + ${currentUser.apPaterno} + ' ' + ${currentUser.apMaterno}">
-          Nombre Completo
-        </span>
-        <!-- Nombre de login por defecto si no se resolvió currentUser -->
-        <span th:unless="${currentUser != null}"
-              sec:authentication="name">
-          Usuario
-        </span>
+          <span th:if="${currentUser != null}"
+                th:text="${currentUser.nombre} + ' ' + ${currentUser.apPaterno} + ' ' + ${currentUser.apMaterno}">
+            Nombre Completo
+          </span>
+        <span th:unless="${currentUser != null}" sec:authentication="name">
+            Usuario
+          </span>
       </li>
     </ul>
   </nav>
 
-  <!-- Main Sidebar Container -->
+  <!-- Sidebar -->
   <aside class="main-sidebar sidebar-light-success elevation-4">
-    <a href="/" class="brand-link">
+    <a th:href="@{ / }" class="brand-link">
       <img src="/dist/img/Logo.png" alt="Logo" class="brand-image">
       <span class="brand-text font-weight-light">&nbsp;</span>
     </a>
@@ -80,216 +95,141 @@
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
 
-          <!-- Mantenimiento (sólo roles ADMINISTRADOR / VENDEDOR) -->
+          <!-- MANTENIMIENTO -->
           <li class="nav-item has-treeview"
-              sec:authorize="hasAnyAuthority(
-                             'VER_USUARIOS',
-                             'GESTION_ROLES',
-                             'VER_CLIENTES',
-                             'VER_PROVEEDORES',
-                             'VER_IGV',
-                             'VER_PRODUCTOS',
-                             'VER_CATEGORIAS',
-                             'VER_MERMA'
-                          )">
-            <a href="#" class="nav-link">
+              sec:authorize="hasAnyAuthority('VER_USUARIOS','GESTION_ROLES','VER_CLIENTES',
+                            'VER_PROVEEDORES','VER_IGV','VER_PRODUCTOS',
+                            'VER_CATEGORIAS','VER_MERMA')"
+              th:classappend="${(currentUri.startsWith('/usuarios')
+                              or currentUri.startsWith('/roles')
+                              or currentUri.startsWith('/clientes')
+                              or currentUri.startsWith('/proveedores')
+                              or currentUri.startsWith('/tasa')
+                              or currentUri.startsWith('/productos')
+                              or currentUri.startsWith('/categorias')
+                              or currentUri.startsWith('/merma')
+                            )} ? 'menu-open' : ''">
+            <a href="#" class="nav-link"
+               th:classappend="${(currentUri.startsWith('/usuarios')
+                               or currentUri.startsWith('/roles')
+                               or currentUri.startsWith('/clientes')
+                               or currentUri.startsWith('/proveedores')
+                               or currentUri.startsWith('/tasa')
+                               or currentUri.startsWith('/productos')
+                               or currentUri.startsWith('/categorias')
+                               or currentUri.startsWith('/merma')
+                             )} ? 'active' : ''">
               <i class="nav-icon fas fa-tools"></i>
-              <p>
-                Mantenimiento
-                <i class="right fas fa-angle-left"></i>
-              </p>
+              <p>Mantenimiento <i class="right fas fa-angle-left"></i></p>
             </a>
-
             <ul class="nav nav-treeview">
               <li class="nav-item" sec:authorize="hasAuthority('VER_USUARIOS')">
-                <a href="#" class="nav-link menu-link" data-url="/usuarios">
+                <a th:href="@{/usuarios}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/usuarios')} ? 'menu-open'">
                   <i class="fas fa-user-cog nav-icon"></i><p>Usuarios</p>
                 </a>
               </li>
               <li class="nav-item" sec:authorize="hasAuthority('GESTION_ROLES')">
-                <a href="#" class="nav-link menu-link" data-url="/roles">
+                <a th:href="@{/roles}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/roles')} ? 'menu-open'">
                   <i class="fas fa-user-shield nav-icon"></i><p>Roles</p>
                 </a>
               </li>
               <li class="nav-item" sec:authorize="hasAuthority('VER_CLIENTES')">
-                <a href="#" class="nav-link menu-link" data-url="/clientes">
+                <a th:href="@{/clientes}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/clientes')} ? 'menu-open'">
                   <i class="fas fa-users nav-icon"></i><p>Clientes</p>
                 </a>
               </li>
               <li class="nav-item" sec:authorize="hasAuthority('VER_PROVEEDORES')">
-                <a href="#" class="nav-link menu-link" data-url="/proveedores">
+                <a th:href="@{/proveedores}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/proveedores')} ? 'menu-open'">
                   <i class="fas fa-truck nav-icon"></i><p>Proveedores</p>
                 </a>
               </li>
-              <li class="nav-item" sec:authorize="hasAuthority('VER_IGV')" >
-                <a href="#" class="nav-link menu-link" data-url="/tasa">
+              <li class="nav-item" sec:authorize="hasAuthority('VER_IGV')">
+                <a th:href="@{/tasa}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/tasa')} ? 'menu-open'">
                   <i class="fas fa-percentage nav-icon"></i><p>IGV</p>
                 </a>
               </li>
               <li class="nav-item" sec:authorize="hasAuthority('VER_PRODUCTOS')">
-                <a href="#" class="nav-link menu-link" data-url="/productos">
+                <a th:href="@{/productos}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/productos')} ? 'menu-open'">
                   <i class="fas fa-box-open nav-icon"></i><p>Productos</p>
                 </a>
               </li>
               <li class="nav-item" sec:authorize="hasAuthority('VER_CATEGORIAS')">
-                <a href="#" class="nav-link menu-link" data-url="/categorias">
+                <a th:href="@{/categorias}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/categorias')} ? 'menu-open'">
                   <i class="fas fa-tags nav-icon"></i><p>Categorías</p>
                 </a>
               </li>
               <li class="nav-item" sec:authorize="hasAuthority('VER_MERMA')">
-                <a href="#" class="nav-link menu-link" data-url="/merma">
+                <a th:href="@{/merma}" class="nav-link"
+                   th:classappend="${currentUri.startsWith('/merma')} ? 'menu-open'">
                   <i class="fas fa-trash-alt nav-icon"></i><p>Merma</p>
                 </a>
               </li>
             </ul>
           </li>
 
-          <!-- Registro de Compra (sólo ADMINISTRADOR) -->
-          <li class="nav-item has-treeview" sec:authorize="hasAuthority('VER_COMPRAS')">
-            <a href="#" class="nav-link">
+          <!-- COMPRA -->
+          <li class="nav-item has-treeview" sec:authorize="hasAuthority('VER_COMPRAS')"
+              th:classappend="${(currentUri.startsWith('/documento-compra'))} ? 'menu-open' : ''">
+            <a href="#" class="nav-link"
+               th:classappend="${(currentUri.startsWith('/documento-compra'))} ? 'active' : ''">
               <i class="nav-icon fas fa-file-invoice-dollar"></i>
               <p>Registro de compra <i class="right fas fa-angle-left"></i></p>
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="#" class="nav-link menu-link" data-url="/documento-compra">
+                <a th:href="@{/documento-compra}" class="nav-link" th:classappend="${currentUri.startsWith('/documento-compra')} ? 'menu-open'">
                   <i class="fas fa-file-alt nav-icon"></i><p>Documento de compra</p>
                 </a>
               </li>
             </ul>
           </li>
 
-          <!-- Registro de Venta (ADMINISTRADOR o VENDEDOR) -->
-          <li class="nav-item has-treeview" sec:authorize="hasAuthority('VER_VENTAS')">
-            <a href="#" class="nav-link">
+          <!-- VENTA -->
+          <li class="nav-item has-treeview" sec:authorize="hasAuthority('VER_VENTAS')"
+              th:classappend="${(currentUri.startsWith('/ventas'))} ? 'menu-open' : ''">
+            <a href="#" class="nav-link" th:classappend="${(currentUri.startsWith('/ventas'))} ? 'active' : ''">
               <i class="nav-icon fas fa-shopping-cart"></i>
               <p>Registro de venta <i class="right fas fa-angle-left"></i></p>
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="#" class="nav-link menu-link" data-url="/ventas">
+                <a th:href="@{/ventas}" class="nav-link" th:classappend="${currentUri.startsWith('/ventas')} ? 'menu-open'">
                   <i class="fas fa-receipt nav-icon"></i><p>Ventas</p>
                 </a>
               </li>
             </ul>
           </li>
 
-          <!-- Información de la Empresa (todos los autenticados) -->
-          <li class="nav-item" sec:authorize="hasAuthority('VER_INFO_EMPRESA')">
-            <a href="#" class="nav-link menu-link" data-url="/informacion-empresa">
-              <i class="nav-icon fas fa-building"></i>
-              <p>Información de la Empresa</p>
+          <!-- INFO EMPRESA -->
+          <li class="nav-item" sec:authorize="hasAuthority('VER_INFO_EMPRESA')"
+              th:classappend="${currentUri.startsWith('/informacion-empresa')} ? 'menu-open' : ''">
+            <a th:href="@{/informacion-empresa}" class="nav-link" th:classappend="${currentUri.startsWith('/informacion-empresa')} ? 'active' : ''">
+              <i class="nav-icon fas fa-building"></i><p>Información de la Empresa</p>
             </a>
           </li>
 
         </ul>
       </nav>
 
+      <!-- footer siempre abajo -->
       <div class="sidebar-footer text-center">
-        <a href="/logout" class="nav-link text-danger d-inline-flex align-items-center">
-          <i class="fas fa-sign-out-alt mr-2"></i>
-          <span>Cerrar sesión</span>
+        <a th:href="@{/logout}" class="nav-link text-danger d-inline-flex align-items-center">
+          <i class="fas fa-sign-out-alt mr-2"></i><span>Cerrar sesión</span>
         </a>
-      </div>
+      </div>
     </div>
   </aside>
-  <!-- /.Main Sidebar Container -->
 
-  <div class="content-wrapper" id="content-area">
-    <section class="content-header">
-      <div class="container-fluid">
-        <div class="row mb-2">
-          <div class="col-sm-6">
-            <h1>Resumen General</h1>
-          </div>
-          <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-            </ol>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <section class="content">
-      <div class="container-fluid">
-        <div class="row">
-          <div class="col-12">
-            <div class="form-group">
-              <label for="dashboardPeriod">Seleccionar Período (para los cuadros):</label>
-              <select class="form-control" id="dashboardPeriod">
-                <option value="today">Hoy</option>
-                <option value="weekly">Semanal</option>
-                <option value="monthly" selected>Mensual</option>
-                <option value="yearly">Anual</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-lg-3 col-6">
-            <div class="small-box bg-info">
-              <div class="inner">
-                <h3 id="totalSalesAmount">S/ 0.00</h3>
-                <p>Total Ventas</p>
-              </div>
-              <div class="icon">
-                <i class="ion ion-cash"></i>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-3 col-6">
-            <div class="small-box bg-success">
-              <div class="inner">
-                <h3 id="numberOfSales">0</h3>
-                <p>Cantidad de Ventas</p>
-              </div>
-              <div class="icon">
-                <i class="ion ion-bag"></i>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-3 col-6">
-            <div class="small-box bg-warning">
-              <div class="inner">
-                <h3 id="userRegistrations">0</h3>
-                <p>Usuarios Registrados</p>
-              </div>
-              <div class="icon">
-                <i class="ion ion-person-add"></i>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-3 col-6">
-            <div class="small-box bg-danger">
-              <div class="inner">
-                <h3 id="clientRegistrations">0</h3>
-                <p>Clientes Registrados</p>
-              </div>
-              <div class="icon">
-                <i class="ion ion-pie-graph"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-12">
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <i class="far fa-chart-bar"></i>
-                  Ventas y Compras por Mes
-                </h3>
-              </div>
-              <div class="card-body">
-                <canvas id="salesPurchasesChart" style="height: 300px;"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div></section>
-  </div>
+  <!-- Aquí inyectas el contenido de cada página -->
+  <div class="content-wrapper content" layout:fragment="content"></div>
 
   <footer class="main-footer text-center">
     <strong>Copyright &copy; 2025 D&D Nature's.</strong> Todos los derechos reservados.
@@ -297,227 +237,14 @@
 
 </div>
 
+<!-- 1) Scripts globales (jQuery primero!!) -->
 <script src="/plugins/jquery/jquery.min.js"></script>
 <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/dist/js/adminlte.min.js"></script>
-<script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-<script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-
-<script>
-  $(document).ready(function() {
-    console.log("jQuery y el DOM están listos en layout.html.");
-
-    // Variable global para almacenar la instancia del gráfico
-    let mySalesPurchasesChart;
-
-    // Function to load dashboard stats data (small boxes)
-    function loadDashboardStatsData(period) {
-      console.log("Cargando datos de los small boxes para el período:", period);
-      $.ajax({
-          url: '/api/dashboard/stats?period=' + period,
-          method: 'GET',
-          success: function(data) {
-              $('#totalSalesAmount').text('S/ ' + data.totalSales.toFixed(2));
-              $('#numberOfSales').text(data.numberOfSales);
-              $('#userRegistrations').text(data.userRegistrations);
-              $('#clientRegistrations').text(data.clientRegistrations);
-          },
-          error: function(xhr, status, error) {
-              console.error("Error al cargar datos de los small boxes:", xhr.status, xhr.statusText, error);
-              $('#totalSalesAmount').text('Error');
-              $('#numberOfSales').text('Error');
-              $('#userRegistrations').text('Error');
-              $('#clientRegistrations').text('Error');
-          }
-      });
-    }
-
-    // Function to load and render the sales/purchases chart
-    function loadSalesPurchasesChart() {
-        console.log("Cargando datos para el gráfico de ventas y compras.");
-        $.ajax({
-            url: '/api/dashboard/chart-data', // Endpoint para los datos del gráfico
-            method: 'GET',
-            success: function(data) {
-                const labels = data.labels; // Nombres de los meses (Enero, Febrero, etc.)
-                const thisYearSales = data.thisYearSales;
-                const lastYearSales = data.lastYearSales;
-                const thisYearPurchases = data.thisYearPurchases;
-                const lastYearPurchases = data.lastYearPurchases;
-
-                const ctx = document.getElementById('salesPurchasesChart').getContext('2d');
-
-                // Destruir el gráfico existente si lo hay para evitar duplicados
-                if (mySalesPurchasesChart) {
-                    mySalesPurchasesChart.destroy();
-                }
-
-                mySalesPurchasesChart = new Chart(ctx, {
-                    type: 'bar', // Tipo de gráfico: barras
-                    data: {
-                        labels: labels, // Eje X: Meses
-                        datasets: [
-                            {
-                                label: 'Ventas ' + new Date().getFullYear(),
-                                backgroundColor: 'rgba(0, 123, 255, 0.7)', // Azul AdminLTE info
-                                borderColor: 'rgba(0, 123, 255, 1)',
-                                borderWidth: 1,
-                                data: thisYearSales,
-                                // Estos dos ayudan a agrupar barras si hay múltiples datasets por label (mes)
-                                barPercentage: 0.5,
-                                categoryPercentage: 0.6
-                            },
-                             {
-                                label: 'Compras ' + new Date().getFullYear(),
-                                backgroundColor: 'rgba(40, 167, 69, 0.7)', // Verde AdminLTE success
-                                borderColor: 'rgba(40, 167, 69, 1)',
-                                borderWidth: 1,
-                                data: thisYearPurchases,
-                                barPercentage: 0.5,
-                                categoryPercentage: 0.6
-                            },
-                            {
-                                label: 'Ventas ' + (new Date().getFullYear() - 1),
-                                backgroundColor: 'rgba(108, 117, 125, 0.5)', // Gris AdminLTE secondary
-                                borderColor: 'rgba(108, 117, 125, 1)',
-                                borderWidth: 1,
-                                data: lastYearSales,
-                                barPercentage: 0.5,
-                                categoryPercentage: 0.6
-                            },
-                             {
-                                label: 'Compras ' + (new Date().getFullYear() - 1),
-                                backgroundColor: 'rgba(255, 193, 7, 0.5)', // Amarillo AdminLTE warning
-                                borderColor: 'rgba(255, 193, 7, 1)',
-                                borderWidth: 1,
-                                data: lastYearPurchases,
-                                barPercentage: 0.5,
-                                categoryPercentage: 0.6
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false, // Permite que el gráfico no mantenga siempre la misma relación de aspecto
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Monto (S/)'
-                                }
-                            },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Mes'
-                                }
-                            }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.y !== null) {
-                                            label += 'S/ ' + context.parsed.y.toFixed(2);
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            },
-            error: function(xhr, status, error) {
-                console.error("Error al cargar datos del gráfico:", xhr.status, xhr.statusText, error);
-            }
-        });
-    }
-
-
-    // --- Ejecución inicial y manejadores de eventos ---
-
-    // Carga inicial de datos para los small boxes (período por defecto 'monthly')
-    loadDashboardStatsData($('#dashboardPeriod').val());
-    // Carga inicial de datos para el gráfico
-    loadSalesPurchasesChart();
-
-    // Event listener para el cambio de período de los small boxes
-    $('#dashboardPeriod').change(function() {
-      const selectedPeriod = $(this).val();
-      loadDashboardStatsData(selectedPeriod);
-      // El gráfico no depende de este selector, sus datos son para el año actual/anterior
-    });
-
-
-    // =================================================================
-    // Código para la carga dinámica de contenido del menú lateral
-    // =================================================================
-    $('.menu-link').click(function(e) {
-      e.preventDefault();
-      let url = $(this).data('url');
-      console.log("Cargando contenido con AJAX desde:", url);
-      $('#content-area').load(url, function(response, status, xhr) {
-          if (status === "error") {
-              console.error("Error al cargar el contenido:", xhr.status, xhr.statusText);
-          } else {
-              console.log("Contenido cargado exitosamente desde:", url);
-              setTimeout(function() {
-                  $('body').removeClass('sidebar-collapse'); // Cierra el sidebar después de la carga
-                  $('[data-widget="pushmenu"]').PushMenu(); // Reinicia el pushmenu
-                  $('[data-widget="treeview"]').Treeview(); // Reinicia el treeview
-
-                   // Callbacks para recargar datos específicos de cada vista (mantenerlos si los necesitas)
-                   if (url === '/usuarios' && typeof recargarListaUsuariosCompleta === 'function') {
-                      console.log("Detectado retorno a /usuarios. Iniciando recarga de datos.");
-                      recargarListaUsuariosCompleta();
-                  } else if (url === '/productos' && typeof recargarListaProductosCompleta === 'function') {
-                      console.log("Detectado retorno a /productos. Iniciando recarga de datos.");
-                      recargarListaProductosCompleta();
-                  } else if (url === '/proveedores' && typeof recargarListaProveedoresCompleta === 'function') {
-                      console.log("Detectado retorno a /proveedores. Iniciando recarga de datos.");
-                      recargarListaProveedoresCompleta();
-                  } else if (url === '/categorias' && typeof recargarListaCategoriasCompleta === 'function') {
-                      console.log("Detectado retorno a /categorias. Iniciando recarga de datos.");
-                      recargarListaCategoriasCompleta();
-                  }else if (url === '/tasa' && typeof recargarListaIgvCompleta === 'function') {
-                      console.log("Detectado retorno a /tasa. Iniciando recarga de datos.");
-                      recargarListaIgvCompleta();
-                  }else if (url === '/informacion-empresa' && typeof inicializarFormularioEmpresa === 'function') {
-                      console.log("Detectado retorno a /informacion-empresa. Inicializando formulario.");
-                      inicializarFormularioEmpresa();
-                  }else if (url === '/merma' && typeof recargarListaMermaCompleta === 'function') {
-                      console.log("Detectado retorno a /merma. Iniciando recarga de datos.");
-                      recargarListaMermaCompleta();
-                  }else if (url === '/clientes' && typeof recargarListaClientesCompleta === 'function') {
-                      console.log("Detectado retorno a /clientes. Iniciando recarga de datos.");
-                      recargarListaClientesCompleta();
-                  } else if (url === '/documento-compra' && typeof recargarListaDocumentosCompraCompleta === 'function') {
-                      console.log("Detectado retorno a /documento-compra. Iniciando recarga de datos.");
-                      recargarListaDocumentosCompraCompleta();
-                  }else if (window.recargarListaVentasCompleta && url === '/ventas') {
-                  console.log("Detected return to /ventas. Initiating data reload.");
-                  window.recargarListaVentasCompleta();
-                  } else if (url === '/') { // Si se navega de nuevo a la raíz (dashboard)
-                      console.log("Navigated to dashboard. Reloading dashboard data.");
-                      loadDashboardStatsData($('#dashboardPeriod').val()); // Recarga los datos de los small boxes
-                      loadSalesPurchasesChart(); // Recarga los datos del gráfico
-                  }
-
-              }, 50); // Pequeño retraso para que AdminLTE reinicie sus componentes
-          }
-      });
-    });
-  });
-</script>
-
+<th:block layout:fragment="scripts"/>
 </body>
 </html>
