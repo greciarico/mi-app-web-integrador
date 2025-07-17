@@ -90,51 +90,23 @@ public class ProveedorController {
      */
     @PostMapping("/guardar")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) { // <--- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) {
+        Map<String, String> resp = new HashMap<>();
         try {
-            // Validaciones básicas (estas validaciones ahora deberían recibir los datos correctos del JSON)
-            if (proveedor.getRuc() == null || proveedor.getRuc().isEmpty()) {
-                response.put("status", "error");
-                response.put("message", "El RUC es obligatorio.");
-                // Puedes añadir un HttpStatus.BAD_REQUEST para indicar un error de cliente
-                return ResponseEntity.badRequest().body(response);
-            }
-            if (proveedor.getNombreComercial() == null || proveedor.getNombreComercial().isEmpty()) {
-                response.put("status", "error");
-                response.put("message", "El Nombre Comercial es obligatorio.");
-                return ResponseEntity.badRequest().body(response);
-            }
-            if (proveedor.getRazonSocial() == null || proveedor.getRazonSocial().isEmpty()) {
-                response.put("status", "error");
-                response.put("message", "La Razón Social es obligatoria.");
-                return ResponseEntity.badRequest().body(response);
-            }
-            if (proveedor.getDireccion() == null || proveedor.getDireccion().isEmpty()) {
-                response.put("status", "error");
-                response.put("message", "La Dirección es obligatoria.");
-                return ResponseEntity.badRequest().body(response);
-            }
-            // Puedes añadir más validaciones para teléfono y correo si son obligatorios en tu negocio
+            // validaciones ligeras de DTO…
+            Proveedor saved = proveedorService.guardarProveedor(proveedor);
+            resp.put("status",  "success");
+            resp.put("message", "Proveedor guardado exitosamente!");
+            return ResponseEntity.ok(resp);
 
-            // Validación de RUC único
-            Optional<Proveedor> existingProveedorByRuc = proveedorService.obtenerProveedorPorRuc(proveedor.getRuc());
-            if (existingProveedorByRuc.isPresent() && (proveedor.getIdProveedor() == null || !existingProveedorByRuc.get().getIdProveedor().equals(proveedor.getIdProveedor()))) {
-                response.put("status", "error");
-                response.put("message", "El RUC ya está registrado.");
-                return ResponseEntity.badRequest().body(response); // O HttpStatus.CONFLICT (409) para indicar duplicado
-            }
-
-            // Si las validaciones pasan, procede a guardar
-            proveedorService.guardarProveedor(proveedor);
-            response.put("status", "success");
-            response.put("message", "Proveedor guardado exitosamente!");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            // Captura cualquier otra excepción inesperada
-            response.put("status", "error");
-            response.put("message", "Error al guardar el proveedor: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (IllegalArgumentException ex) {
+            resp.put("status", "error");
+            resp.put("message", ex.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        } catch (Exception ex) {
+            resp.put("status", "error");
+            resp.put("message", "Error interno al guardar el proveedor: " + ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
     }
 
@@ -167,12 +139,11 @@ public class ProveedorController {
      */
     @GetMapping("/checkRuc")
     @ResponseBody
-    public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
-                                                         @RequestParam(required = false) Integer idProveedor) {
-        Map<String, Boolean> response = new HashMap<>();
+    public ResponseEntity<Map<String, Boolean>> checkRuc(
+            @RequestParam String ruc,
+            @RequestParam(required = false) Integer idProveedor) {
         boolean exists = proveedorService.existsByRucExcludingId(ruc, idProveedor);
-        response.put("exists", exists);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("exists",exists));
     }
     // --- NUEVOS ENDPOINTS PARA REPORTES ---
 
