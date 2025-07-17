@@ -9,6 +9,7 @@ import com.itextpdf.text.*; // Importar iText
 import com.itextpdf.text.pdf.PdfPCell; // Importar iText
 import com.itextpdf.text.pdf.PdfPTable; // Importar iText
 import com.itextpdf.text.pdf.PdfWriter; // Importar iText
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +42,8 @@ public class MermaController {
      * @return El nombre de la vista (merma.html).
      */
     @GetMapping
-    public String listarMermas(Model model) {
+    public String listarMermas(HttpServletRequest request, Model model) {
+        model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("mermas", mermaService.listarMermas());
         return "merma"; // Asegúrate de que esto apunta a tu archivo merma.html
     }
