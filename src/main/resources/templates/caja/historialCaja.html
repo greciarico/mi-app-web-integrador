@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Historial de Cuadres de Caja</title>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container-fluid">
+        <h1 class="h3 mb-4 text-gray-800">Historial de Cuadres de Caja</h1>
+
+        <!-- Mensajes flash de Spring (éxito/error) -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Listado Completo de Turnos de Caja</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="historialCajaTable" width="100%" cellspacing="0">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vendedor</th>
+                            <th>Apertura</th>
+                            <th>Cierre</th>
+                            <th>Fondo Inicial</th>
+                            <th>Ventas Efectivo (Sistema)</th>
+                            <th>Ventas Monedero (Sistema)</th>
+                            <th>Conteo Final Efectivo</th>
+                            <th>Diferencia</th>
+                            <th>Estado Cuadre</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="turno : ${historialTurnos}">
+                            <td th:text="${turno.idTurnoCaja}"></td>
+                            <td th:text="${turno.vendedor.nombre + ' ' + turno.vendedor.apPaterno}"></td>
+                            <td th:text="${#temporals.format(turno.fechaApertura, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td th:text="${turno.fechaCierre != null ? #temporals.format(turno.fechaCierre, 'dd/MM/yyyy HH:mm') : 'Abierto'}"></td>
+                            <td th:text="'S/ ' + ${#numbers.formatDecimal(turno.fondoInicialEfectivo, 1, 2)}"></td>
+                            <td th:text="'S/ ' + ${#numbers.formatDecimal(turno.totalVentasEfectivoSistema, 1, 2)}"></td>
+                            <td th:text="'S/ ' + ${#numbers.formatDecimal(turno.totalVentasMonederoElectronicoSistema, 1, 2)}"></td>
+                            <td th:text="'S/ ' + ${#numbers.formatDecimal(turno.conteoFinalEfectivo, 1, 2)}"></td>
+                            <td th:text="'S/ ' + ${#numbers.formatDecimal(turno.diferenciaEfectivo, 1, 2)}"></td>
+                            <td th:text="${turno.estadoCuadre}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+    <!-- DataTables JS -->
+    <script src="/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script src="/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+    <script src="/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+    <!-- Se ha añadido th:inline="none" para que Thymeleaf no procese el contenido de este script -->
+    <script th:inline="none">
+        $(document).ready(function() {
+            $('#historialCajaTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Spanish.json"
+                },
+                "order": [[0, "desc"]]
+            });
+        });
+    </script>
+</th:block>
+</body>
+</html>
