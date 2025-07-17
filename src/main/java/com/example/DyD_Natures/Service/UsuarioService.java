@@ -114,6 +114,11 @@ public class UsuarioService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         });
     }
+
+
+    public Optional<Usuario> findByNombre(String nombre) { // <--- ¡Cambiado el nombre del método en el servicio!
+        return usuarioRepository.findByNombre(nombre); // <--- ¡Cambiado el nombre del método llamado en el repositorio!
+    }
 }
 
 
