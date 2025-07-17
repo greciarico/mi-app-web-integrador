@@ -7,6 +7,7 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,7 +37,8 @@ public class ProveedorController {
      * @return El nombre de la vista (proveedores.html).
      */
     @GetMapping
-    public String listarProveedores(Model model) {
+    public String listarProveedores(HttpServletRequest request, Model model) {
+        model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("proveedores", proveedorService.listarProveedoresActivos());
         return "proveedores"; // Asegúrate de que esto apunta a tu archivo proveedores.html
     }
