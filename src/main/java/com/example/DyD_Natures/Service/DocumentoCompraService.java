@@ -3,8 +3,10 @@ package com.example.DyD_Natures.Service;
 import com.example.DyD_Natures.Dto.DocumentoCompraFilterDTO; // Importa el DTO
 import com.example.DyD_Natures.Model.DetalleCompra;
 import com.example.DyD_Natures.Model.DocumentoCompra;
+import com.example.DyD_Natures.Model.DocumentoSequence;
 import com.example.DyD_Natures.Model.Producto;
 import com.example.DyD_Natures.Repository.DocumentoCompraRepository;
+import com.example.DyD_Natures.Repository.DocumentoSequenceRepository;
 import com.example.DyD_Natures.Repository.ProductoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Predicate; // Importar
@@ -27,6 +29,14 @@ public class DocumentoCompraService {
 
     @Autowired
     private ProductoRepository productoRepository;
+
+    @Autowired
+    private DocumentoSequenceRepository documentoSequenceRepository; // Inyectar el nuevo repositorio
+
+    private static final String BOLETA_PREFIX = "B001-"; // Prefijo de ejemplo para Boleta
+    private static final String FACTURA_PREFIX = "F001-"; // Prefijo de ejemplo para Factura
+    private static final int NUM_LENGTH = 8; // Ejemplo: 8 dígitos para el número consecutivo
+
 
     /**
      * Lista todos los documentos de compra, asegurando que las relaciones LAZY se carguen.
@@ -142,6 +152,31 @@ public class DocumentoCompraService {
                     throw new IllegalArgumentException("Detalle de compra inválido: Precio unitario no puede ser negativo.");
                 }
 
+                // Si es un nuevo documento (idCompra es null), generamos el número de documento
+                if (documentoCompra.getIdCompra() == null) {
+                    String tipoDocumento = documentoCompra.getTipoDocumento();
+                    if (tipoDocumento == null || (!tipoDocumento.equalsIgnoreCase("BOLETA") && !tipoDocumento.equalsIgnoreCase("FACTURA"))) {
+                        throw new IllegalArgumentException("Tipo de documento inválido. Debe ser 'BOLETA' o 'FACTURA'.");
+                    }
+
+                    // Generar número de documento único y consecutivo
+                    String nuevoNumDocumento = generateNextDocumentNumber(tipoDocumento);
+                    documentoCompra.setNumDocumento(nuevoNumDocumento);
+                } else {
+                    // Si es una edición, podrías añadir lógica para evitar cambiar el numDocumento
+                    // o validarlo si se permite el cambio. Por ahora, asumimos que no se cambia.
+                    // Opcional: Validar que el numDocumento no haya sido manipulado si ya existe.
+                    Optional<DocumentoCompra> existingDoc = documentoCompraRepository.findById(documentoCompra.getIdCompra());
+                    if (existingDoc.isPresent() && !existingDoc.get().getNumDocumento().equals(documentoCompra.getNumDocumento())) {
+                        // Puedes lanzar un error o manejar esto según tus reglas de negocio
+                        throw new IllegalArgumentException("No se permite cambiar el número de documento de una compra existente.");
+                    }
+                    // Si se está editando, asegúrate de que el estado no se cambie de 0 (cancelado) a 1 (activo)
+                    if (existingDoc.isPresent() && existingDoc.get().getEstado() == 0 && documentoCompra.getEstado() == 1) {
+                        throw new IllegalArgumentException("No se puede reactivar un documento de compra cancelado directamente desde la edición.");
+                    }
+                }
+
                 // Obtener el producto gestionado (así Hibernate lo adjunta a la sesión)
                 Producto productoExistente = productoRepository.findById(detalle.getProducto().getIdProducto())
                         .orElseThrow(() -> new RuntimeException("Producto con ID " + detalle.getProducto().getIdProducto() + " no encontrado."));
@@ -173,6 +208,39 @@ public class DocumentoCompraService {
 
         documentoCompra.setTotal(currentTotal); // Actualizar el total del documento de compra
         return documentoCompraRepository.save(documentoCompra);
+    }
+
+    /**
+     * Genera el siguiente número de documento consecutivo y único para el tipo de documento especificado.
+     * Utiliza un bloqueo pesimista para asegurar la unicidad en entornos concurrentes.
+     * @param tipoDocumento El tipo de documento ("BOLETA" o "FACTURA").
+     * @return El número de documento generado (ej: "B001-00000001", "F001-00000001").
+     * @throws RuntimeException si no se puede generar el número de documento.
+     */
+    @Transactional // Esta transacción necesita ser separada o propagarse adecuadamente
+    public String generateNextDocumentNumber(String tipoDocumento) {
+        DocumentoSequence sequence = documentoSequenceRepository.findByTipoDocumento(tipoDocumento)
+                .orElseThrow(() -> new RuntimeException("Configuración de secuencia no encontrada para el tipo de documento: " + tipoDocumento));
+
+        Integer nextNumber = sequence.getLastNumber() + 1;
+        sequence.setLastNumber(nextNumber);
+        documentoSequenceRepository.save(sequence); // Guarda la secuencia incrementada inmediatamente
+
+        String prefix = sequence.getPrefix();
+        String formattedNumber = String.format("%0" + NUM_LENGTH + "d", nextNumber); // Formato a 8 dígitos con ceros iniciales
+
+        return prefix + formattedNumber;
+    }
+
+    /**
+     * Valida si el número de documento ya existe.
+     * Esta validación es crucial para evitar duplicados en caso de que la generación falle o se modifique manualmente.
+     * @param numDocumento El número de documento a validar.
+     * @return true si el número de documento ya existe, false en caso contrario.
+     */
+    @Transactional(readOnly = true)
+    public boolean existsByNumDocumento(String numDocumento) {
+        return documentoCompraRepository.findByNumDocumento(numDocumento).isPresent();
     }
 
     /**
@@ -296,5 +364,28 @@ public class DocumentoCompraService {
             }
         }
         return documentos;
+    }
+
+    /**
+     * Predice el siguiente número de documento consecutivo para el tipo de documento especificado.
+     * Este método NO incrementa el contador en la base de datos; es solo para pre-visualización.
+     * @param tipoDocumento El tipo de documento ("BOLETA" o "FACTURA").
+     * @return El número de documento predicho (ej: "B001-0000000X").
+     * @throws IllegalArgumentException si el tipo de documento es inválido o no se encuentra la secuencia.
+     */
+    @Transactional // <--- ¡Añade esto para indicar explícitamente que es de solo lectura!
+    public String predictNextDocumentNumber(String tipoDocumento) {
+        if (tipoDocumento == null || (!tipoDocumento.equalsIgnoreCase("BOLETA") && !tipoDocumento.equalsIgnoreCase("FACTURA"))) {
+            throw new IllegalArgumentException("Tipo de documento inválido. Debe ser 'BOLETA' o 'FACTURA'.");
+        }
+
+        DocumentoSequence sequence = documentoSequenceRepository.findByTipoDocumento(tipoDocumento)
+                .orElseThrow(() -> new IllegalArgumentException("Configuración de secuencia no encontrada para el tipo de documento: " + tipoDocumento));
+
+        Integer nextNumber = sequence.getLastNumber() + 1; // Solo se incrementa para la predicción, no se guarda
+        String prefix = sequence.getPrefix();
+        String formattedNumber = String.format("%0" + NUM_LENGTH + "d", nextNumber);
+
+        return prefix + formattedNumber;
     }
 }
