@@ -51,29 +51,29 @@ public class VentaService {
     // --- Métodos de Lectura ---
 
     @Transactional(readOnly = true)
-    public List<Venta> listarVentas() {
-        // 1) Recuperar DNI del usuario logueado
-        String dni = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
+public List<Venta> listarVentas() {
+    // 1) Recuperar DNI del usuario logueado
+    String dni = SecurityContextHolder.getContext()
+            .getAuthentication()
+            .getName();
 
-        // 2) Traer la entidad Usuario
-        Usuario currentUser = usuarioRepository
-                .findByDni(dni)
-                .orElseThrow(() ->
-                        new UsernameNotFoundException("Usuario no encontrado con DNI: " + dni));
+    // 2) Traer la entidad Usuario excluyendo los eliminados
+    Usuario currentUser = usuarioRepository
+            .findByDniAndEstadoNot(dni, (byte) 2)
+            .orElseThrow(() ->
+                    new UsernameNotFoundException("Usuario no encontrado con DNI activo: " + dni));
 
-        // 3) Comprobar rol
-        String tipoRol = currentUser.getRolUsuario().getTipoRol();
-        boolean isAdmin = "Administrador".equalsIgnoreCase(tipoRol);
+    // 3) Comprobar rol
+    String tipoRol = currentUser.getRolUsuario().getTipoRol();
+    boolean isAdmin = "Administrador".equalsIgnoreCase(tipoRol);
 
-        // 4) Filtrar según rol
-        if (isAdmin) {
-            return ventaRepository.findAll();
-        } else {
-            return ventaRepository.findAllByUsuario_IdUsuario(currentUser.getIdUsuario());
-        }
+    // 4) Filtrar según rol
+    if (isAdmin) {
+        return ventaRepository.findAll();
+    } else {
+        return ventaRepository.findAllByUsuario_IdUsuario(currentUser.getIdUsuario());
     }
+}
 
     @Transactional(readOnly = true)
     public Optional<Venta> obtenerVentaPorId(Integer id) {
