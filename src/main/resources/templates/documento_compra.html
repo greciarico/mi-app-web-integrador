@@ -1,41 +1,36 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Documentos de Compra</title>
-    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css"/>
-    <link rel="stylesheet" href="/dist/css/adminlte.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/plugins/jquery/jquery.min.js"></script>
-    <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="/dist/js/adminlte.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        /* Estilos generales para los modales Bootstrap/AdminLTE */
-        .modal-xl {
-            max-width: 900px; /* Asegura un ancho más grande para el modal de compra */
-        }
-        .bg-light {
-            background-color: #f8f9fa !important; /* Color para campos readonly */
-        }
-        /* NUEVO ESTILO PARA FILAS DE DOCUMENTOS INACTIVOS/CANCELADOS (similar a venta.html) */
-        .cancelled-item { /* Renombrado para consistencia con 'venta.html' si lo deseas, o usa table-danger-custom */
-            background-color: #f8d7da !important; /* Rojo claro para indicar cancelación */
-            color: #721c24 !important; /* Texto oscuro para contraste */
-        }
-        .cancelled-item a, .cancelled-item button {
-            color: #721c24 !important; /* Asegura que los enlaces y botones también se vean afectados */
-        }
-        /* Asegurarse de que el color de los iconos también se vea afectado */
-        .cancelled-item .fas {
-            color: #721c24 !important;
-        }
+    <title layout:fragment="title">Gestión de Documentos de Compra</title>
+    <th:block layout:fragment="styles">
+        <style>
+            /* Estilos generales para los modales Bootstrap/AdminLTE */
+            .modal-xl {
+                max-width: 900px; /* Asegura un ancho más grande para el modal de compra */
+            }
+            .bg-light {
+                background-color: #f8f9fa !important; /* Color para campos readonly */
+            }
+            /* NUEVO ESTILO PARA FILAS DE DOCUMENTOS INACTIVOS/CANCELADOS (similar a venta.html) */
+            .cancelled-item { /* Renombrado para consistencia con 'venta.html' si lo deseas, o usa table-danger-custom */
+                background-color: #f8d7da !important; /* Rojo claro para indicar cancelación */
+                color: #721c24 !important; /* Texto oscuro para contraste */
+            }
+            .cancelled-item a, .cancelled-item button {
+                color: #721c24 !important; /* Asegura que los enlaces y botones también se vean afectados */
+            }
+            /* Asegurarse de que el color de los iconos también se vea afectado */
+            .cancelled-item .fas {
+                color: #721c24 !important;
+            }
 
-    </style>
+        </style>
+    </th:block>
 </head>
-<body class="hold-transition sidebar-mini">
-<section th:fragment="contenido" class="content">
+
+<section layout:fragment="content">
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -80,7 +75,9 @@
                                 </tr>
                                 </thead>
                                 <tbody id="documentosCompraTableBody">
-
+                                <!-- ELIMINADO: La tabla ahora se renderiza completamente con JavaScript -->
+                                <!-- <tr th:each="doc : ${documentosCompra}">...</tr> -->
+                                <!-- <tr th:if="${#lists.isEmpty(documentosCompra)}">...</tr> -->
                                 </tbody>
                             </table>
                         </div>
@@ -130,9 +127,13 @@
             </div>
         </div>
     </div>
-
+</section>
+<th:block layout:fragment="scripts">
+    <script src="/plugins/jquery/jquery.min.js"></script>
+    <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script th:inline="javascript">
-        /*<![CDATA[*/
+
+    /*<![CDATA[*/
 
         // Variables globales para los datos iniciales y el contador de detalles
         allDocumentosCompra = []; // Inicializar como array vacío, siempre se cargará por AJAX
@@ -906,6 +907,5 @@ function ejecutarGenerarReporteDocumentoCompra() {
 
         /*]]>*/
     </script>
-</section>
-</body>
+</th:block>
 </html>
