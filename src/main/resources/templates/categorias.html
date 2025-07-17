@@ -237,19 +237,19 @@
               // 2) (Opcional) Adjunta validaciones en tiempo real
               // p.ej. $('#nombreCategoria').on('input', () => validarNombreProducto());
 
-              // 3) Captura el submit
-              $('#formCategoria')
-                .off('submit')
-                .on('submit', async function(e) {
-                  e.preventDefault();
-                  const formIsValid = await validarFormularioProducto();
-                  if (formIsValid) {
-                    guardarProductoAjax($(this));
-                  } else {
-                    console.log("Formulario de categoria inválido. No se envía.");
-                    mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
-                  }
-                });
+              // 2) Captura el submit del form de categoría
+                $('#formCategoria')
+                  .off('submit')
+                  .on('submit', async function(e) {
+                    e.preventDefault();
+                    // usa el validador de categoría, no el de producto
+                    if (await validarFormularioCategoria()) {
+                      // llama a la función AJAX de categoría
+                      guardarCategoriaAjax($(this));
+                    } else {
+                      mostrarNotificacion("error", "Por favor, corrige los errores en el formulario de categoría.");
+                      }
+                   });
 
               // 4) Mostrar modal
               $('#categoriaModal').modal('show');
