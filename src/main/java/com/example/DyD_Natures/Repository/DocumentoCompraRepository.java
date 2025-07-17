@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DocumentoCompraRepository extends JpaRepository<DocumentoCompra, Integer>, JpaSpecificationExecutor<DocumentoCompra> { // Añade JpaSpecificationExecutor
@@ -24,4 +25,7 @@ public interface DocumentoCompraRepository extends JpaRepository<DocumentoCompra
             "GROUP BY MONTH(dc.fechaRegistro) " +
             "ORDER BY month")
     List<Object[]> findTotalPurchasesByMonthForYear(@Param("year") int year);
+
+    Optional<DocumentoCompra> findByNumDocumento(String numDocumento);
+
 }
