@@ -2,12 +2,16 @@ package com.example.DyD_Natures.Model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.time.LocalDateTime; // Importar LocalDateTime
 
+@Data
 @Entity
 @Table(name = "venta")
 public class Venta {
@@ -199,4 +203,13 @@ public class Venta {
     public int hashCode() {
         return Objects.hash(idVenta);
     }
+
+    // --- Nuevos campos para auditoría de anulación ---
+    @Column(name = "fecha_anulacion")
+    private LocalDateTime fechaAnulacion; // Fecha y hora exacta de la anulación
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_anulacion")
+    private Usuario usuarioAnulacion; // Usuario que realizó la anulación
+    // --- Fin nuevos campos ---
 }
