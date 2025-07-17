@@ -3,6 +3,7 @@ package com.example.DyD_Natures.Controller;
 import com.example.DyD_Natures.Model.Categoria;
 import com.example.DyD_Natures.Dto.CategoriaFilterDTO; // Importar
 import com.example.DyD_Natures.Service.CategoriaService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +36,8 @@ public class CategoriaController {
      * @return El nombre de la vista (categorias.html).
      */
     @GetMapping
-    public String listarCategorias(Model model) {
+    public String listarCategorias(HttpServletRequest request, Model model) {
+        model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("categorias", categoriaService.listarCategoriasActivas());
         return "categorias";
     }
