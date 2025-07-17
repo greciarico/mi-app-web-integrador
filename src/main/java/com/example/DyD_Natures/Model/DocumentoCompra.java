@@ -3,10 +3,13 @@ package com.example.DyD_Natures.Model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonManagedReference; // Importar
+import lombok.Data;
 
+@Data
 @Entity
 @Table(name = "documento_compra")
 public class DocumentoCompra {
@@ -123,4 +126,13 @@ public class DocumentoCompra {
         this.detalleCompras.remove(detalle);
         detalle.setDocumentoCompra(null);
     }
+    // --- Nuevos campos para auditoría de anulación ---
+    @Column(name = "fecha_anulacion")
+    private LocalDateTime fechaAnulacion; // Fecha y hora exacta de la anulación
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_anulacion") // Asegúrate de que esta columna exista en tu DB
+    private Usuario usuarioAnulacion; // Usuario que realizó la anulación
+    // --- Fin nuevos campos ---
+
 }
