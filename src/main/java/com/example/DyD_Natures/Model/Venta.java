@@ -1,6 +1,7 @@
 package com.example.DyD_Natures.Model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore; // Importar JsonIgnore
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Objects;
 import java.time.LocalDateTime; // Importar LocalDateTime
 
-@Data
+@Data // Lombok genera getters, setters, equals, hashCode y toString
 @Entity
 @Table(name = "venta")
 public class Venta {
@@ -62,6 +63,13 @@ public class Venta {
             foreignKey = @ForeignKey(name = "fk_venta_igv"))
     private Igv igvEntity;
 
+    // --- NUEVO CAMPO: Relación con TurnoCaja ---
+    @ManyToOne(fetch = FetchType.LAZY) // Usar LAZY para evitar cargar el turno si no es necesario
+    @JoinColumn(name = "id_turno_caja", // Nombre de la columna FK en la tabla 'venta'
+            foreignKey = @ForeignKey(name = "fk_venta_turno_caja")) // Nombre de la clave foránea
+    @JsonIgnore // <--- ¡IMPORTANTE! AÑADIR ESTA ANOTACIÓN PARA EVITAR ERRORES DE SERIALIZACIÓN
+    private TurnoCaja turnoCaja; // Objeto TurnoCaja asociado a esta venta
+
     // --- RELACIÓN CON DETALLES ---
     // @JsonManagedReference evita problemas de bucles infinitos al convertir a JSON.
     // FetchType.LAZY es una buena práctica para mejorar el rendimiento.
@@ -72,103 +80,20 @@ public class Venta {
     @Column(name = "estado", nullable = true)
     private Byte estado = 1;
 
+    // Nuevos campos para auditoría de anulación
+    @Column(name = "fecha_anulacion")
+    private LocalDateTime fechaAnulacion; // Fecha y hora exacta de la anulación
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_anulacion")
+    private Usuario usuarioAnulacion; // Usuario que realizó la anulación
+    // --- Fin nuevos campos ---
+
     public Venta() {
     }
 
-    // --- Getters y Setters ---
-
-    public Integer getIdVenta() {
-        return idVenta;
-    }
-
-    public void setIdVenta(Integer idVenta) {
-        this.idVenta = idVenta;
-    }
-
-    public BigDecimal getIgv() {
-        return igv;
-    }
-
-    public void setIgv(BigDecimal igv) {
-        this.igv = igv;
-    }
-
-    public BigDecimal getTasa() {
-        return tasa;
-    }
-
-    public void setTasa(BigDecimal tasa) {
-        this.tasa = tasa;
-    }
-
-    public LocalDate getFechaRegistro() {
-        return fechaRegistro;
-    }
-
-    public void setFechaRegistro(LocalDate fechaRegistro) {
-        this.fechaRegistro = fechaRegistro;
-    }
-
-    public Cliente getCliente() {
-        return cliente;
-    }
-
-    public void setCliente(Cliente cliente) {
-        this.cliente = cliente;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
-
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
-        this.total = total;
-    }
-
-    public String getTipoDocumento() {
-        return tipoDocumento;
-    }
-
-    public void setTipoDocumento(String tipoDocumento) {
-        this.tipoDocumento = tipoDocumento;
-    }
-
-    public String getNumDocumento() {
-        return numDocumento;
-    }
-
-    public void setNumDocumento(String numDocumento) {
-        this.numDocumento = numDocumento;
-    }
-
-    public String getTipoPago() {
-        return tipoPago;
-    }
-
-    public void setTipoPago(String tipoPago) {
-        this.tipoPago = tipoPago;
-    }
-
-    public Igv getIgvEntity() {
-        return igvEntity;
-    }
-
-    public void setIgvEntity(Igv igvEntity) {
-        this.igvEntity = igvEntity;
-    }
-
-    public List<DetalleVenta> getDetalleVentas() {
-        return detalleVentas;
-    }
-
+    // El resto de getters y setters son generados por Lombok (@Data).
+    // Solo se mantiene el setter de detalleVentas si tiene lógica personalizada.
     public void setDetalleVentas(List<DetalleVenta> detalleVentas) {
         if (this.detalleVentas == null) {
             this.detalleVentas = new ArrayList<>();
@@ -183,14 +108,6 @@ public class Venta {
         }
     }
 
-    public Byte getEstado() {
-        return estado;
-    }
-
-    public void setEstado(Byte estado) {
-        this.estado = estado;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -203,13 +120,4 @@ public class Venta {
     public int hashCode() {
         return Objects.hash(idVenta);
     }
-
-    // --- Nuevos campos para auditoría de anulación ---
-    @Column(name = "fecha_anulacion")
-    private LocalDateTime fechaAnulacion; // Fecha y hora exacta de la anulación
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario_anulacion")
-    private Usuario usuarioAnulacion; // Usuario que realizó la anulación
-    // --- Fin nuevos campos ---
 }
