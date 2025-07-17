@@ -28,4 +28,17 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Integer>, 
 
     // Método para verificar si existe una categoría con un nombre dado, excluyendo un ID específico
     boolean existsByNombreCategoriaAndIdCategoriaIsNot(String nombreCategoria, Integer idCategoria);
+    /**
+     * Comprueba si existe una categoría con este nombre y estado distinto de 2 (no eliminada).
+     */
+    boolean existsByNombreCategoriaAndEstadoNot(String nombreCategoria, Byte estadoExcluido);
+
+    /**
+     * Igual que el anterior, pero excluye además la propia categoría (para editar).
+     */
+    boolean existsByNombreCategoriaAndIdCategoriaIsNotAndEstadoNot(
+            String nombreCategoria,
+            Integer idCategoria,
+            Byte estadoExcluido
+    );
 }
