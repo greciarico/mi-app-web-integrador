@@ -69,4 +69,29 @@ public interface ClienteRepository extends JpaRepository<Cliente, Integer>, JpaS
     // Devuelve únicamente los clientes con estado = 1
     List<Cliente> findByEstado(Byte estado);
 
+    // --- Nuevos métodos que ignoran estado = 2 ---
+    /** Para creación: ¿existe un cliente (estado ≠ 2) con este DNI? */
+    boolean existsByDniAndEstadoNot(String dni, Byte estadoExcluido);
+
+    /** Para edición: ¿existe otro cliente distinto a idCliente con este DNI y estado ≠ 2? */
+    boolean existsByDniAndIdClienteIsNotAndEstadoNot(
+            String dni,
+            Integer idCliente,
+            Byte estadoExcluido
+    );
+
+    /** Igual para RUC: creación */
+    boolean existsByRucAndEstadoNot(String ruc, Byte estadoExcluido);
+
+    /** Igual para RUC: edición */
+    boolean existsByRucAndIdClienteIsNotAndEstadoNot(
+            String ruc,
+            Integer idCliente,
+            Byte estadoExcluido
+    );
+
+    // Si necesitas buscar un Cliente por DNI/RUC ignorando eliminados:
+    Optional<Cliente> findByDniAndEstadoNot(String dni, Byte estadoExcluido);
+    Optional<Cliente> findByRucAndEstadoNot(String ruc, Byte estadoExcluido);
+
 }
