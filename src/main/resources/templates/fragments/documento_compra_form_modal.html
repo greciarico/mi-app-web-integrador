@@ -14,27 +14,18 @@
             <input type="hidden" id="fechaRegistro" name="fechaRegistro"
                    th:value="*{fechaRegistro != null ? #temporals.format(fechaRegistro, 'yyyy-MM-dd') : ''}"/>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="tipoDocumento">Tipo Documento:</label>
-                        <select class="form-control" id="tipoDocumento" name="tipoDocumento" th:field="*{tipoDocumento}">
-                            <option value="">-- Seleccione --</option>
-                            <option value="Factura">Factura</option>
-                            <option value="Boleta">Boleta</option>
-                            <option value="Ticket">Ticket</option>
-                            <option value="Recibo">Recibo</option>
-                        </select>
-                        <span class="text-danger" id="tipoDocumentoError"></span>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="numDocumento">N° Documento:</label>
-                        <input type="text" class="form-control" id="numDocumento" name="numDocumento" th:field="*{numDocumento}" placeholder="Número de documento">
-                        <span class="text-danger" id="numDocumentoError"></span>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label for="tipoDocumentoSelect">Tipo Documento</label>
+                <select class="form-control" id="tipoDocumentoSelect" th:field="*{tipoDocumento}" required>
+                    <option value="">Seleccione</option>
+                    <option value="BOLETA">BOLETA</option>
+                    <option value="FACTURA">FACTURA</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="numDocumento">N° Documento</label>
+                <input type="text" class="form-control bg-light" id="numDocumento" th:field="*{numDocumento}" readonly>
             </div>
 
             <div class="row">
