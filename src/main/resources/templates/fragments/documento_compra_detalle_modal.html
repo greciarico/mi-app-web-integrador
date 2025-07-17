@@ -18,7 +18,17 @@
             <p><strong>Tipo de Documento:</strong> <span th:text="${documentoCompra.tipoDocumento}"></span></p>
             <p><strong>Número de Documento:</strong> <span th:text="${documentoCompra.numDocumento}"></span></p>
             <p><strong>Total:</strong> <span th:text="${#numbers.formatCurrency(documentoCompra.total)}"></span></p>
+            <p><strong>Estado:</strong>
+                <span th:if="${documentoCompra.estado == 1}" class="badge badge-success">Activo</span>
+                <span th:if="${documentoCompra.estado == 0}" class="badge badge-danger">Anulado</span>
+            </p>
 
+            <div th:if="${documentoCompra.estado == 0}">
+                <hr>
+                <h5>Información de Anulación</h5>
+                <p><strong>Fecha de Anulación:</strong> <span th:text="${#temporals.format(documentoCompra.fechaAnulacion, 'dd-MM-yyyy HH:mm')}"></span></p>
+                <p><strong>Anulado por:</strong> <span th:text="${documentoCompra.usuarioAnulacion?.nombre + ' ' + documentoCompra.usuarioAnulacion?.apPaterno}"></span></p>
+            </div>
             <hr>
 
             <h4>Detalle de la Compra</h4>
