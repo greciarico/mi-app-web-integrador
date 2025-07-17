@@ -207,6 +207,29 @@
             </ul>
           </li>
 
+          <!-- CAJA -->
+          <li class="nav-item has-treeview" sec:authorize="hasAuthority('VER_CAJA')"
+              th:classappend="${(currentUri.startsWith('/caja'))} ? 'menu-open' : ''">
+            <a href="#" class="nav-link" th:classappend="${(currentUri.startsWith('/caja'))} ? 'active' : ''">
+              <i class="nav-icon fas fa-shopping-cart"></i>
+              <p>Caja <i class="right fas fa-angle-left"></i></p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a th:href="@{/a-c-caja}" class="nav-link" th:classappend="${currentUri.startsWith('/a-c-caja')} ? 'menu-open'">
+                  <i class="fas fa-receipt nav-icon"></i><p>A/C Caja</p>
+                </a>
+              </li>
+            </ul>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a th:href="@{/historial-caja}" class="nav-link" th:classappend="${currentUri.startsWith('/historial-caja')} ? 'menu-open'">
+                  <i class="fas fa-receipt nav-icon"></i><p>Historial de Caja</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+
           <!-- INFO EMPRESA -->
           <li class="nav-item" sec:authorize="hasAuthority('VER_INFO_EMPRESA')"
               th:classappend="${currentUri.startsWith('/informacion-empresa')} ? 'menu-open' : ''">
