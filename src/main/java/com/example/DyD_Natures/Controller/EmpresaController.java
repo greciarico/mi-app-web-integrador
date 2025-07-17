@@ -2,6 +2,7 @@ package com.example.DyD_Natures.Controller;
 
 import com.example.DyD_Natures.Model.Empresa;
 import com.example.DyD_Natures.Service.EmpresaService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,8 @@ public class EmpresaController {
     private EmpresaService empresaService;
 
     @GetMapping
-    public String mostrarInformacionEmpresa(Model model) {
+    public String mostrarInformacionEmpresa(HttpServletRequest request, Model model) {
+        model.addAttribute("currentUri", request.getRequestURI());
         Optional<Empresa> empresaOpt = empresaService.obtenerInformacionEmpresa();
         Empresa empresa = empresaOpt.orElse(new Empresa()); // Si no existe, crea una nueva instancia
         // CAMBIO CLAVE: Si es una nueva empresa, inicializa fechaRegistro aquí para el frontend
