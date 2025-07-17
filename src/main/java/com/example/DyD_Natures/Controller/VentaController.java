@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.password.PasswordEncoder; // Importar
 
 import java.io.IOException; // Importar
 
@@ -41,6 +42,8 @@ public class VentaController {
     private TipoClienteService tipoClienteService;
     @Autowired
     private UsuarioService usuarioService;
+    @Autowired
+    private PasswordEncoder passwordEncoder; // Inyectar PasswordEncoder
     /**
      * Muestra la vista principal de Ventas.
      * @param model El modelo para pasar datos a la vista.
@@ -244,27 +247,65 @@ public class VentaController {
      * @param id El ID de la venta.
      * @return ResponseEntity con el resultado.
      */
-    @PostMapping("/cancelar/{id}") // <--- CAMBIO: Ahora acepta POST
-    public ResponseEntity<Map<String, String>> cancelarVenta(@PathVariable("id") Integer id) {
-        Map<String, String> response = new HashMap<>(); // Declarado una vez aquí
+    // METODO ACTUALIZADO PARA CANCELAR VENTA
+    @PostMapping("/cancelar/{id}")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> cancelarVenta(@PathVariable("id") Integer id,
+                                                             @RequestBody Map<String, String> requestBody) {
+        Map<String, String> response = new HashMap<>();
+        String adminPassword = requestBody.get("password");
+
+        if (adminPassword == null || adminPassword.isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "La contraseña del administrador es obligatoria para anular la venta.");
+            return ResponseEntity.badRequest().body(response);
+        }
 
         try {
-            ventaService.cancelarVenta(id); // Llama al método del servicio
+            String currentUserName = SecurityContextHolder.getContext().getAuthentication().getName();
+            Usuario currentUser = usuarioService.obtenerUsuarioPorDni(currentUserName)
+                    .orElseThrow(() -> new UsernameNotFoundException("Usuario autenticado no encontrado."));
+
+            // *** CAMBIO AQUÍ: Usar getRolUsuario().getTipoRol() ***
+            // Verificar si el usuario tiene el rol de ADMINISTRADOR
+            boolean isAdmin = currentUser.getRolUsuario() != null &&
+                    "ADMINISTRADOR".equalsIgnoreCase(currentUser.getRolUsuario().getTipoRol());
+
+            if (!isAdmin) {
+                response.put("status", "error");
+                response.put("message", "Solo los usuarios con rol de ADMINISTRADOR pueden anular ventas.");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            // *** CAMBIO AQUÍ: Usar getContrasena() ***
+            // Validar la contraseña del usuario administrador
+            if (!passwordEncoder.matches(adminPassword, currentUser.getContrasena())) {
+                response.put("status", "error");
+                response.put("message", "Contraseña de administrador incorrecta.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            ventaService.cancelarVenta(id, currentUser);
+
             response.put("status", "success");
             response.put("message", "Venta cancelada exitosamente y stock de productos revertido!");
-            return ResponseEntity.ok(response); // 200 OK
+            return ResponseEntity.ok(response);
         } catch (EntityNotFoundException e) {
             response.put("status", "error");
             response.put("message", "Error al cancelar la Venta: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response); // 404 Not Found
-        } catch (IllegalArgumentException  e) { // Manejo de errores de negocio
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (IllegalArgumentException e) {
             response.put("status", "error");
             response.put("message", "Error de negocio al cancelar la Venta: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(response); // 409 Conflict (o 400 Bad Request)
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        } catch (UsernameNotFoundException e) {
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", "Error interno al cancelar la Venta: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response); // 500 Internal Server Error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
