@@ -54,5 +54,16 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer>, JpaS
     @Query("SELECT COUNT(u) FROM Usuario u WHERE u.estado = 1") // Asumo estado = 1 para activos
     Long countAllActiveUsers();
 
+    /** Existe un usuario (estado ≠ 2) con este DNI? */
+    boolean existsByDniAndEstadoNot(String dni, Byte estadoExcluido);
 
+    /** Existe otro usuario distinto a idUsuario con este DNI y estado ≠ 2? */
+    boolean existsByDniAndIdUsuarioIsNotAndEstadoNot(
+            String dni,
+            Integer idUsuario,
+            Byte estadoExcluido
+    );
+
+    /** Si lo usas también para lectura: */
+    Optional<Usuario> findByDniAndEstadoNot(String dni, Byte estadoExcluido);
 }
