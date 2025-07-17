@@ -44,21 +44,26 @@ public class UsuarioService {
         }
     }
     public Optional<Usuario> obtenerUsuarioPorDni(String dni) {
-        return usuarioRepository.findByDni(dni);
+        // Sólo traerá usuarios cuyo estado ≠ 2
+        return usuarioRepository.findByDniAndEstadoNot(dni, (byte)2);
     }
 
     /**
-     * Verifica si un DNI ya existe en la base de datos, excluyendo un ID de usuario específico.
-     * Este método es usado principalmente por el endpoint AJAX /usuarios/checkDni.
-     * @param dni El número de DNI a verificar.
-     * @param idUsuario El ID del usuario a excluir de la búsqueda (null para nuevas creaciones).
-     * @return true si existe otro usuario con ese DNI, false en caso contrario.
+     * Verifica si un DNI ya existe (ignorando registros con estado = 2).
+     * @param dni El DNI a verificar.
+     * @param idUsuario Si no es null, excluye ese mismo ID (para edición).
      */
     public boolean existsByDniExcludingId(String dni, Integer idUsuario) {
+        Byte ELIMINADO = (byte) 2;
         if (idUsuario != null) {
-            return usuarioRepository.existsByDniAndIdUsuarioIsNot(dni, idUsuario);
+            // Edición: ignora al propio usuario y a los eliminados
+            return usuarioRepository
+                    .existsByDniAndIdUsuarioIsNotAndEstadoNot(dni, idUsuario, ELIMINADO);
+        } else {
+            // Creación: ignora sólo los eliminados
+            return usuarioRepository
+                    .existsByDniAndEstadoNot(dni, ELIMINADO);
         }
-        return usuarioRepository.existsByDni(dni);
     }
 
     /**
