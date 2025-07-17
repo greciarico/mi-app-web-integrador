@@ -48,32 +48,35 @@ public class VentaService {
     @Autowired
     private IgvRepository igvRepository;
 
+    @Autowired
+    private TurnoCajaService turnoCajaService; // INYECTAR TurnoCajaService
+
     // --- Métodos de Lectura ---
 
     @Transactional(readOnly = true)
-public List<Venta> listarVentas() {
-    // 1) Recuperar DNI del usuario logueado
-    String dni = SecurityContextHolder.getContext()
-            .getAuthentication()
-            .getName();
+    public List<Venta> listarVentas() {
+        // 1) Recuperar DNI del usuario logueado
+        String dni = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
 
-    // 2) Traer la entidad Usuario excluyendo los eliminados
-    Usuario currentUser = usuarioRepository
-            .findByDniAndEstadoNot(dni, (byte) 2)
-            .orElseThrow(() ->
-                    new UsernameNotFoundException("Usuario no encontrado con DNI activo: " + dni));
+        // 2) Traer la entidad Usuario excluyendo los eliminados
+        Usuario currentUser = usuarioRepository
+                .findByDniAndEstadoNot(dni, (byte) 2)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("Usuario no encontrado con DNI activo: " + dni));
 
-    // 3) Comprobar rol
-    String tipoRol = currentUser.getRolUsuario().getTipoRol();
-    boolean isAdmin = "Administrador".equalsIgnoreCase(tipoRol);
+        // 3) Comprobar rol
+        String tipoRol = currentUser.getRolUsuario().getTipoRol();
+        boolean isAdmin = "Administrador".equalsIgnoreCase(tipoRol);
 
-    // 4) Filtrar según rol
-    if (isAdmin) {
-        return ventaRepository.findAll();
-    } else {
-        return ventaRepository.findAllByUsuario_IdUsuario(currentUser.getIdUsuario());
+        // 4) Filtrar según rol
+        if (isAdmin) {
+            return ventaRepository.findAll();
+        } else {
+            return ventaRepository.findAllByUsuario_IdUsuario(currentUser.getIdUsuario());
+        }
     }
-}
 
     @Transactional(readOnly = true)
     public Optional<Venta> obtenerVentaPorId(Integer id) {
@@ -96,11 +99,25 @@ public List<Venta> listarVentas() {
                 throw new IllegalArgumentException("No se pudo determinar el usuario autenticado para la venta.");
             }
             ventaToManage.setUsuario(ventaForm.getUsuario());
+
+            // --- NUEVA LÓGICA: ASOCIAR VENTA AL TURNO DE CAJA ACTIVO ---
+            Optional<TurnoCaja> turnoAbierto = turnoCajaService.getTurnoCajaAbierto(ventaToManage.getUsuario());
+            if (turnoAbierto.isPresent()) {
+                ventaToManage.setTurnoCaja(turnoAbierto.get());
+            } else {
+                // Opcional: Lanzar una excepción si una venta DEBE tener un turno de caja
+                // throw new IllegalStateException("No hay un turno de caja abierto para el usuario actual. No se puede registrar la venta.");
+                // O simplemente la venta se guarda sin turno de caja (nullable = true en Venta.turnoCaja)
+                System.out.println("Advertencia: No se encontró un turno de caja abierto para el usuario " + ventaToManage.getUsuario().getNombre() + ". La venta se guardará sin asociar a un turno.");
+            }
+            // --- FIN NUEVA LÓGICA ---
+
         } else {
             ventaToManage = ventaRepository.findById(ventaForm.getIdVenta())
                     .orElseThrow(() -> new RuntimeException("Venta con ID " + ventaForm.getIdVenta() + " no encontrada para editar."));
             // (opcional) podrías permitir cambiar el usuario aquí, si quisieras:
             // ventaToManage.setUsuario(ventaForm.getUsuario());
+            // Si es una edición, no se cambia el turno de caja.
         }
 
         // 2) Actualizar las propiedades principales de la venta
@@ -140,10 +157,15 @@ public List<Venta> listarVentas() {
             BigDecimal totalDetalle = price.multiply(BigDecimal.valueOf(qty));
 
             // actualizar stock
-            if (prod.getStock() < qty) {
-                throw new RuntimeException("Stock insuficiente para el producto: " + prod.getNombre());
+            // Si es una venta nueva, descontar stock. Si es edición, manejar diferencias.
+            // Por simplicidad, aquí siempre descontamos. Una lógica más robusta manejaría reversiones en edición.
+            if (ventaForm.getIdVenta() == null) { // Solo descontar stock en ventas nuevas
+                if (prod.getStock() < qty) {
+                    throw new RuntimeException("Stock insuficiente para el producto: " + prod.getNombre());
+                }
+                updateProductStock(prod.getIdProducto(), -qty);
             }
-            updateProductStock(prod.getIdProducto(), -qty);
+
 
             // montar detalle
             DetalleVenta detalle = new DetalleVenta();
@@ -151,14 +173,20 @@ public List<Venta> listarVentas() {
             detalle.setCantidad(qty);
             detalle.setPrecioUnitario(price);
             detalle.setTotal(totalDetalle);
-            detalle.setVenta(ventaToManage);
+            detalle.setVenta(ventaToManage); // Asegura la relación bidireccional
 
             detallesToSave.add(detalle);
             currentSubtotal = currentSubtotal.add(totalDetalle);
         }
 
-        ventaToManage.getDetalleVentas().clear();
+        // Limpiar y añadir nuevos detalles para manejar el CascadeType.ALL + orphanRemoval
+        if (ventaToManage.getDetalleVentas() != null) {
+            ventaToManage.getDetalleVentas().clear();
+        } else {
+            ventaToManage.setDetalleVentas(new ArrayList<>());
+        }
         ventaToManage.getDetalleVentas().addAll(detallesToSave);
+
 
         // 5) Calcular IGV y total final
         BigDecimal porcentajeIgv = igvEntity.getTasa();           // ej. 0.18
@@ -625,5 +653,7 @@ public List<Venta> listarVentas() {
         if (client.getApMaterno() != null) fullName += " " + client.getApMaterno().trim();
         return fullName.trim().isEmpty() ? "Cliente Desconocido" : fullName.trim();
     }
+
+
 
 }
