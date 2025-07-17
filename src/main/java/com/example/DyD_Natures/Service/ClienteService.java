@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 public class ClienteService {
@@ -33,6 +34,9 @@ public class ClienteService {
 
     private static final Integer TIPO_NATURAL_ID = 1;
     private static final Integer TIPO_JURIDICA_ID = 2;
+
+    private static final byte ACTIVO = 1;
+    private static final byte ELIMINADO = 2;
 
     public List<Cliente> listarClientes(Integer idTipoCliente, String searchTerm) {
         return clienteRepository.findFilteredClientes(idTipoCliente, searchTerm);
@@ -56,70 +60,111 @@ public class ClienteService {
 
     @Transactional
     public Cliente guardarCliente(Cliente cliente) {
+        // 1) Si es creación, fijar fecha y estado
         if (cliente.getIdCliente() == null) {
             cliente.setFechaRegistro(LocalDate.now());
-            cliente.setEstado((byte) 1);
+            cliente.setEstado(ACTIVO);
         }
 
-        Optional<TipoCliente> tipoClienteOpt = tipoClienteRepository.findById(cliente.getTipoCliente().getIdRolCliente());
-        if (tipoClienteOpt.isEmpty()) {
-            throw new RuntimeException("Tipo de Cliente no encontrado con ID: " + cliente.getTipoCliente().getIdRolCliente());
-        }
-        cliente.setTipoCliente(tipoClienteOpt.get());
+        // 2) Cargar el TipoCliente
+        TipoCliente tipo = tipoClienteRepository
+                .findById(cliente.getTipoCliente().getIdRolCliente())
+                .orElseThrow(() -> new RuntimeException(
+                        "Tipo de Cliente no encontrado con ID: " +
+                                cliente.getTipoCliente().getIdRolCliente()
+                ));
+        cliente.setTipoCliente(tipo);
 
-        if (cliente.getTipoCliente().getIdRolCliente().equals(TIPO_NATURAL_ID)) {
+        // 3) Validaciones según tipo
+        if (TIPO_NATURAL_ID.equals(tipo.getIdRolCliente())) {
+            // Persona natural
             cliente.setRuc(null);
             cliente.setRazonSocial(null);
             cliente.setNombreComercial(null);
 
-            if (cliente.getDni() == null || cliente.getDni().isEmpty() ||
-                    cliente.getNombre() == null || cliente.getNombre().isEmpty() ||
-                    cliente.getApPaterno() == null || cliente.getApPaterno().isEmpty() ||
-                    cliente.getApMaterno() == null || cliente.getApMaterno().isEmpty()) {
-                throw new IllegalArgumentException("Para persona natural, DNI, nombre y apellidos son obligatorios.");
+            if (Stream.of(cliente.getDni(), cliente.getNombre(),
+                            cliente.getApPaterno(), cliente.getApMaterno())
+                    .anyMatch(v -> v == null || v.isBlank())) {
+                throw new IllegalArgumentException(
+                        "Para persona natural, DNI, nombre y apellidos son obligatorios."
+                );
             }
+
+            // Chequeo de DNI único, ignorando eliminados
             if (cliente.getIdCliente() == null) {
-                if (clienteRepository.existsByDni(cliente.getDni())) {
-                    throw new IllegalArgumentException("El DNI ya está registrado para otra persona natural.");
+                // creación
+                if (clienteRepository.existsByDniAndEstadoNot(
+                        cliente.getDni(), ELIMINADO)) {
+                    throw new IllegalArgumentException(
+                            "El DNI ya está registrado para otra persona natural."
+                    );
                 }
             } else {
-                if (clienteRepository.existsByDniAndIdClienteIsNot(cliente.getDni(), cliente.getIdCliente())) {
-                    throw new IllegalArgumentException("El DNI ya está registrado para otra persona natural.");
+                // edición (excluir al propio registro)
+                if (clienteRepository.existsByDniAndIdClienteIsNotAndEstadoNot(
+                        cliente.getDni(),
+                        cliente.getIdCliente(),
+                        ELIMINADO)) {
+                    throw new IllegalArgumentException(
+                            "El DNI ya está registrado para otra persona natural."
+                    );
                 }
             }
-        } else if (cliente.getTipoCliente().getIdRolCliente().equals(TIPO_JURIDICA_ID)) {
+
+        } else if (TIPO_JURIDICA_ID.equals(tipo.getIdRolCliente())) {
+            // Persona jurídica
             cliente.setDni(null);
             cliente.setNombre(null);
             cliente.setApPaterno(null);
             cliente.setApMaterno(null);
 
-            if (cliente.getRuc() == null || cliente.getRuc().isEmpty() ||
-                    cliente.getRazonSocial() == null || cliente.getRazonSocial().isEmpty() ||
-                    cliente.getNombreComercial() == null || cliente.getNombreComercial().isEmpty()) {
-                throw new IllegalArgumentException("Para persona jurídica, RUC, razón social y nombre comercial son obligatorios.");
+            if (Stream.of(cliente.getRuc(), cliente.getRazonSocial(),
+                            cliente.getNombreComercial())
+                    .anyMatch(v -> v == null || v.isBlank())) {
+                throw new IllegalArgumentException(
+                        "Para persona jurídica, RUC, razón social y nombre comercial son obligatorios."
+                );
             }
+
+            // Chequeo de RUC único, ignorando eliminados
             if (cliente.getIdCliente() == null) {
-                if (clienteRepository.existsByRuc(cliente.getRuc())) {
-                    throw new IllegalArgumentException("El RUC ya está registrado para otra persona jurídica.");
+                if (clienteRepository.existsByRucAndEstadoNot(
+                        cliente.getRuc(), ELIMINADO)) {
+                    throw new IllegalArgumentException(
+                            "El RUC ya está registrado para otra persona jurídica."
+                    );
                 }
             } else {
-                if (clienteRepository.existsByRucAndIdClienteIsNot(cliente.getRuc(), cliente.getIdCliente())) {
-                    throw new IllegalArgumentException("El RUC ya está registrado para otra persona jurídica.");
+                if (clienteRepository.existsByRucAndIdClienteIsNotAndEstadoNot(
+                        cliente.getRuc(),
+                        cliente.getIdCliente(),
+                        ELIMINADO)) {
+                    throw new IllegalArgumentException(
+                            "El RUC ya está registrado para otra persona jurídica."
+                    );
                 }
             }
+
         } else {
             throw new IllegalArgumentException("Tipo de cliente inválido.");
         }
 
-        if (cliente.getDireccion() == null || cliente.getDireccion().isEmpty()) {
+        // 4) Validaciones adicionales
+        if (cliente.getDireccion() == null || cliente.getDireccion().isBlank()) {
             throw new IllegalArgumentException("La dirección es obligatoria.");
         }
-        if (cliente.getTelefono() != null && !cliente.getTelefono().isEmpty() && !cliente.getTelefono().matches("^\\d{9}$")) {
-            throw new IllegalArgumentException("El teléfono debe tener 9 dígitos numéricos.");
+        if (cliente.getTelefono() != null
+                && !cliente.getTelefono().isBlank()
+                && !cliente.getTelefono().matches("^\\d{9}$")) {
+            throw new IllegalArgumentException(
+                    "El teléfono debe tener 9 dígitos numéricos."
+            );
         }
 
+        // 5) Guardar
         return clienteRepository.save(cliente);
     }
+
 
     public void eliminarCliente(Integer id) {
         Optional<Cliente> clienteOpt = clienteRepository.findById(id);
@@ -133,12 +178,26 @@ public class ClienteService {
     }
 
     // NUEVO: Métodos para verificar unicidad de DNI y RUC expuestos por el servicio
+    /** Para AJAX /checkDni */
     public boolean existsByDniExcludingCurrent(String dni, Integer idCliente) {
-        return clienteRepository.existsByDniAndIdClienteIsNot(dni, idCliente);
+        if (idCliente != null) {
+            return clienteRepository
+                    .existsByDniAndIdClienteIsNotAndEstadoNot(dni, idCliente, ELIMINADO);
+        } else {
+            return clienteRepository
+                    .existsByDniAndEstadoNot(dni, ELIMINADO);
+        }
     }
 
+    /** Para AJAX /checkRuc */
     public boolean existsByRucExcludingCurrent(String ruc, Integer idCliente) {
-        return clienteRepository.existsByRucAndIdClienteIsNot(ruc, idCliente);
+        if (idCliente != null) {
+            return clienteRepository
+                    .existsByRucAndIdClienteIsNotAndEstadoNot(ruc, idCliente, ELIMINADO);
+        } else {
+            return clienteRepository
+                    .existsByRucAndEstadoNot(ruc, ELIMINADO);
+        }
     }
 
     // Si también necesitas verificar para nuevos registros sin exclusión de ID
