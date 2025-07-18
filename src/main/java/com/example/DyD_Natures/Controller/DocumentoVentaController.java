@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/documento-venta") // Ruta base para los documentos de venta
+@RequestMapping("/documento-venta") 
 public class DocumentoVentaController {
 
     @Autowired
@@ -32,6 +32,4 @@ public class DocumentoVentaController {
             return ResponseEntity.status(500).body(response);
         }
     }
-
-    // Aquí puedes añadir otros endpoints para gestionar documentos de venta (guardar, ver, etc.)
 }
