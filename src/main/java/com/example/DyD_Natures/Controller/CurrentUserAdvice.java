@@ -18,7 +18,6 @@ public class CurrentUserAdvice {
         if (auth == null || !auth.isAuthenticated()) {
             return null;
         }
-        // auth.getName() es el DNI, porque lo devolviste como username
         return usuarioService.obtenerUsuarioPorDni(auth.getName())
                 .orElse(null);
     }
