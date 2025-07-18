@@ -1,4 +1,4 @@
-package com.example.DyD_Natures.Controller; // Puedes ajustar el paquete si tienes uno específico para 'advice' o 'config'
+package com.example.DyD_Natures.Controller; 
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.ControllerAdvice;
