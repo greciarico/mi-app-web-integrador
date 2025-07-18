@@ -59,7 +59,6 @@ public class ClienteController {
         return clienteService.listarClientes(idTipoCliente, searchTerm);
     }
 
-    // ClienteController
     @GetMapping("/activos")
     @ResponseBody
     public List<Cliente> getActiveClientesJson() {
@@ -139,7 +138,6 @@ public class ClienteController {
     public ResponseEntity<Map<String, Boolean>> checkDni(@RequestParam String dni,
                                                          @RequestParam(required = false) Integer idCliente) {
         Map<String, Boolean> response = new HashMap<>();
-        // CAMBIADO: Llamar al método expuesto por el servicio
         boolean exists = clienteService.existsByDniExcludingCurrent(dni, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
@@ -156,7 +154,6 @@ public class ClienteController {
     public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
                                                          @RequestParam(required = false) Integer idCliente) {
         Map<String, Boolean> response = new HashMap<>();
-        // CAMBIADO: Llamar al método expuesto por el servicio
         boolean exists = clienteService.existsByRucExcludingCurrent(ruc, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
@@ -175,7 +172,6 @@ public class ClienteController {
     @ResponseBody
     public ResponseEntity<?> buscarPorDocumento(@RequestParam String tipoDocumento, @RequestParam String numeroDocumento) {
         System.out.println("DEBUG: Entrando a buscarPorDocumento para tipo: " + tipoDocumento + ", numero: " + numeroDocumento);
-        // ... el resto de tu código
         if ("dni".equalsIgnoreCase(tipoDocumento)) {
             if (numeroDocumento.length() != 8 || !numeroDocumento.matches("\\d+")) {
                 return ResponseEntity.badRequest().body(Map.of("message", "El DNI debe tener 8 dígitos numéricos."));
@@ -201,7 +197,7 @@ public class ClienteController {
         }
     }
     // ===============================================
-    // NUEVOS ENDPOINTS PARA EL REPORTE DE CLIENTES
+    // ENDPOINTS PARA EL REPORTE DE CLIENTES
     // ===============================================
 
     /**
@@ -232,7 +228,7 @@ public class ClienteController {
 
         List<Cliente> clientes = clienteService.buscarClientesPorFiltros(filterDTO);
 
-        Document document = new Document(PageSize.A4.rotate()); // A4 horizontal
+        Document document = new Document(PageSize.A4.rotate()); 
         PdfWriter.getInstance(document, response.getOutputStream());
         document.open();
 
@@ -266,7 +262,7 @@ public class ClienteController {
         if (filterDTO.getTelefono() != null && !filterDTO.getTelefono().isEmpty()) {
             filtrosAplicados.append("- Teléfono: ").append(filterDTO.getTelefono()).append("\n");
         }
-        // NUEVO: Mostrar filtro de estado aplicado
+        // Mostrar filtro de estado aplicado
         if (filterDTO.getEstado() != null) {
             String estadoTexto = "";
             if (filterDTO.getEstado() == 1) {
@@ -274,18 +270,16 @@ public class ClienteController {
             } else if (filterDTO.getEstado() == 0) {
                 estadoTexto = "Inactivo";
             } else {
-                // Este caso no debería ocurrir si se elimina la opción de 2 del HTML
                 estadoTexto = "Desconocido/No Reportable";
             }
             filtrosAplicados.append("- Estado: ").append(estadoTexto).append("\n");
         } else {
-            // Si el estado es null, significa "Todos (Activos e Inactivos)"
             filtrosAplicados.append("- Estado: Activos e Inactivos\n");
         }
 
 
-        if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) { // Si solo queda el título
-            filtrosAplicados.append("- Ninguno (Reporte Completo de Clientes)\n"); // CAMBIADO
+        if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) { 
+            filtrosAplicados.append("- Ninguno (Reporte Completo de Clientes)\n"); 
         }
 
         Paragraph pFiltros = new Paragraph(filtrosAplicados.toString(), fontFilters);
@@ -293,24 +287,21 @@ public class ClienteController {
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
 
-        // Crear la tabla PDF
-        // Columnas: ID, Tipo Cliente, DNI/RUC, Nombre/Razon Social, Teléfono, Dirección, F. Registro, Estado
-        PdfPTable table = new PdfPTable(8); // Aumentar a 8 columnas
+        PdfPTable table = new PdfPTable(8); 
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
 
-        // Ajustar anchos de columnas para incluir el Estado
-        float[] columnWidths = {0.5f, 1f, 1f, 2f, 0.8f, 2f, 1f, 0.8f}; // Añadido ancho para Estado
+        float[] columnWidths = {0.5f, 1f, 1f, 2f, 0.8f, 2f, 1f, 0.8f}; 
         table.setWidths(columnWidths);
 
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 7, BaseColor.BLACK);
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); 
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); 
 
-        String[] headers = {"ID", "Tipo Cliente", "Doc. Identidad", "Nombre/Raz. Social", "Teléfono", "Dirección", "F. Registro", "Estado"}; // Añadir "Estado"
+        String[] headers = {"ID", "Tipo Cliente", "Doc. Identidad", "Nombre/Raz. Social", "Teléfono", "Dirección", "F. Registro", "Estado"}; 
         for (String header : headers) {
             cell = new PdfPCell(new Phrase(header, fontHeader));
             cell.setBackgroundColor(new BaseColor(24, 61, 0));
@@ -322,7 +313,7 @@ public class ClienteController {
 
         if (clientes.isEmpty()) {
             cell = new PdfPCell(new Phrase("No se encontraron registros de clientes con los filtros aplicados.", fontContent));
-            cell.setColspan(8); // Colspan ajustado a 8
+            cell.setColspan(8); 
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(10);
             table.addCell(cell);
@@ -343,8 +334,8 @@ public class ClienteController {
 
                 // Nombre / Razón Social
                 String nombreRazonSocial = "N/A";
-                if (cliente.getTipoCliente() != null) { // Asegurar que tipoCliente no sea null
-                    if (cliente.getTipoCliente().getIdRolCliente() == 1) { // Natural
+                if (cliente.getTipoCliente() != null) { 
+                    if (cliente.getTipoCliente().getIdRolCliente() == 1) { 
                         nombreRazonSocial = String.format("%s %s %s",
                                 Optional.ofNullable(cliente.getNombre()).orElse(""),
                                 Optional.ofNullable(cliente.getApPaterno()).orElse(""),
@@ -360,7 +351,6 @@ public class ClienteController {
                 table.addCell(new Phrase(cliente.getDireccion() != null && !cliente.getDireccion().isEmpty() ? cliente.getDireccion() : "Sin dirección", fontContent));
                 table.addCell(new Phrase(cliente.getFechaRegistro() != null ? cliente.getFechaRegistro().format(formatter) : "N/A", fontContent));
 
-                // NUEVO: Celda para el Estado
                 String estadoTexto;
                 Font estadoFont;
                 if (cliente.getEstado() == 1) {
@@ -370,8 +360,8 @@ public class ClienteController {
                     estadoTexto = "Inactivo";
                     estadoFont = fontContentInactive;
                 } else {
-                    estadoTexto = "Eliminado"; // Aunque no deberíamos llegar aquí si el filtro funciona
-                    estadoFont = fontContent; // O definir un color para "Eliminado" si se diera el caso
+                    estadoTexto = "Eliminado"; 
+                    estadoFont = fontContent; 
                 }
                 table.addCell(new Phrase(estadoTexto, estadoFont));
             }
