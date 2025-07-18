@@ -8,19 +8,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
-@RestController // Indica que este controlador devuelve datos directamente (JSON, XML, etc.)
-@RequestMapping("/api/dashboard") // Prefijo para todos los endpoints en este controlador
+@RestController 
+@RequestMapping("/api/dashboard") 
 public class DashboardApiController {
 
     @Autowired
     private DashboardService dashboardService;
 
-    @GetMapping("/stats") // Este endpoint responderá a GET /api/dashboard/stats para los small boxes
+    @GetMapping("/stats") 
     public Map<String, Object> getDashboardStats(@RequestParam(defaultValue = "monthly") String period) {
         return dashboardService.getDashboardStats(period);
     }
 
-    @GetMapping("/chart-data") // ¡NUEVO! Este endpoint responderá a GET /api/dashboard/chart-data para el gráfico
+    @GetMapping("/chart-data") 
     public Map<String, Object> getChartData() {
         return dashboardService.getSalesPurchasesChartData();
     }
