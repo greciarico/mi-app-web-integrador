@@ -1,7 +1,7 @@
 package com.example.DyD_Natures.Controller;
 
 import com.example.DyD_Natures.Model.Categoria;
-import com.example.DyD_Natures.Dto.CategoriaFilterDTO; // Importar
+import com.example.DyD_Natures.Dto.CategoriaFilterDTO; 
 import com.example.DyD_Natures.Service.CategoriaService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,13 +10,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import com.itextpdf.text.*; // Importar iText
-import com.itextpdf.text.pdf.PdfPCell; // Importar iText
-import com.itextpdf.text.pdf.PdfPTable; // Importar iText
-import com.itextpdf.text.pdf.PdfWriter; // Importar iText
+import com.itextpdf.text.*; 
+import com.itextpdf.text.pdf.PdfPCell; 
+import com.itextpdf.text.pdf.PdfPTable; 
+import com.itextpdf.text.pdf.PdfWriter; 
 
-import jakarta.servlet.http.HttpServletResponse; // Importar
-import java.io.IOException; // Importar
+import jakarta.servlet.http.HttpServletResponse; 
+import java.io.IOException; 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -132,7 +132,7 @@ public class CategoriaController {
         return ResponseEntity.ok(response);
     }
     // ===============================================
-    // NUEVOS ENDPOINTS PARA EL REPORTE DE CATEGORÍAS
+    //  ENDPOINTS PARA EL REPORTE DE CATEGORÍAS
     // ===============================================
 
     /**
@@ -160,7 +160,7 @@ public class CategoriaController {
 
         List<Categoria> categorias = categoriaService.buscarCategoriasPorFiltros(filterDTO);
 
-        Document document = new Document(PageSize.A4); // Tamaño A4, sin rotar
+        Document document = new Document(PageSize.A4); 
         PdfWriter.getInstance(document, response.getOutputStream());
         document.open();
 
@@ -198,19 +198,19 @@ public class CategoriaController {
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
 
-        PdfPTable table = new PdfPTable(3); // 3 columnas: ID, Nombre Categoría, Estado
+        PdfPTable table = new PdfPTable(3); 
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
 
-        float[] columnWidths = {0.5f, 3f, 1f}; // Ajusta anchos según necesidad
+        float[] columnWidths = {0.5f, 3f, 1f}; 
         table.setWidths(columnWidths);
 
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); 
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); 
 
         String[] headers = {"ID", "Nombre Categoría", "Estado"};
         for (String header : headers) {
@@ -224,7 +224,7 @@ public class CategoriaController {
 
         if (categorias.isEmpty()) {
             cell = new PdfPCell(new Phrase("No se encontraron categorías con los filtros aplicados.", fontContent));
-            cell.setColspan(3); // Abarca todas las columnas
+            cell.setColspan(3); 
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(10);
             table.addCell(cell);
