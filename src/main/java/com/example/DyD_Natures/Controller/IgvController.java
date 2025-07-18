@@ -37,7 +37,6 @@ public class IgvController {
         return igvService.listarIgvExcludingDeleted();
     }
 
-    // —> JSON solo activos, para tu modal de venta
     @GetMapping("/activos")
     @ResponseBody
     public List<Igv> getActiveTasasJson() {
@@ -61,35 +60,27 @@ public class IgvController {
         return "fragments/igv_form_modal :: formContent";
     }
 
-    // CAMBIO CLAVE: Ahora acepta @RequestBody para el JSON del frontend
     @PostMapping("/guardar")
     @ResponseBody
     public ResponseEntity<Map<String, String>> guardarIgv(@RequestBody Igv igvDesdeFrontend) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validación de la tasa (esto ya lo tienes y está bien)
             if (igvDesdeFrontend.getTasa() == null || igvDesdeFrontend.getTasa().compareTo(BigDecimal.ZERO) <= 0) {
                 response.put("status", "error");
                 response.put("message", "El valor del IGV es obligatorio y debe ser un número positivo.");
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // --- LÓGICA DE FECHA CORREGIDA ---
+            if (igvDesdeFrontend.getIdIgv() == null) { 
+                igvDesdeFrontend.setEstado((byte) 1); 
+                igvDesdeFrontend.setFechaRegistro(LocalDate.now()); 
 
-            if (igvDesdeFrontend.getIdIgv() == null) { // Es un registro NUEVO
-                igvDesdeFrontend.setEstado((byte) 1); // Asignar estado activo por defecto
-                igvDesdeFrontend.setFechaRegistro(LocalDate.now()); // El backend asigna la fecha actual. Ignora lo que vino del frontend.
-
-            } else { // Es una EDICIÓN
-                // Para evitar que la fecha de registro original se modifique, la recuperamos de la base de datos.
+            } else { 
                 Igv igvExistente = igvService.obtenerIgvPorId(igvDesdeFrontend.getIdIgv())
                         .orElseThrow(() -> new EntityNotFoundException("No se encontró el IGV para editar con ID: " + igvDesdeFrontend.getIdIgv()));
-
-                // Usamos la fecha que ya existía en la base de datos, ignorando la que pudo venir del frontend.
                 igvDesdeFrontend.setFechaRegistro(igvExistente.getFechaRegistro());
             }
 
-            // El resto de la lógica de guardado
             igvService.guardarIgv(igvDesdeFrontend);
 
             response.put("status", "success");
