@@ -26,10 +26,9 @@ public class EmpresaController {
     public String mostrarInformacionEmpresa(HttpServletRequest request, Model model) {
         model.addAttribute("currentUri", request.getRequestURI());
         Optional<Empresa> empresaOpt = empresaService.obtenerInformacionEmpresa();
-        Empresa empresa = empresaOpt.orElse(new Empresa()); // Si no existe, crea una nueva instancia
-        // CAMBIO CLAVE: Si es una nueva empresa, inicializa fechaRegistro aquí para el frontend
+        Empresa empresa = empresaOpt.orElse(new Empresa()); 
         if (empresa.getIdEmpresa() == null) {
-            empresa.setFechaRegistro(LocalDate.now()); // Establece la fecha actual por defecto
+            empresa.setFechaRegistro(LocalDate.now()); 
         }
         model.addAttribute("empresa", empresa);
         return "informacion_empresa";
@@ -45,9 +44,8 @@ public class EmpresaController {
     public String mostrarFormularioEmpresa(Model model) {
         Optional<Empresa> empresaOpt = empresaService.obtenerInformacionEmpresa();
         Empresa empresa = empresaOpt.orElse(new Empresa());
-        // CAMBIO CLAVE: Si es una nueva empresa, inicializa fechaRegistro aquí para el fragmento del formulario
         if (empresa.getIdEmpresa() == null) {
-            empresa.setFechaRegistro(LocalDate.now()); // Asegura que siempre haya una fecha para el th:value
+            empresa.setFechaRegistro(LocalDate.now()); 
         }
         model.addAttribute("empresa", empresa);
         return "fragments/informacion_empresa_form_modal :: formContent";
@@ -58,7 +56,6 @@ public class EmpresaController {
     public ResponseEntity<Map<String, String>> guardarEmpresa(@RequestBody Empresa empresa) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones básicas en el backend
             if (empresa.getRuc() == null || empresa.getRuc().isEmpty() || !empresa.getRuc().matches("^\\d{11}$")) {
                 response.put("status", "error");
                 response.put("message", "El RUC es obligatorio y debe tener 11 dígitos numéricos.");
@@ -85,7 +82,6 @@ public class EmpresaController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Validación de RUC único
             if (empresaService.existsByRucExcludingCurrent(empresa.getRuc())) {
                 response.put("status", "error");
                 response.put("message", "El RUC ya está registrado para otra empresa.");
