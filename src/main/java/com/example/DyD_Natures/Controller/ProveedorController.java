@@ -40,7 +40,7 @@ public class ProveedorController {
     public String listarProveedores(HttpServletRequest request, Model model) {
         model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("proveedores", proveedorService.listarProveedoresActivos());
-        return "proveedores"; // Asegúrate de que esto apunta a tu archivo proveedores.html
+        return "proveedores"; 
     }
 
     /**
@@ -50,22 +50,17 @@ public class ProveedorController {
      */
     @GetMapping("/all")
     @ResponseBody
-    public List<Proveedor> getAllProveedoresJson(@RequestParam(required = false) String searchTerm) { // AÑADIR @RequestParam
-        // Crear un DTO de filtro para pasar al servicio
+    public List<Proveedor> getAllProveedoresJson(@RequestParam(required = false) String searchTerm) { 
         ProveedorFilterDTO filterDTO = new ProveedorFilterDTO();
 
-        // Si se proporciona un término de búsqueda, establecerlo en el DTO
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
             filterDTO.setNombreRucRazonSocialCorreo(searchTerm);
         }
-        // Por defecto, buscarProveedoresPorFiltros ya excluye los proveedores con estado = 2 (eliminado lógicamente).
-        // Si no se proporciona searchTerm, buscarProveedoresPorFiltros devolverá todos los no eliminados.
         return proveedorService.buscarProveedoresPorFiltros(filterDTO);
     }
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         model.addAttribute("proveedor", new Proveedor());
-        // Asegúrate de que este fragmento existe y es correcto
         return "fragments/proveedores_form_modal :: formContent";
     }
 
@@ -74,10 +69,8 @@ public class ProveedorController {
         Optional<Proveedor> proveedorOpt = proveedorService.obtenerProveedorPorId(id);
         if (proveedorOpt.isPresent()) {
             model.addAttribute("proveedor", proveedorOpt.get());
-            // Asegúrate de que este fragmento existe y es correcto
             return "fragments/proveedores_form_modal :: formContent";
         }
-        // En caso de no encontrarlo, puedes redirigir a un error o crear uno nuevo vacío
         model.addAttribute("proveedor", new Proveedor());
         return "fragments/proveedores_form_modal :: formContent";
     }
@@ -93,7 +86,6 @@ public class ProveedorController {
     public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) {
         Map<String, String> resp = new HashMap<>();
         try {
-            // validaciones ligeras de DTO…
             Proveedor saved = proveedorService.guardarProveedor(proveedor);
             resp.put("status",  "success");
             resp.put("message", "Proveedor guardado exitosamente!");
@@ -115,12 +107,12 @@ public class ProveedorController {
      * @param id El ID del proveedor a inactivar.
      * @return ResponseEntity con el estado de la operación y un mensaje.
      */
-    @PostMapping("/inactivar/{id}") // Cambiado a POST, como lo usas en el frontend para inactivar
+    @PostMapping("/inactivar/{id}") 
     @ResponseBody
     public ResponseEntity<Map<String, String>> inactivarProveedor(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
         try {
-            proveedorService.eliminarProveedor(id); // Este método ya cambia el estado a 2 (inactivo/eliminado lógico)
+            proveedorService.eliminarProveedor(id); 
             response.put("status", "success");
             response.put("message", "Proveedor inactivado exitosamente!");
             return ResponseEntity.ok(response);
@@ -145,7 +137,7 @@ public class ProveedorController {
         boolean exists = proveedorService.existsByRucExcludingId(ruc, idProveedor);
         return ResponseEntity.ok(Map.of("exists",exists));
     }
-    // --- NUEVOS ENDPOINTS PARA REPORTES ---
+    // ---  ENDPOINTS PARA REPORTES ---
 
     /**
      * Muestra el fragmento del modal con opciones para generar el reporte de proveedores.
@@ -154,8 +146,6 @@ public class ProveedorController {
      */
     @GetMapping("/reporte/modal")
     public String mostrarReporteModal(Model model) {
-        // No hay roles ni otros datos complejos para proveedores como en usuarios,
-        // pero si tuvieras otros filtros (ej. por categoría de proveedor), los añadirías aquí.
         return "fragments/reporte_proveedores_modal :: reporteModalContent";
     }
 
@@ -185,7 +175,6 @@ public class ProveedorController {
         title.setSpacingAfter(20);
         document.add(title);
 
-        // Mostrar filtros aplicados (similar a usuarios)
         Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
         StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
 
@@ -203,7 +192,6 @@ public class ProveedorController {
             }
             filtrosAplicados.append("\n");
         }
-        // NUEVO: Mostrar filtros de fecha en el PDF
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filterDTO.getFechaRegistroDesde() != null) {
             filtrosAplicados.append("- Fecha Registro Desde: ").append(filterDTO.getFechaRegistroDesde().format(formatter)).append("\n");
@@ -223,7 +211,7 @@ public class ProveedorController {
         document.add(pFiltros);
 
 
-        PdfPTable table = new PdfPTable(9); // 9 columnas: ID, Fecha Reg, RUC, Nom Comercial, Razon Social, Telefono, Correo, Direccion, Estado
+        PdfPTable table = new PdfPTable(9); 
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
@@ -234,8 +222,8 @@ public class ProveedorController {
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); 
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); 
 
         String[] headers = {"ID", "Fecha Reg.", "RUC", "Nombre Comercial", "Razón Social", "Teléfono", "Correo", "Dirección", "Estado"};
         for (String header : headers) {
@@ -254,8 +242,6 @@ public class ProveedorController {
             cell.setPadding(10);
             table.addCell(cell);
         } else {
-            // El formatter ya está definido arriba, asegúrate que se el mismo que usas aquí
-            // DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); // Esto debería estar solo una vez
             for (Proveedor proveedor : proveedores) {
                 table.addCell(new Phrase(String.valueOf(proveedor.getIdProveedor()), fontContent));
                 table.addCell(new Phrase(proveedor.getFechaRegistro() != null ? proveedor.getFechaRegistro().format(formatter) : "N/A", fontContent));
@@ -276,7 +262,7 @@ public class ProveedorController {
                     estadoFont = fontContentInactive;
                 } else {
                     estadoText = "Desconocido";
-                    estadoFont = fontContent; // Default to black if unknown
+                    estadoFont = fontContent; 
                 }
                 table.addCell(new Phrase(estadoText, estadoFont));              }
         }
