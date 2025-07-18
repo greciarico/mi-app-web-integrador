@@ -7,6 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class ErrorController {
     @GetMapping("/access-denegado")
     public String accesoDenegado() {
-        return "error/403";  // Apunta a src/main/resources/templates/error/403.html
+        return "error/403"; 
     }
 }
