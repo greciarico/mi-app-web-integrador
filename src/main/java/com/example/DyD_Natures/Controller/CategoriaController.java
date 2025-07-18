@@ -75,7 +75,7 @@ public class CategoriaController {
     public ResponseEntity<Map<String, String>> guardarCategoria(@ModelAttribute Categoria categoria) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones básicas
+            // Validaciones 
             if (categoria.getNombreCategoria() == null || categoria.getNombreCategoria().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "El nombre de la categoría es obligatorio.");
@@ -243,9 +243,9 @@ public class CategoriaController {
                     estadoFont = fontContentInactive;
                 } else {
                     estadoText = "Desconocido";
-                    estadoFont = fontContent; // Default to black if unknown
+                    estadoFont = fontContent; 
                 }
-                table.addCell(new Phrase(estadoText, estadoFont));              }
+                table.addCell(new Phrase(estadoText, estadoFont));}
         }
 
         document.add(table);
