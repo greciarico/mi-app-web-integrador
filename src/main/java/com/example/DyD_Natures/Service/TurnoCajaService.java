@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.List;
@@ -28,9 +29,16 @@ public class TurnoCajaService {
 
     @Transactional
     public TurnoCaja abrirTurnoCaja(Usuario vendedor, BigDecimal fondoInicialEfectivo) {
-        Optional<TurnoCaja> existingTurno = turnoCajaRepository.findByVendedorAndEstadoCuadre(vendedor, "Abierto");
-        if (existingTurno.isPresent()) {
+        Optional<TurnoCaja> existingTurnoActivo = turnoCajaRepository.findByVendedorAndEstadoCuadre(vendedor, "Abierto");
+        if (existingTurnoActivo.isPresent()) {
             throw new IllegalStateException("El vendedor " + vendedor.getNombre() + " ya tiene un turno de caja abierto.");
+        }
+        LocalDate today = LocalDate.now(); // Asume la zona horaria de la JVM o la configurada en Spring JPA
+
+        Optional<TurnoCaja> existingTurnoToday = turnoCajaRepository.findByVendedorAndFechaAperturaDia(vendedor, today);
+
+        if (existingTurnoToday.isPresent()) {
+            throw new IllegalStateException("El vendedor " + vendedor.getNombre() + " ya aperturó y/o cerró un turno de caja hoy. No se permite más de un turno por día.");
         }
 
         TurnoCaja nuevoTurno = new TurnoCaja(vendedor, fondoInicialEfectivo);
@@ -112,8 +120,64 @@ public class TurnoCajaService {
     }
 
     @Transactional(readOnly = true)
-    public List<TurnoCaja> findAllTurnosCaja() {
-        // Usar el nuevo método del repositorio que carga el vendedor explícitamente
-        return turnoCajaRepository.findAllWithVendedor(); // <--- CORRECCIÓN AQUÍ
+    public List<TurnoCaja> getHistorialTurnosCaja(Usuario usuario) {
+        // Asumimos que el nombre del rol de administrador en tu BD es "ADMIN"
+        // y el de vendedor es "VENDEDOR" o similar.
+        if (usuario.getRolUsuario() != null && "ADMINISTRADOR".equalsIgnoreCase(usuario.getRolUsuario().getTipoRol())) {
+            // Si es administrador, devuelve todos los turnos
+            return turnoCajaRepository.findAllWithVendedor();
+        } else {
+            // Si no es administrador (es un vendedor o cualquier otro rol), devuelve solo sus propios turnos
+            // Necesitarás crear este nuevo método en tu TurnoCajaRepository
+            return turnoCajaRepository.findByVendedorOrderByFechaAperturaDesc(usuario);
+        }
+    }
+
+    @Transactional
+    public void cerrarTurnosOlvidadosAutomaticamente() {
+        LocalDateTime endOfYesterday = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(999999999).minusDays(1);
+        LocalDateTime startOfToday = LocalDateTime.now().toLocalDate().atStartOfDay();
+
+        List<TurnoCaja> turnosOlvidados = turnoCajaRepository.findByEstadoCuadreAndFechaAperturaBefore("Abierto", startOfToday);
+
+        if (turnosOlvidados.isEmpty()) {
+            System.out.println("No se encontraron turnos de caja olvidados para cerrar.");
+            return;
+        }
+
+        System.out.println("Cerrando " + turnosOlvidados.size() + " turnos de caja olvidados...");
+
+        for (TurnoCaja turno : turnosOlvidados) {
+            try {
+                turno.setFechaCierre(LocalDateTime.now());
+
+                List<Venta> ventasDelTurno = ventaRepository.findByTurnoCaja(turno);
+                BigDecimal totalEfectivoVentas = BigDecimal.ZERO;
+                BigDecimal totalMonederoElectronicoVentas = BigDecimal.ZERO;
+
+                for (Venta venta : ventasDelTurno) {
+                    if ("EFECTIVO".equalsIgnoreCase(venta.getTipoPago()) && venta.getEstado() != null && venta.getEstado() == 1) {
+                        totalEfectivoVentas = totalEfectivoVentas.add(venta.getTotal());
+                    } else if (("MONEDERO_ELECTRONICO".equalsIgnoreCase(venta.getTipoPago()) || "YAPE".equalsIgnoreCase(venta.getTipoPago())) && venta.getEstado() != null && venta.getEstado() == 1) {
+                        totalMonederoElectronicoVentas = totalMonederoElectronicoVentas.add(venta.getTotal());
+                    }
+                }
+
+                turno.setTotalVentasEfectivoSistema(totalEfectivoVentas);
+                turno.setTotalVentasMonederoElectronicoSistema(totalMonederoElectronicoVentas);
+
+                BigDecimal fondoInicial = turno.getFondoInicialEfectivo() != null ? turno.getFondoInicialEfectivo() : BigDecimal.ZERO;
+                BigDecimal efectivoEsperado = fondoInicial.add(totalEfectivoVentas).add(totalMonederoElectronicoVentas);
+
+                turno.setConteoFinalEfectivo(BigDecimal.ZERO);
+                turno.setDiferenciaEfectivo(BigDecimal.ZERO.subtract(efectivoEsperado));
+                turno.setEstadoCuadre("Cerrado Automatico - Faltante");
+
+                turnoCajaRepository.save(turno);
+                System.out.println("Turno de caja ID " + turno.getIdTurnoCaja() + " cerrado automáticamente. Faltante: " + turno.getDiferenciaEfectivo());
+            } catch (Exception e) {
+                System.err.println("Error al cerrar automáticamente el turno ID " + turno.getIdTurnoCaja() + ": " + e.getMessage());
+            }
+        }
     }
 }
