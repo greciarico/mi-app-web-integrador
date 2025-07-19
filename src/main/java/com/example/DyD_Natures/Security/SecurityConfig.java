@@ -53,7 +53,7 @@ public class SecurityConfig {
                         // rutas públicas
                         .requestMatchers(
                                 "/login", "/logout",
-                                "/css/", "/js/", "/img/", "/h2-console/"
+                                "/css/*", "/js/**", "/img/**", "/h2-console/**"
                         ).permitAll()
 
                         // AJAX públicos (tu front los llama con fetch)
