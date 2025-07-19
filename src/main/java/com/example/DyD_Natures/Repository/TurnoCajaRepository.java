@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query; // Importar Query
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List; // Necesitamos List para findAllWithVendedor
 import java.util.Optional;
 
@@ -19,4 +21,14 @@ public interface TurnoCajaRepository extends JpaRepository<TurnoCaja, Integer> {
     // Esto previene LazyInitializationException cuando Thymeleaf intenta acceder a los datos del vendedor.
     @Query("SELECT t FROM TurnoCaja t JOIN FETCH t.vendedor ORDER BY t.fechaApertura DESC")
     List<TurnoCaja> findAllWithVendedor();
+
+    // Nuevo método para verificar si ya existe un turno (abierto o cerrado) para un vendedor en una fecha específica
+    @Query("SELECT tc FROM TurnoCaja tc WHERE tc.vendedor = :vendedor AND FUNCTION('DATE', tc.fechaApertura) = :fechaApertura")
+    Optional<TurnoCaja> findByVendedorAndFechaAperturaDia(Usuario vendedor, LocalDate fechaApertura);
+
+    // Nuevo método para encontrar todos los turnos abiertos antes de una fecha/hora específica
+    // Útil para cerrar turnos olvidados
+    List<TurnoCaja> findByEstadoCuadreAndFechaAperturaBefore(String estadoCuadre, LocalDateTime dateTime);
+
+    List<TurnoCaja> findByVendedorOrderByFechaAperturaDesc(Usuario vendedor);
 }
