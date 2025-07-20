@@ -21,7 +21,8 @@ import java.util.Optional;
 
 @Service
 public class DocumentoCompraService {
-
+    private static final ZoneId LIMA = ZoneId.of("America/Lima");
+    
     @Autowired
     private DocumentoCompraRepository documentoCompraRepository;
 
@@ -101,116 +102,74 @@ public class DocumentoCompraService {
      * @return El DocumentoCompra guardado.
      * @throws RuntimeException si ocurre un error de negocio (ej. producto no encontrado).
      */
-    @Transactional // Asegura que toda la operación sea atómica
-    public DocumentoCompra guardarDocumentoCompra(DocumentoCompra documentoCompra) {
-        // Establecer fecha de registro si es un nuevo documento de compra
-        if (documentoCompra.getIdCompra() == null) {
-            documentoCompra.setFechaRegistro(LocalDate.now());
-            if (documentoCompra.getTotal() == null) {
-                documentoCompra.setTotal(BigDecimal.ZERO);
-            }
-        } else {
-            // Si es una edición, mantener la fecha de registro existente y manejar stock anterior
-            Optional<DocumentoCompra> existingDocOpt = documentoCompraRepository.findById(documentoCompra.getIdCompra());
-            if (existingDocOpt.isPresent()) {
-                DocumentoCompra oldDocumento = existingDocOpt.get();
-                documentoCompra.setFechaRegistro(oldDocumento.getFechaRegistro()); // Mantener fecha original
-
-                // Revertir stock de productos de los detalles del documento antiguo
-                // Solo si el detalle no está en el nuevo documento o su cantidad disminuyó
-                if (oldDocumento.getDetalleCompras() != null) {
-                    for (DetalleCompra oldDetalle : oldDocumento.getDetalleCompras()) {
-                        boolean foundInNew = false;
-                        if (documentoCompra.getDetalleCompras() != null) {
-                            for (DetalleCompra newDetalle : documentoCompra.getDetalleCompras()) {
-                                if (oldDetalle.getIdDetalleCompra() != null && oldDetalle.getIdDetalleCompra().equals(newDetalle.getIdDetalleCompra())) {
-                                    foundInNew = true;
-                                    // Si la cantidad disminuyó, revertir la diferencia
-                                    if (newDetalle.getCantidad() < oldDetalle.getCantidad()) {
-                                        updateProductStock(oldDetalle.getProducto().getIdProducto(), oldDetalle.getCantidad() - newDetalle.getCantidad());
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                        if (!foundInNew) {
-                            // Si el detalle antiguo no está en los nuevos, revertir todo el stock
-                            updateProductStock(oldDetalle.getProducto().getIdProducto(), oldDetalle.getCantidad());
-                        }
-                    }
-                }
-            }
+     @Transactional
+    public DocumentoCompra guardarDocumentoCompra(DocumentoCompra doc) {
+        // --- 1) Fecha y número de documento ---
+        doc.setFechaRegistro(LocalDate.now(LIMA));
+        if (doc.getNumDocumento() == null || doc.getNumDocumento().isBlank()) {
+            doc.setNumDocumento(generateNextDocumentNumber(doc.getTipoDocumento()));
         }
 
-        BigDecimal currentTotal = BigDecimal.ZERO;
-        if (documentoCompra.getDetalleCompras() != null) {
-            for (DetalleCompra detalle : documentoCompra.getDetalleCompras()) {
-                if (detalle.getProducto() == null || detalle.getProducto().getIdProducto() == null) {
-                    throw new IllegalArgumentException("Detalle de compra inválido: Producto es obligatorio.");
-                }
-                if (detalle.getCantidad() == null || detalle.getCantidad() <= 0) {
-                    throw new IllegalArgumentException("Detalle de compra inválido: Cantidad debe ser mayor a 0.");
-                }
-                if (detalle.getPrecioUnitario() == null || detalle.getPrecioUnitario().compareTo(BigDecimal.ZERO) < 0) {
-                    throw new IllegalArgumentException("Detalle de compra inválido: Precio unitario no puede ser negativo.");
-                }
-
-                // Si es un nuevo documento (idCompra es null), generamos el número de documento
-                if (documentoCompra.getIdCompra() == null) {
-                    String tipoDocumento = documentoCompra.getTipoDocumento();
-                    if (tipoDocumento == null || (!tipoDocumento.equalsIgnoreCase("BOLETA") && !tipoDocumento.equalsIgnoreCase("FACTURA"))) {
-                        throw new IllegalArgumentException("Tipo de documento inválido. Debe ser 'BOLETA' o 'FACTURA'.");
-                    }
-
-                    // Generar número de documento único y consecutivo
-                    String nuevoNumDocumento = generateNextDocumentNumber(tipoDocumento);
-                    documentoCompra.setNumDocumento(nuevoNumDocumento);
-                } else {
-                    // Si es una edición, podrías añadir lógica para evitar cambiar el numDocumento
-                    // o validarlo si se permite el cambio. Por ahora, asumimos que no se cambia.
-                    // Opcional: Validar que el numDocumento no haya sido manipulado si ya existe.
-                    Optional<DocumentoCompra> existingDoc = documentoCompraRepository.findById(documentoCompra.getIdCompra());
-                    if (existingDoc.isPresent() && !existingDoc.get().getNumDocumento().equals(documentoCompra.getNumDocumento())) {
-                        // Puedes lanzar un error o manejar esto según tus reglas de negocio
-                        throw new IllegalArgumentException("No se permite cambiar el número de documento de una compra existente.");
-                    }
-                    // Si se está editando, asegúrate de que el estado no se cambie de 0 (cancelado) a 1 (activo)
-                    if (existingDoc.isPresent() && existingDoc.get().getEstado() == 0 && documentoCompra.getEstado() == 1) {
-                        throw new IllegalArgumentException("No se puede reactivar un documento de compra cancelado directamente desde la edición.");
-                    }
-                }
-
-                // Obtener el producto gestionado (así Hibernate lo adjunta a la sesión)
-                Producto productoExistente = productoRepository.findById(detalle.getProducto().getIdProducto())
-                        .orElseThrow(() -> new RuntimeException("Producto con ID " + detalle.getProducto().getIdProducto() + " no encontrado."));
-
-                detalle.setProducto(productoExistente); // Asigna el objeto Producto completo
-
-                // Establecer la referencia bidireccional del detalle al documento de compra
-                detalle.setDocumentoCompra(documentoCompra);
-
-                // Calcular el total del detalle
-                BigDecimal detalleTotal = detalle.getPrecioUnitario().multiply(new BigDecimal(detalle.getCantidad()));
-                detalle.setTotal(detalleTotal);
-
-                currentTotal = currentTotal.add(detalleTotal);
-
-                // Aumentar el stock del producto
-                int oldCantidad = 0;
-                if (detalle.getIdDetalleCompra() != null && documentoCompra.getIdCompra() != null) { // Si es un detalle existente
-                    Optional<DocumentoCompra> existingDocOpt = documentoCompraRepository.findById(documentoCompra.getIdCompra());
-                    if (existingDocOpt.isPresent()) {
-                        oldCantidad = existingDocOpt.get().getDetalleCompras().stream()
-                                .filter(od -> od.getIdDetalleCompra() != null && od.getIdDetalleCompra().equals(detalle.getIdDetalleCompra()))
-                                .map(DetalleCompra::getCantidad).findFirst().orElse(0);
-                    }
-                }
-                updateProductStock(detalle.getProducto().getIdProducto(), detalle.getCantidad() - oldCantidad);
+        // --- 2) Calcular total y asignar detalle -> documento ---
+        BigDecimal totalDoc = BigDecimal.ZERO;
+        for (DetalleCompra det : doc.getDetalleCompras()) {
+            if (det.getProducto() == null || det.getCantidad() == null || det.getPrecioUnitario() == null) {
+                throw new IllegalArgumentException("Cada línea debe traer producto, cantidad y precio unitario.");
             }
+            det.setDocumentoCompra(doc);
+            det.setTotal(det.getPrecioUnitario().multiply(BigDecimal.valueOf(det.getCantidad())));
+            totalDoc = totalDoc.add(det.getTotal());
+        }
+        doc.setTotal(totalDoc);
+
+        // --- 3) Guardar documento con cascada de detalles ---
+        DocumentoCompra savedDoc = documentoCompraRepository.save(doc);
+
+        // --- 4) Para cada detalle: crear/reactivar y actualizar stock del producto ---
+        for (DetalleCompra det : savedDoc.getDetalleCompras()) {
+            Producto prod;
+            Integer prodId = det.getProducto().getIdProducto();
+
+            if (prodId != null) {
+                prod = productoRepository.findById(prodId)
+                        .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + prodId));
+            } else {
+                // buscamos por nombre+desc+cat (ignorando eliminados)
+                prod = productoRepository
+                        .findByNombreAndDescripcionAndCategoria_IdCategoriaAndEstadoNot(
+                                det.getProducto().getNombre(),
+                                det.getProducto().getDescripcion(),
+                                det.getProducto().getCategoria().getIdCategoria(),
+                                ESTADO_ELIMINADO
+                        )
+                        .map(p -> {
+                            if (p.getEstado() == ESTADO_ELIMINADO) p.setEstado(ESTADO_ACTIVO);
+                            return p;
+                        })
+                        .orElseGet(() -> {
+                            Producto np = new Producto();
+                            np.setNombre(det.getProducto().getNombre());
+                            np.setDescripcion(det.getProducto().getDescripcion());
+                            np.setCategoria(det.getProducto().getCategoria());
+                            np.setPrecio1(det.getPrecioUnitario());
+                            np.setPrecio2(det.getPrecioUnitario());
+                            np.setFechaRegistro(LocalDate.now(LIMA));
+                            np.setStock(0);
+                            np.setEstado(ESTADO_ACTIVO);
+                            return np;
+                        });
+            }
+
+            // sumar stock
+            prod.setStock(prod.getStock() + det.getCantidad());
+            productoRepository.save(prod);
+
+            // asegurar que el detalle apunte al producto persistido
+            det.setProducto(prod);
         }
 
-        documentoCompra.setTotal(currentTotal); // Actualizar el total del documento de compra
-        return documentoCompraRepository.save(documentoCompra);
+        // --- 5) Volver a salvar para fijar FK detalle->producto  ---
+        return documentoCompraRepository.save(savedDoc);
     }
 
     /**
