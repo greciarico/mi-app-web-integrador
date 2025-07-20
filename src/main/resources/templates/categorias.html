@@ -20,68 +20,72 @@
                             </a>
                         </div>
                     </div>
-                    <!-- /.card-header -->
                     <div class="card-body">
-                        <!-- BUSCADOR SIMPLIFICADO DE CATEGORÍAS -->
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <div class="input-group">
-                                    <input type="search" id="searchTermCategoria" class="form-control" placeholder="Buscar por nombre, estado..."
-                                           onkeyup="aplicarFiltrosCategorias()"/>
-                                    <div class="input-group-append">
-                                        <button class="btn btn-default" type="button" onclick="aplicarFiltrosCategorias()">
+                        <div class="mb-3">
+                            <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#collapseCategoryFilters" aria-expanded="false" aria-controls="collapseCategoryFilters">
+                                <i class="fas fa-filter"></i> Mostrar/Ocultar Filtros de Categorías
+                            </button>
+                        </div>
+
+                        <div class="collapse" id="collapseCategoryFilters">
+                            <div class="card card-body">
+                                <form id="mainFilterForm" onsubmit="event.preventDefault(); aplicarFiltrosCategorias();">
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="filtroNombreCategoriaMain">Buscar por Nombre de Categoría:</label>
+                                            <input type="text" id="filtroNombreCategoriaMain" name="nombreCategoria" class="form-control" placeholder="Ej. Aceite, Jarabe"/>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label>Por Estado:</label><br>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input estado-checkbox-categoria-main" type="checkbox" id="estadoActivoMain" name="estados" value="1">
+                                                <label class="form-check-label" for="estadoActivoMain">Activo</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input estado-checkbox-categoria-main" type="checkbox" id="estadoInactivoMain" name="estados" value="0">
+                                                <label class="form-check-label" for="estadoInactivoMain">Inactivo</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <button class="btn btn-default" type="submit">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteCategoriasModal()">
-                                            <i class="fas fa-file-alt"></i> Generar Reporte
+                                        <button class="btn btn-primary ml-2" style="background-color:#b45f06 !important; border-color:#b45f06 !important;" type="button" onclick="ejecutarGenerarReporteCategorias()">
+                                            <i class="fas fa-file-pdf"></i> Generar Reporte PDF
+                                        </button>
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="limpiarFiltrosMain()">
+                                            <i class="fas fa-redo"></i> Limpiar Filtros
                                         </button>
                                     </div>
+                                </form>
+                                <div class="alert alert-info text-center mt-3" role="alert">
+                                    <i class="fas fa-info-circle"></i> Deje todas las opciones de filtro sin marcar para buscar/generar un reporte de todas las categorías.
                                 </div>
                             </div>
                         </div>
-                        <!-- FIN BUSCADOR SIMPLIFICADO DE CATEGORÍAS -->
-
-                        <!-- Tabla de Categorías -->
-                        <div id="tablaCategoriasContainer">
-                            <table id="categoriasTable" class="table table-bordered table-striped">
-                                <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nombre Categoría</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                                </thead>
-                                <tbody id="categoriasTableBody">
-                                <!-- Contenido de la tabla se generará con JavaScript -->
-                                </tbody>
-                            </table>
+                        <div id="tablaCategoriasContainer" class="mt-3"> <table id="categoriasTable" class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre Categoría</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody id="categoriasTableBody">
+                            </tbody>
+                        </table>
                         </div>
                     </div>
-                    <!-- /.card-body -->
                 </div>
-                <!-- /.card -->
             </div>
-            <!-- /.col -->
         </div>
-        <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
-
-    <!-- Modal para el Formulario de Categoría -->
     <div class="modal fade" id="categoriaModal" tabindex="-1" role="dialog" aria-labelledby="categoriaModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div id="modalFormContentCategoria">
-                    <!-- El fragmento categorias_form_modal.html se insertará aquí -->
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal fade" id="reporteCategoriasModal" tabindex="-1" role="dialog" aria-labelledby="reporteCategoriasModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div id="modalReporteContentCategoria">
                 </div>
             </div>
         </div>
@@ -92,8 +96,8 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
 
-        // Variable global para almacenar todas las categorías
-        allCategorias = /*[[${categorias}]]*/ [];
+        allCategorias = /*[[${categorias}]]*/ []; // Esto solo carga las iniciales, se actualizará al buscar.
+
 
         // Función para renderizar la tabla con una lista de categorías
         function renderizarTablaCategorias(categoriasToDisplay) {
@@ -101,12 +105,12 @@
             tableBody.empty();
 
             if (categoriasToDisplay.length === 0) {
+                // El colspan se mantiene en 4 para Categorías
                 tableBody.append('<tr><td colspan="4" class="text-center">No se encontraron categorías.</td></tr>');
                 return;
             }
 
             categoriasToDisplay.forEach(categoria => {
-                // CAMBIO CLAVE AQUÍ: Muestra "Activo" para 1, "Inactivo" para 0
                 const estadoText = categoria.estado === 1 ? 'Activo' : 'Inactivo';
                 const estadoClass = categoria.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
 
@@ -148,6 +152,8 @@
         // Función para mostrar un mensaje de error específico (genérica)
         function displayError(elementId, message) {
             $('#' + elementId).text(message);
+            // Asegúrate de que el ID que pasas aquí corresponda al span de error,
+            // y que el input esté justo antes del span o se pueda seleccionar correctamente.
             $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
         }
 
@@ -197,7 +203,7 @@
 
         // Función principal de validación del formulario de Categoría
         async function validarFormularioCategoria() {
-            clearErrors('#formCategoria');
+            clearErrors('#formCategoria'); // Asumo que el ID del formulario en el modal sigue siendo 'formCategoria'
             let isValid = true;
 
             if (!validateNombreCategoria('nombreCategoria', 'nombreCategoriaError')) isValid = false;
@@ -232,30 +238,32 @@
               console.log("Formulario de categoria cargado exitosamente.");
 
               // 1) Limpia errores previos SOLO de este form
-              clearErrors('#formCategoria');
+              clearErrors('#formCategoria'); // Asumo que el ID del formulario en el modal sigue siendo 'formCategoria'
 
               // 2) (Opcional) Adjunta validaciones en tiempo real
               // p.ej. $('#nombreCategoria').on('input', () => validarNombreProducto());
 
-              // 2) Captura el submit del form de categoría
-                $('#formCategoria')
-                  .off('submit')
-                  .on('submit', async function(e) {
-                    e.preventDefault();
-                    // usa el validador de categoría, no el de producto
-                    if (await validarFormularioCategoria()) {
-                      // llama a la función AJAX de categoría
-                      guardarCategoriaAjax($(this));
-                    } else {
-                      mostrarNotificacion("error", "Por favor, corrige los errores en el formulario de categoría.");
-                      }
-                   });
+              // 3) Captura el submit
+              $('#formCategoria')
+                .off('submit')
+                .on('submit', async function(e) {
+                  e.preventDefault();
+                  // IMPORTANTE: Cambiado a validarFormularioCategoria, no Producto
+                  const formIsValid = await validarFormularioCategoria();
+                  if (formIsValid) {
+                    guardarCategoriaAjax($(this)); // Cambiado a guardarCategoriaAjax
+                  } else {
+                    console.log("Formulario de categoria inválido. No se envía.");
+                    mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+                  }
+                });
 
               // 4) Mostrar modal
               $('#categoriaModal').modal('show');
-              console.log("Modal de producto intentando mostrarse.");
+              console.log("Modal de categoria intentando mostrarse.");
             });
           }
+
 
         function cerrarFormularioCategoria() {
             $('#categoriaModal').modal('hide');
@@ -276,8 +284,17 @@
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
                         cerrarFormularioCategoria();
-                        recargarListaCategoriasCompleta();
+                        // Al guardar, recarga la lista usando los filtros actuales del mainFilterForm
+                        aplicarFiltrosCategorias();
                     } else {
+                        // Si hay un error de validación del backend (ej. nombre duplicado)
+                        // Aquí deberías mapear los errores a los campos del formulario
+                        if (response.errors) {
+                             // Asumimos que response.errors es un objeto directamente, no un JSON string
+                            for (const [key, value] of Object.entries(response.errors)) {
+                                displayError(key + 'Error', value);
+                            }
+                        }
                         mostrarNotificacion("error", "Error: " + response.message);
                     }
                 },
@@ -313,7 +330,8 @@
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                recargarListaCategoriasCompleta();
+                                // Después de eliminar, recarga la lista con los filtros actuales
+                                aplicarFiltrosCategorias();
                             } else {
                                 mostrarNotificacion("error", "Error: " + response.message);
                             }
@@ -334,84 +352,42 @@
         }
 
         // ===========================================
-        // FUNCIONES DE FILTRADO Y REPORTE DE CATEGORÍAS (CLIENT-SIDE)
+        // FUNCIONES DE FILTRADO Y REPORTE DE CATEGORÍAS (SERVER-SIDE)
         // ===========================================
 
-        // Esta función debe ser global para que layout.html pueda llamarla
-        function recargarListaCategoriasCompleta() {
+        // Esta función ahora enviará los filtros al servidor y recargará la tabla
+        function aplicarFiltrosCategorias() {
+            const nombreCategoria = $('#filtroNombreCategoriaMain').val();
+            const estados = [];
+            $('.estado-checkbox-categoria-main:checked').each(function() {
+                estados.push($(this).val());
+            });
+
+            // Construir el objeto CategoriaFilterDTO
+            const filterDTO = {
+                nombreCategoria: nombreCategoria,
+                estados: estados
+            };
+
+            // Convertir el DTO a query string para el GET request
+            const queryString = $.param(filterDTO);
+            const url = '/categorias/buscar?' + queryString; // Nuevo endpoint para buscar/filtrar
+
             $.ajax({
                 type: "GET",
-                url: '/categorias/all', // Este endpoint DEBE existir en tu backend y devolver JSON
+                url: url,
                 dataType: "json",
                 success: function(response) {
-                    allCategorias = response;
-                    aplicarFiltrosCategorias(); // Aplicar el filtro actual
+                    renderizarTablaCategorias(response);
                 },
                 error: function(xhr, status, error) {
-                    console.error("Error al recargar la lista completa de categorías:", error);
-                    mostrarNotificacion("error", "Error al recargar la lista de categorías. Verifica el endpoint /categorias/all en tu backend.");
+                    console.error("Error al buscar categorías con filtros:", error, xhr.responseText);
+                    mostrarNotificacion("error", "Error al buscar categorías. Intenta de nuevo.");
                 }
             });
         }
 
-        function aplicarFiltrosCategorias() {
-            const searchTerm = $('#searchTermCategoria').val().toLowerCase().trim();
-            let filteredCategorias = allCategorias;
-
-            if (searchTerm) {
-                if (searchTerm === 'activo') {
-                    filteredCategorias = allCategorias.filter(categoria => categoria.estado === 1); // Filtra por Byte 1
-                } else if (searchTerm === 'inactivo') {
-                    filteredCategorias = allCategorias.filter(categoria => categoria.estado === 0); // Filtra por Byte 0
-                } else {
-                    filteredCategorias = allCategorias.filter(categoria => {
-                        const estadoText = categoria.estado === 1 ? 'activo' : 'inactivo';
-                        return (
-                            (categoria.nombreCategoria && categoria.nombreCategoria.toLowerCase().includes(searchTerm)) ||
-                            estadoText.includes(searchTerm)
-                        );
-                    });
-                }
-            }
-            renderizarTablaCategorias(filteredCategorias);
-        }
-
-        // ============== NUEVAS FUNCIONES PARA EL REPORTE DE CATEGORÍAS ==============
-
-        // Abre el modal de filtros del reporte de categorías
-        function abrirReporteCategoriasModal() {
-            console.log("Abriendo modal de reporte de categorías...");
-            $('#modalReporteContentCategoria').load('/categorias/reporte/modal', function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de reporte de categorías:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar reporte',
-                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    console.log("Formulario de reporte de categorías cargado exitosamente.");
-                    $('#reporteCategoriasModal').modal('show');
-                }
-            });
-        }
-
-        // Cierra el modal de reporte de categorías
-        function cerrarReporteCategoriasModal() {
-            $('#reporteCategoriasModal').modal('hide');
-            setTimeout(() => {
-                $('#modalReporteContentCategoria').empty();
-            }, 300);
-        }
-
-        // Limpia los filtros del modal de reporte de categorías
-        function limpiarFiltrosReporteCategorias() {
-            $('#formReporteCategorias')[0].reset();
-            $('.estado-checkbox-categoria').prop('checked', false);
-        }
-
-        // Ejecuta la generación del reporte PDF de categorías
+        // Ya no es necesario abrir un modal, se genera el PDF directamente
         function ejecutarGenerarReporteCategorias() {
             Swal.fire({
                 title: 'Generando Reporte...',
@@ -422,23 +398,41 @@
                 }
             });
 
-            const form = $('#formReporteCategorias');
-            const formData = form.serialize();
+            const nombreCategoria = $('#filtroNombreCategoriaMain').val();
+            const estados = [];
+            $('.estado-checkbox-categoria-main:checked').each(function() {
+                estados.push($(this).val());
+            });
 
-            const url = '/categorias/reporte/pdf?' + formData;
+            // Construir el objeto CategoriaFilterDTO
+            const filterDTO = {
+                nombreCategoria: nombreCategoria,
+                estados: estados
+            };
 
-            setTimeout(() => {
+            // Convertir el DTO a query string para el GET request
+            const queryString = $.param(filterDTO);
+            const url = '/categorias/reporte/pdf?' + queryString;
+
+            setTimeout(() => { // Pequeño delay para asegurar que el Swal.showLoading() se vea
                 const newWindow = window.open(url, '_blank');
                 if (newWindow) {
                     Swal.close();
-                    mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
-                    cerrarReporteCategoriasModal();
+                    mostrarNotificacion("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
                 } else {
                     Swal.close();
-                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la apertura del PDF. Por favor, permite los pop-ups para este sitio.");
                 }
             }, 300);
         }
+
+        // Función para limpiar los filtros del formulario principal
+        function limpiarFiltrosMain() {
+            $('#filtroNombreCategoriaMain').val('');
+            $('.estado-checkbox-categoria-main').prop('checked', false);
+            aplicarFiltrosCategorias(); // Vuelve a cargar la tabla sin filtros
+        }
+
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
         function mostrarNotificacion(type, message) {
@@ -451,10 +445,9 @@
             });
         }
 
-
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            aplicarFiltrosCategorias();
+            aplicarFiltrosCategorias(); // Carga inicial de datos con los filtros (vacíos al inicio)
         });
 
         /*]]>*/
