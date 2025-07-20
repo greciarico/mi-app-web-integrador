@@ -22,8 +22,9 @@ import java.time.ZoneId;
 
 @Service
 public class DocumentoCompraService {
+
     private static final ZoneId LIMA = ZoneId.of("America/Lima");
-    
+
     @Autowired
     private DocumentoCompraRepository documentoCompraRepository;
 
@@ -31,23 +32,22 @@ public class DocumentoCompraService {
     private ProductoRepository productoRepository;
 
     @Autowired
-    private DocumentoSequenceRepository documentoSequenceRepository; // Inyectar el nuevo repositorio
-    // --- CAMBIOS PARA ANULAR COMPRA ---
-    // Inyectar UsuarioService para la búsqueda de usuario por DNI
+    private DocumentoSequenceRepository documentoSequenceRepository;
+
     @Autowired
     private UsuarioService usuarioService;
-    // --- FIN CAMBIOS ANULAR COMPRA ---
-
-    private static final String BOLETA_PREFIX = "B001-"; // Prefijo de ejemplo para Boleta
-    private static final String FACTURA_PREFIX = "F001-"; // Prefijo de ejemplo para Factura
-    private static final int NUM_LENGTH = 8; // Ejemplo: 8 dígitos para el número consecutivo
 
 
-    /**
-     * Lista todos los documentos de compra, asegurando que las relaciones LAZY se carguen.
-     * @return Lista de documentos de compra.
-     */
-    @Transactional // <--- Asegura una sesión activa para cargar relaciones LAZY
+    private static final String BOLETA_PREFIX = "B001-";
+    private static final String FACTURA_PREFIX = "F001-";
+    private static final int NUM_LENGTH = 8;
+
+
+    private static final byte ESTADO_ELIMINADO = 2;
+    private static final byte ESTADO_ACTIVO    = 1;
+
+
+    @Transactional
     public List<DocumentoCompra> listarDocumentosCompra() {
         List<DocumentoCompra> documentos = documentoCompraRepository.findAll();
         // Forzar la inicialización de las colecciones LAZY para evitar LazyInitializationException
@@ -70,11 +70,6 @@ public class DocumentoCompraService {
         return documentos;
     }
 
-    /**
-     * Obtiene un documento de compra por su ID.
-     * @param id El ID del documento de compra.
-     * @return Un Optional que contiene el DocumentoCompra si se encuentra, o vacío si no.
-     */
     @Transactional(readOnly = true)
     // También es crucial que este método sea transaccional para cargar relaciones LAZY
     public Optional<DocumentoCompra> obtenerDocumentoCompraPorId(Integer id) {
@@ -96,14 +91,8 @@ public class DocumentoCompraService {
         return documentoOpt;
     }
 
-    /**
-     * Guarda un documento de compra nuevo o actualiza uno existente,
-     * manejando la persistencia de sus detalles y la actualización del stock de productos.
-     * @param documentoCompra El objeto DocumentoCompra a guardar.
-     * @return El DocumentoCompra guardado.
-     * @throws RuntimeException si ocurre un error de negocio (ej. producto no encontrado).
-     */
-     @Transactional
+
+    @Transactional
     public DocumentoCompra guardarDocumentoCompra(DocumentoCompra doc) {
         // --- 1) Fecha y número de documento ---
         doc.setFechaRegistro(LocalDate.now(LIMA));
@@ -173,13 +162,6 @@ public class DocumentoCompraService {
         return documentoCompraRepository.save(savedDoc);
     }
 
-    /**
-     * Genera el siguiente número de documento consecutivo y único para el tipo de documento especificado.
-     * Utiliza un bloqueo pesimista para asegurar la unicidad en entornos concurrentes.
-     * @param tipoDocumento El tipo de documento ("BOLETA" o "FACTURA").
-     * @return El número de documento generado (ej: "B001-00000001", "F001-00000001").
-     * @throws RuntimeException si no se puede generar el número de documento.
-     */
     @Transactional // Esta transacción necesita ser separada o propagarse adecuadamente
     public String generateNextDocumentNumber(String tipoDocumento) {
         DocumentoSequence sequence = documentoSequenceRepository.findByTipoDocumento(tipoDocumento)
@@ -195,26 +177,11 @@ public class DocumentoCompraService {
         return prefix + formattedNumber;
     }
 
-    /**
-     * Valida si el número de documento ya existe.
-     * Esta validación es crucial para evitar duplicados en caso de que la generación falle o se modifique manualmente.
-     * @param numDocumento El número de documento a validar.
-     * @return true si el número de documento ya existe, false en caso contrario.
-     */
     @Transactional(readOnly = true)
     public boolean existsByNumDocumento(String numDocumento) {
         return documentoCompraRepository.findByNumDocumento(numDocumento).isPresent();
     }
 
-    // --- CAMBIOS PARA ANULAR COMPRA (ANTES 'eliminarDocumentoCompra') ---
-    /**
-     * Anula lógicamente un Documento de Compra (cambia su estado a 0) y revierte el stock de los productos.
-     * Realiza validación de fecha (solo mismo día) y requiere un usuario administrador.
-     * @param idCompra El ID del documento de compra a anular.
-     * @param usuarioAnulacion El objeto Usuario que realiza la anulación (debe ser un administrador).
-     * @throws EntityNotFoundException Si el documento de compra no se encuentra.
-     * @throws IllegalArgumentException Si el documento ya está anulado o no cumple la validación de fecha.
-     */
     @Transactional
     public void anularDocumentoCompra(Integer idCompra, Usuario usuarioAnulacion) {
         DocumentoCompra documentoCompra = documentoCompraRepository.findById(idCompra)
@@ -234,10 +201,6 @@ public class DocumentoCompraService {
         if (documentoCompra.getDetalleCompras() != null && !documentoCompra.getDetalleCompras().isEmpty()) {
             documentoCompra.getDetalleCompras().forEach(detalle -> {
                 if (detalle.getProducto() != null) {
-                    // Revertir el stock: restar la cantidad comprada para simular anulación de entrada
-                    // En compras, cuando se anula, se debería REDUCIR el stock que se añadió.
-                    // Si la compra añadió 10 unidades, al anular la compra, esas 10 unidades se quitan.
-                    // Por lo tanto, la operación es RESTA aquí.
                     updateProductStock(detalle.getProducto().getIdProducto(), -detalle.getCantidad());
                 }
             });
@@ -249,9 +212,7 @@ public class DocumentoCompraService {
         documentoCompra.setUsuarioAnulacion(usuarioAnulacion); // Establece el usuario que anuló
         documentoCompraRepository.save(documentoCompra); // Persiste el cambio
     }
-    // --- FIN CAMBIOS ANULAR COMPRA ---
 
-    // Método auxiliar para actualizar stock (usado en anularDocumentoCompra)
     @Transactional
     private void updateProductStock(Integer idProducto, Integer quantityChange) {
         Producto producto = productoRepository.findById(idProducto)
@@ -267,12 +228,6 @@ public class DocumentoCompraService {
         productoRepository.save(producto);
     }
 
-    /**
-     * Busca documentos de compra aplicando filtros dinámicos.
-     * Carga eagermente las relaciones necesarias para el reporte.
-     * @param filterDTO DTO con los criterios de filtro.
-     * @return Lista de DocumentoCompra que coinciden con los filtros.
-     */
     @Transactional(readOnly = true)
     public List<DocumentoCompra> buscarDocumentosCompraPorFiltros(DocumentoCompraFilterDTO filterDTO) {
         Specification<DocumentoCompra> spec = (root, query, cb) -> {
@@ -312,8 +267,6 @@ public class DocumentoCompraService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        // Forzar la carga de relaciones para evitar LazyInitializationException en el PDF
-        // Esto es crucial para que el PDF pueda acceder a Proveedor y DetalleCompra sin problemas
         List<DocumentoCompra> documentos = documentoCompraRepository.findAll(spec);
         for (DocumentoCompra doc : documentos) {
             if (doc.getProveedor() != null) {
@@ -331,13 +284,6 @@ public class DocumentoCompraService {
         return documentos;
     }
 
-    /**
-     * Predice el siguiente número de documento consecutivo para el tipo de documento especificado.
-     * Este método NO incrementa el contador en la base de datos; es solo para pre-visualización.
-     * @param tipoDocumento El tipo de documento ("BOLETA" o "FACTURA").
-     * @return El número de documento predicho (ej: "B001-0000000X").
-     * @throws IllegalArgumentException si el tipo de documento es inválido o no se encuentra la secuencia.
-     */
     @Transactional // <--- ¡Añade esto para indicar explícitamente que es de solo lectura!
     public String predictNextDocumentNumber(String tipoDocumento) {
         if (tipoDocumento == null || (!tipoDocumento.equalsIgnoreCase("BOLETA") && !tipoDocumento.equalsIgnoreCase("FACTURA"))) {
