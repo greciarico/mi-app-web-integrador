@@ -26,8 +26,20 @@ public interface ProductoRepository extends JpaRepository<Producto, Integer>, Jp
     boolean existsByNombreAndIdProductoIsNot(String nombre, Integer idProducto);
 
     List<Producto> findByEstado(Byte estado);
-    boolean existsByNombreAndDescripcion(String nombre, String descripcion);
-    boolean existsByNombreAndDescripcionAndIdProductoIsNot(String nombre, String descripcion, Integer idProducto);
+
+    // --- NUEVOS MÉTODOS PARA UNICIDAD IGNORANDO ELIMINADOS ---
+    /** ¿Existe un producto (estado ≠ eliminado) con este código? */
+    boolean existsByNombreAndEstadoNot(String nombre, Byte estadoExcluido);
+
+
+    /** ¿Existe otro producto distinto a idProducto con este código e ignorando eliminados? */
+    boolean existsByNombreAndIdProductoIsNotAndEstadoNot(
+            String nombre, Integer idProducto, Byte estadoExcluido);
+
+    Optional<Producto> findByNombreAndDescripcionAndCategoria_IdCategoriaAndEstadoNot(
+            String nombre,
+            String descripcion,
+            Integer categoriaId,
+            Byte estadoExcluido
+    );
 }
-
-
