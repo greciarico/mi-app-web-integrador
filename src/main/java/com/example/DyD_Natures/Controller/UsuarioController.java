@@ -221,17 +221,22 @@ public class UsuarioController {
         response.put("exists", exists);
         return ResponseEntity.ok(response);
     }
-
+// ============================================
+    // NUEVO ENDPOINT PARA BÚSQUEDA Y REPORTE
     // ============================================
-    // NUEVOS ENDPOINTS PARA GENERACIÓN DE REPORTES
-    // ============================================
 
-    // Endpoint para cargar el modal de filtros de reporte
-    @GetMapping("/reporte/modal")
-    public String mostrarReporteModal(Model model) {
-        model.addAttribute("roles", rolUsuarioService.listarRoles()); // Pasa los roles al modal
-        return "fragments/reporte_usuarios_modal :: reporteModalContent";
+    /**
+     * Busca usuarios aplicando filtros dinámicamente.
+     * @param filterDTO DTO con los criterios de búsqueda.
+     * @return Lista de usuarios que coinciden con los filtros.
+     */
+    @GetMapping("/buscar")
+    @ResponseBody
+    public List<Usuario> buscarUsuarios(@ModelAttribute UsuarioFilterDTO filterDTO) {
+        System.out.println("Buscando usuarios con filtros: " + filterDTO); // Para depuración
+        return usuarioService.buscarUsuariosPorFiltros(filterDTO);
     }
+
 
     // Endpoint para generar el PDF de usuarios
     @GetMapping("/reporte/pdf")
@@ -273,7 +278,7 @@ public class UsuarioController {
             // 2. Roles
             if (filterDTO.getIdRoles() != null && !filterDTO.getIdRoles().isEmpty()) {
                 List<String> nombresRolesSeleccionados = new ArrayList<>();
-                List<RolUsuario> todosLosRoles = rolUsuarioService.listarRoles(); // <-- rolUsuarioService debe estar Autowired en tu Controller
+                List<RolUsuario> todosLosRoles = rolUsuarioService.listarRoles();
                 for (Integer idRolSeleccionado : filterDTO.getIdRoles()) {
                     todosLosRoles.stream()
                             .filter(rol -> rol.getIdRol().equals(idRolSeleccionado))
@@ -307,6 +312,15 @@ public class UsuarioController {
             } else {
                 filterParagraph.add(new Chunk("Estado(s): Todos\n", fontFilters));
             }
+
+            // Nuevos filtros añadidos al reporte PDF
+            if (filterDTO.getFechaRegistroStart() != null) {
+                filterParagraph.add(new Chunk("Fecha Registro Desde: " + filterDTO.getFechaRegistroStart().toString() + "\n", fontFilters));
+            }
+            if (filterDTO.getFechaRegistroEnd() != null) {
+                filterParagraph.add(new Chunk("Fecha Registro Hasta: " + filterDTO.getFechaRegistroEnd().toString() + "\n", fontFilters));
+            }
+
 
             filterParagraph.setSpacingAfter(15); // Espacio después de los filtros
             document.add(filterParagraph);
