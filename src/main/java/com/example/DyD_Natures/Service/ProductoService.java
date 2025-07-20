@@ -24,8 +24,6 @@ public class ProductoService {
     @Autowired
     private CategoriaRepository categoriaRepository;
 
-
-
     /**
      * Lista todos los productos que no tienen el estado '2' (eliminado lógicamente).
      * Este método se usa para la carga inicial de datos en el frontend
