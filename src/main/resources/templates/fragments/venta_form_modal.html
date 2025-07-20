@@ -118,16 +118,28 @@
             <fieldset class="border p-3 mb-3 rounded shadow-sm">
                 <legend class="w-auto px-2 h5" style="color: #183D00;">Medios de Pago</legend>
                 <div class="row">
-                    <div class="col-md-6 mb-2">
+                    <div class="col-md-12 mb-3">
                         <div class="form-group">
-                            <label for="cashPayment" class="font-weight-bold mb-1">Efectivo (S/):</label>
-                            <input type="number" id="cashPayment" name="efectivo" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
+                            <label for="tipoPagoSelect" class="font-weight-bold mb-1">Tipo de Pago:</label>
+                            <select id="tipoPagoSelect" name="tipoPago" class="form-control form-control-sm" required onchange="handleTipoPagoChange()">
+                                <option value="">-- Seleccione Tipo de Pago --</option>
+                                <option value="EFECTIVO">Efectivo</option>
+                                <option value="YAPE">Yape</option>
+                                <option value="MIXTO">Mixto</option>
+                            </select>
+                            <span class="text-danger small" id="tipoPagoSelectError"></span>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-2">
+                    <div class="col-md-6 mb-2" id="cashPaymentGroup">
+                        <div class="form-group">
+                            <label for="cashPayment" class="font-weight-bold mb-1">Efectivo (S/):</label>
+                            <input type="number" id="cashPayment" name="montoEfectivo" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2" id="yapePaymentGroup">
                         <div class="form-group">
                             <label for="yapePayment" class="font-weight-bold mb-1">Yape (S/):</label>
-                            <input type="number" id="yapePayment" name="yape" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
+                            <input type="number" id="yapePayment" name="montoMonederoElectronico" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
                         </div>
                     </div>
                 </div>
