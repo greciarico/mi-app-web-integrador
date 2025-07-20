@@ -1,12 +1,12 @@
 package com.example.DyD_Natures.Controller;
 
-import com.example.DyD_Natures.Dto.VentaFilterDTO;
+import com.example.DyD_Natures.Dto.VentaFilterDTO; // Importar DTO
 import com.example.DyD_Natures.Model.*;
 import com.example.DyD_Natures.Service.*;
-import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.DocumentException; // Importar
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse; // Importar
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +15,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder; // Importar
 
-import java.io.IOException;
-import java.math.BigDecimal; // Importar BigDecimal
+import java.io.IOException; // Importar
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,18 +34,17 @@ public class VentaController {
     private VentaService ventaService;
 
     @Autowired
-    private ClienteService clienteService;
+    private ClienteService clienteService; // Para cargar clientes en formularios
     @Autowired
-    private ProductoService productoService;
+    private ProductoService productoService; // Para cargar productos en formularios
     @Autowired
-    private IgvService igvService;
+    private IgvService igvService; // Para cargar IGV en formularios
     @Autowired
     private TipoClienteService tipoClienteService;
     @Autowired
     private UsuarioService usuarioService;
     @Autowired
-    private PasswordEncoder passwordEncoder;
-
+    private PasswordEncoder passwordEncoder; // Inyectar PasswordEncoder
     /**
      * Muestra la vista principal de Ventas.
      * @param model El modelo para pasar datos a la vista.
@@ -56,6 +55,7 @@ public class VentaController {
         try {
             model.addAttribute("currentUri", request.getRequestURI());
             model.addAttribute("ventas", ventaService.listarVentas());
+            // No cargamos productos, clientes, IGV aquí directamente, se harán por AJAX en el modal
             return "venta";
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Error al cargar la página de Ventas: " + e.getMessage());
@@ -76,20 +76,18 @@ public class VentaController {
 
     /**
      * Muestra el formulario para crear una nueva venta.
-     * Se inicializan los campos necesarios para evitar NullPointerExceptions en Thymeleaf.
-     * Los nuevos campos de pago mixto (montoEfectivo, montoMonederoElectronico) se inicializan a cero.
      * @param model El modelo.
      * @return Fragmento del formulario.
      */
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         Venta venta = new Venta();
+        // Inicializar las relaciones para evitar NPE en Thymeleaf en el formulario
         venta.setCliente(new Cliente());
         venta.setIgvEntity(new Igv());
         venta.setDetalleVentas(new ArrayList<>());
-        // Inicializar los nuevos campos de pago mixto a cero para el formulario
-        venta.setMontoEfectivo(BigDecimal.ZERO);
-        venta.setMontoMonederoElectronico(BigDecimal.ZERO);
+        // En una app real, el usuario debería obtenerse del contexto de seguridad
+        // venta.setUsuario(new Usuario()); // No es necesario inicializar aquí para el formulario
 
         model.addAttribute("venta", venta);
         model.addAttribute("clientes", clienteService.listarTodosLosClientesActivos());
@@ -118,10 +116,8 @@ public class VentaController {
     }
 
     /**
-     * Guarda una Venta y sus DetalleVenta, actualizando el stock y manejando los tipos de pago.
-     * El objeto Venta recibido en el @RequestBody debe incluir los campos
-     * 'montoEfectivo' y 'montoMonederoElectronico' cuando el 'tipoPago' es "MIXTO".
-     * @param venta El objeto Venta (recibido directamente del frontend).
+     * Guarda una Venta y sus DetalleVenta, actualizando el stock.
+     * @param venta El objeto Venta.
      * @return ResponseEntity con el resultado.
      */
     @PostMapping("/guardar")
@@ -129,29 +125,28 @@ public class VentaController {
     public ResponseEntity<Map<String, String>> guardarVenta(@RequestBody Venta venta) {
         Map<String,String> response = new HashMap<>();
 
-        // 1) Recupera el DNI del usuario autenticado desde el contexto de seguridad
+        // 1) Recupera el DNI del usuario autenticado
         String dni = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
 
-        // 2) Busca la entidad Usuario completa por ese DNI
+        // 2) Busca la entidad Usuario por ese DNI
         Usuario realUser = usuarioService
                 .obtenerUsuarioPorDni(dni)
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
                                 "Usuario no encontrado con DNI: " + dni));
 
-        // 3) Asocia el usuario autenticado a la venta (SOBREESCRIBIR cualquier usuario que venga del frontend)
+        // 3) Asócialo a la venta *antes* de guardar
         venta.setUsuario(realUser);
 
         try {
-            // 4) Guarda la venta usando el servicio, que contendrá la lógica de los montos de pago
-            Venta savedVenta = ventaService.guardarVenta(venta); // Recibe el Venta con los campos de pago ya procesados
+            // 4) Guarda la venta y actualiza stock
+            ventaService.guardarVenta(venta);
 
             response.put("status",  "success");
             response.put("message", "Venta guardada exitosamente y stock de productos actualizado!");
-            response.put("idVenta", savedVenta.getIdVenta().toString()); // Útil si necesitas el ID de la venta guardada en el frontend
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
@@ -159,14 +154,9 @@ public class VentaController {
             response.put("message", "Error de validación: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
 
-        } catch (IllegalStateException e) {
+        } catch (RuntimeException e) {
             response.put("status",  "error");
-            response.put("message", "Error de estado (ej. Turno de caja): " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        catch (RuntimeException e) {
-            response.put("status",  "error");
-            response.put("message", "Error de negocio o de datos: " + e.getMessage());
+            response.put("message", "Error de negocio: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
         } catch (Exception e) {
@@ -200,7 +190,7 @@ public class VentaController {
     @PostMapping("/cliente/guardar")
     @ResponseBody
     public ResponseEntity<Map<String, String>> guardarCliente(@RequestBody Cliente cliente) {
-        Map<String, String> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>(); // Declarado una vez aquí
         try {
             clienteService.guardarCliente(cliente);
             response.put("status", "success");
@@ -208,7 +198,7 @@ public class VentaController {
             // Opcional: devolver el ID del nuevo cliente si necesitas actualizar el select en el frontend
             if (cliente.getIdCliente() != null) {
                 response.put("idCliente", cliente.getIdCliente().toString());
-                response.put("nombreCliente", cliente.getRazonSocial() != null && !cliente.getRazonSocial().trim().isEmpty() ? cliente.getRazonSocial() : (cliente.getNombre() + " " + cliente.getApPaterno() + (cliente.getApMaterno() != null ? " " + cliente.getApMaterno() : "")));
+                response.put("nombreCliente", cliente.getRazonSocial() != null && !cliente.getRazonSocial().trim().isEmpty() ? cliente.getRazonSocial() : (cliente.getNombre() + " " + cliente.getApPaterno() + " " + cliente.getApMaterno()));
             }
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -232,7 +222,7 @@ public class VentaController {
     @ResponseBody
     public ResponseEntity<Map<String, Boolean>> checkDni(@RequestParam String dni,
                                                          @RequestParam(required = false) Integer idCliente) {
-        Map<String, Boolean> response = new HashMap<>();
+        Map<String, Boolean> response = new HashMap<>(); // Declarado una vez aquí
         boolean exists = clienteService.existsByDniExcludingCurrent(dni, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
@@ -248,7 +238,7 @@ public class VentaController {
     @ResponseBody
     public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
                                                          @RequestParam(required = false) Integer idCliente) {
-        Map<String, Boolean> response = new HashMap<>();
+        Map<String, Boolean> response = new HashMap<>(); // Declarado una vez aquí
         boolean exists = clienteService.existsByRucExcludingCurrent(ruc, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
@@ -256,11 +246,10 @@ public class VentaController {
 
     /**
      * Cancela (cambia de estado a inactivo) una Venta y revierte el stock de los productos.
-     * Requiere contraseña de administrador y verificación de rol.
      * @param id El ID de la venta.
-     * @param requestBody Contiene la contraseña del administrador.
      * @return ResponseEntity con el resultado.
      */
+    // METODO ACTUALIZADO PARA CANCELAR VENTA
     @PostMapping("/cancelar/{id}")
     @ResponseBody
     public ResponseEntity<Map<String, String>> cancelarVenta(@PathVariable("id") Integer id,
@@ -279,6 +268,7 @@ public class VentaController {
             Usuario currentUser = usuarioService.obtenerUsuarioPorDni(currentUserName)
                     .orElseThrow(() -> new UsernameNotFoundException("Usuario autenticado no encontrado."));
 
+            // *** CAMBIO AQUÍ: Usar getRolUsuario().getTipoRol() ***
             // Verificar si el usuario tiene el rol de ADMINISTRADOR
             boolean isAdmin = currentUser.getRolUsuario() != null &&
                     "ADMINISTRADOR".equalsIgnoreCase(currentUser.getRolUsuario().getTipoRol());
@@ -289,6 +279,7 @@ public class VentaController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
             }
 
+            // *** CAMBIO AQUÍ: Usar getContrasena() ***
             // Validar la contraseña del usuario administrador
             if (!passwordEncoder.matches(adminPassword, currentUser.getContrasena())) {
                 response.put("status", "error");
@@ -320,7 +311,7 @@ public class VentaController {
         }
     }
 
-    // --- Nuevos Endpoints para Reportes de Ventas ---
+// --- Nuevos Endpoints para Reportes de Ventas ---
 
     /**
      * Muestra el modal con los filtros para generar el reporte de ventas.
@@ -329,8 +320,8 @@ public class VentaController {
      */
     @GetMapping("/reporte/modal")
     public String mostrarReporteVentasModal(Model model) {
-        model.addAttribute("clientes", clienteService.listarTodosLosClientesActivos());
-        model.addAttribute("usuarios", usuarioService.listarUsuariosActivos());
+        model.addAttribute("clientes", clienteService.listarTodosLosClientesActivos()); // Para el select de cliente
+        model.addAttribute("usuarios", usuarioService.listarUsuariosActivos()); // Corrected method call
         return "fragments/venta_reporte_modal :: reporteModalContent";
     }
 
@@ -345,7 +336,6 @@ public class VentaController {
     public void generarReportePdf(@ModelAttribute VentaFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, IOException {
         ventaService.generarReportePdf(filterDTO, response);
     }
-
     /**
      * Genera un comprobante de venta (boleta/factura) en formato PDF para una venta específica.
      * @param id El ID de la venta para la cual se generará el comprobante.
