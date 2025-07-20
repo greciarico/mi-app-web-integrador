@@ -1,11 +1,13 @@
 package com.example.DyD_Natures.Model;
 
-import jakarta.persistence.*; // Usa jakarta.persistence para Spring Boot 3+
+import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
-@Table(name = "turno_caja") // Asegúrate que el nombre de la tabla coincida exactamente con la BD (es 'turno_caja', no 'TurnosCaja')
+@Table(name = "turno_caja")
 public class TurnoCaja {
 
     @Id
@@ -13,50 +15,61 @@ public class TurnoCaja {
     @Column(name = "id_turno_caja")
     private Integer idTurnoCaja;
 
-    @ManyToOne // Un usuario puede tener muchos turnos de caja
-    @JoinColumn(name = "id_vendedor", nullable = false) // Columna FK en TurnosCaja, que apunta a Usuario
-    private Usuario vendedor; // Asume que tienes una entidad Usuario
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_vendedor", nullable = false)
+    private Usuario vendedor;
 
     @Column(name = "fecha_apertura", nullable = false)
     private LocalDateTime fechaApertura;
 
     @Column(name = "fecha_cierre")
-    private LocalDateTime fechaCierre; // Puede ser null
+    private LocalDateTime fechaCierre;
 
     @Column(name = "fondo_inicial_efectivo", nullable = false, precision = 10, scale = 2)
     private BigDecimal fondoInicialEfectivo;
 
-    @Column(name = "total_ventas_efectivo_sistema", precision = 10, scale = 2)
-    private BigDecimal totalVentasEfectivoSistema; // Puede ser null inicialmente
+    @Column(name = "total_ventas_efectivo_sistema", nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalVentasEfectivoSistema;
 
-    @Column(name = "total_ventas_monederoElectronico_sistema", precision = 10, scale = 2)
-    private BigDecimal totalVentasMonederoElectronicoSistema; // Puede ser null inicialmente
+    @Column(name = "total_ventas_monedero_electronico_sistema", nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalVentasMonederoElectronicoSistema;
 
     @Column(name = "conteo_final_efectivo", precision = 10, scale = 2)
-    private BigDecimal conteoFinalEfectivo; // Puede ser null
+    private BigDecimal conteoFinalEfectivo;
+
+    // --- ¡ASEGÚRATE DE QUE ESTOS DOS CAMPOS Y SUS GETTERS/SETTERS ESTÉN PRESENTES! ---
+    @Column(name = "conteo_final_monedero", precision = 10, scale = 2)
+    private BigDecimal conteoFinalMonedero;
 
     @Column(name = "diferencia_efectivo", precision = 10, scale = 2)
-    private BigDecimal diferenciaEfectivo; // Puede ser null
+    private BigDecimal diferenciaEfectivo;
 
-    @Column(name = "estado_cuadre", nullable = false, length = 20)
-    private String estadoCuadre; // Ej. 'Abierto', 'Cuadrado', 'Con Faltante', 'Con Sobrante'
+    @Column(name = "diferencia_monedero", precision = 10, scale = 2)
+    private BigDecimal diferenciaMonedero;
+    // ---------------------------------------------------------------------------------
 
-    // *** ELIMINADA LA PROPIEDAD 'turnoCaja' QUE CAUSABA LA DUPLICACIÓN ***
+    @Column(name = "estado_cuadre", nullable = false, length = 50)
+    private String estadoCuadre;
 
-    // Constructor vacío (necesario para JPA)
     public TurnoCaja() {
+        this.fondoInicialEfectivo = BigDecimal.ZERO;
+        this.totalVentasEfectivoSistema = BigDecimal.ZERO;
+        this.totalVentasMonederoElectronicoSistema = BigDecimal.ZERO;
+        this.conteoFinalEfectivo = BigDecimal.ZERO;
+        this.conteoFinalMonedero = BigDecimal.ZERO; // <-- Importante inicializar
+        this.diferenciaEfectivo = BigDecimal.ZERO;
+        this.diferenciaMonedero = BigDecimal.ZERO; // <-- Importante inicializar
+        this.estadoCuadre = "Abierto";
     }
 
-    // Constructor para facilidad de creación
     public TurnoCaja(Usuario vendedor, BigDecimal fondoInicialEfectivo) {
+        this();
         this.vendedor = vendedor;
-        this.fechaApertura = LocalDateTime.now(); // Se establece al crear
+        this.fechaApertura = LocalDateTime.now();
         this.fondoInicialEfectivo = fondoInicialEfectivo;
-        this.estadoCuadre = "Abierto"; // Estado inicial
     }
 
     // --- Getters y Setters ---
-    // (Asegúrate de tener todos los getters y setters para los campos restantes)
 
     public Integer getIdTurnoCaja() {
         return idTurnoCaja;
@@ -122,6 +135,16 @@ public class TurnoCaja {
         this.conteoFinalEfectivo = conteoFinalEfectivo;
     }
 
+    // --- ¡ASEGÚRATE DE QUE ESTOS DOS MÉTODOS ESTÉN PRESENTES! ---
+    public BigDecimal getConteoFinalMonedero() {
+        return conteoFinalMonedero;
+    }
+
+    public void setConteoFinalMonedero(BigDecimal conteoFinalMonedero) {
+        this.conteoFinalMonedero = conteoFinalMonedero;
+    }
+    // ---------------------------------------------------------
+
     public BigDecimal getDiferenciaEfectivo() {
         return diferenciaEfectivo;
     }
@@ -129,6 +152,16 @@ public class TurnoCaja {
     public void setDiferenciaEfectivo(BigDecimal diferenciaEfectivo) {
         this.diferenciaEfectivo = diferenciaEfectivo;
     }
+
+    // --- ¡ASEGÚRATE DE QUE ESTOS DOS MÉTODOS ESTÉN PRESENTES! ---
+    public BigDecimal getDiferenciaMonedero() {
+        return diferenciaMonedero;
+    }
+
+    public void setDiferenciaMonedero(BigDecimal diferenciaMonedero) {
+        this.diferenciaMonedero = diferenciaMonedero;
+    }
+    // ---------------------------------------------------------
 
     public String getEstadoCuadre() {
         return estadoCuadre;
@@ -139,17 +172,32 @@ public class TurnoCaja {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TurnoCaja turnoCaja = (TurnoCaja) o;
+        return Objects.equals(idTurnoCaja, turnoCaja.idTurnoCaja);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(idTurnoCaja);
+    }
+
+    @Override
     public String toString() {
         return "TurnoCaja{" +
                 "idTurnoCaja=" + idTurnoCaja +
-                ", vendedorId=" + (vendedor != null ? vendedor.getIdUsuario() : "null") + // O vendedor.getNombre()
+                ", vendedor=" + (vendedor != null ? vendedor.getNombre() : "N/A") +
                 ", fechaApertura=" + fechaApertura +
                 ", fechaCierre=" + fechaCierre +
                 ", fondoInicialEfectivo=" + fondoInicialEfectivo +
                 ", totalVentasEfectivoSistema=" + totalVentasEfectivoSistema +
                 ", totalVentasMonederoElectronicoSistema=" + totalVentasMonederoElectronicoSistema +
                 ", conteoFinalEfectivo=" + conteoFinalEfectivo +
+                ", conteoFinalMonedero=" + conteoFinalMonedero + // Incluir en toString
                 ", diferenciaEfectivo=" + diferenciaEfectivo +
+                ", diferenciaMonedero=" + diferenciaMonedero + // Incluir en toString
                 ", estadoCuadre='" + estadoCuadre + '\'' +
                 '}';
     }
