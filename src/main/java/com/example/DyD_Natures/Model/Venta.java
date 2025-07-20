@@ -1,5 +1,6 @@
 package com.example.DyD_Natures.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonIgnore; // Importar JsonIgnore
 import jakarta.persistence.*;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime; // Importar LocalDateTime
 
 @Data
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "venta")
 public class Venta {
 
@@ -73,6 +75,146 @@ public class Venta {
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<DetalleVenta> detalleVentas = new ArrayList<>();
+
+    public Byte getEstado() {
+        return estado;
+    }
+
+    public void setEstado(Byte estado) {
+        this.estado = estado;
+    }
+
+    public Usuario getUsuarioAnulacion() {
+        return usuarioAnulacion;
+    }
+
+    public void setUsuarioAnulacion(Usuario usuarioAnulacion) {
+        this.usuarioAnulacion = usuarioAnulacion;
+    }
+
+    public LocalDateTime getFechaAnulacion() {
+        return fechaAnulacion;
+    }
+
+    public void setFechaAnulacion(LocalDateTime fechaAnulacion) {
+        this.fechaAnulacion = fechaAnulacion;
+    }
+
+    public TurnoCaja getTurnoCaja() {
+        return turnoCaja;
+    }
+
+    public void setTurnoCaja(TurnoCaja turnoCaja) {
+        this.turnoCaja = turnoCaja;
+    }
+
+    public List<DetalleVenta> getDetalleVentas() {
+        return detalleVentas;
+    }
+
+    public String getTipoPago() {
+        return tipoPago;
+    }
+
+    public void setTipoPago(String tipoPago) {
+        this.tipoPago = tipoPago;
+    }
+
+    public Igv getIgvEntity() {
+        return igvEntity;
+    }
+
+    public void setIgvEntity(Igv igvEntity) {
+        this.igvEntity = igvEntity;
+    }
+
+    public String getNumDocumento() {
+        return numDocumento;
+    }
+
+    public void setNumDocumento(String numDocumento) {
+        this.numDocumento = numDocumento;
+    }
+
+    public String getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(String tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
+    }
+
+    public BigDecimal getMontoEfectivo() {
+        return montoEfectivo;
+    }
+
+    public void setMontoEfectivo(BigDecimal montoEfectivo) {
+        this.montoEfectivo = montoEfectivo;
+    }
+
+    public BigDecimal getMontoMonederoElectronico() {
+        return montoMonederoElectronico;
+    }
+
+    public void setMontoMonederoElectronico(BigDecimal montoMonederoElectronico) {
+        this.montoMonederoElectronico = montoMonederoElectronico;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
+
+    public LocalDate getFechaRegistro() {
+        return fechaRegistro;
+    }
+
+    public void setFechaRegistro(LocalDate fechaRegistro) {
+        this.fechaRegistro = fechaRegistro;
+    }
+
+    public BigDecimal getTasa() {
+        return tasa;
+    }
+
+    public void setTasa(BigDecimal tasa) {
+        this.tasa = tasa;
+    }
+
+    public BigDecimal getIgv() {
+        return igv;
+    }
+
+    public void setIgv(BigDecimal igv) {
+        this.igv = igv;
+    }
+
+    public Integer getIdVenta() {
+        return idVenta;
+    }
+
+    public void setIdVenta(Integer idVenta) {
+        this.idVenta = idVenta;
+    }
 
     @Column(name = "estado", nullable = true)
     private Byte estado = 1;
