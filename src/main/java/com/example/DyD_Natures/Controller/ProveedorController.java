@@ -40,7 +40,7 @@ public class ProveedorController {
     public String listarProveedores(HttpServletRequest request, Model model) {
         model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("proveedores", proveedorService.listarProveedoresActivos());
-        return "proveedores"; 
+        return "proveedores"; // Asegúrate de que esto apunta a tu archivo proveedores.html
     }
 
     /**
@@ -50,17 +50,22 @@ public class ProveedorController {
      */
     @GetMapping("/all")
     @ResponseBody
-    public List<Proveedor> getAllProveedoresJson(@RequestParam(required = false) String searchTerm) { 
+    public List<Proveedor> getAllProveedoresJson(@RequestParam(required = false) String searchTerm) { // AÑADIR @RequestParam
+        // Crear un DTO de filtro para pasar al servicio
         ProveedorFilterDTO filterDTO = new ProveedorFilterDTO();
 
+        // Si se proporciona un término de búsqueda, establecerlo en el DTO
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
             filterDTO.setNombreRucRazonSocialCorreo(searchTerm);
         }
+        // Por defecto, buscarProveedoresPorFiltros ya excluye los proveedores con estado = 2 (eliminado lógicamente).
+        // Si no se proporciona searchTerm, buscarProveedoresPorFiltros devolverá todos los no eliminados.
         return proveedorService.buscarProveedoresPorFiltros(filterDTO);
     }
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         model.addAttribute("proveedor", new Proveedor());
+        // Asegúrate de que este fragmento existe y es correcto
         return "fragments/proveedores_form_modal :: formContent";
     }
 
@@ -69,8 +74,10 @@ public class ProveedorController {
         Optional<Proveedor> proveedorOpt = proveedorService.obtenerProveedorPorId(id);
         if (proveedorOpt.isPresent()) {
             model.addAttribute("proveedor", proveedorOpt.get());
+            // Asegúrate de que este fragmento existe y es correcto
             return "fragments/proveedores_form_modal :: formContent";
         }
+        // En caso de no encontrarlo, puedes redirigir a un error o crear uno nuevo vacío
         model.addAttribute("proveedor", new Proveedor());
         return "fragments/proveedores_form_modal :: formContent";
     }
@@ -83,22 +90,51 @@ public class ProveedorController {
      */
     @PostMapping("/guardar")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) {
-        Map<String, String> resp = new HashMap<>();
+    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) { // <--- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
+        Map<String, String> response = new HashMap<>();
         try {
-            Proveedor saved = proveedorService.guardarProveedor(proveedor);
-            resp.put("status",  "success");
-            resp.put("message", "Proveedor guardado exitosamente!");
-            return ResponseEntity.ok(resp);
+            // Validaciones básicas (estas validaciones ahora deberían recibir los datos correctos del JSON)
+            if (proveedor.getRuc() == null || proveedor.getRuc().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "El RUC es obligatorio.");
+                // Puedes añadir un HttpStatus.BAD_REQUEST para indicar un error de cliente
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (proveedor.getNombreComercial() == null || proveedor.getNombreComercial().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "El Nombre Comercial es obligatorio.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (proveedor.getRazonSocial() == null || proveedor.getRazonSocial().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "La Razón Social es obligatoria.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (proveedor.getDireccion() == null || proveedor.getDireccion().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "La Dirección es obligatoria.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            // Puedes añadir más validaciones para teléfono y correo si son obligatorios en tu negocio
 
-        } catch (IllegalArgumentException ex) {
-            resp.put("status", "error");
-            resp.put("message", ex.getMessage());
-            return ResponseEntity.badRequest().body(resp);
-        } catch (Exception ex) {
-            resp.put("status", "error");
-            resp.put("message", "Error interno al guardar el proveedor: " + ex.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+            // Validación de RUC único
+            Optional<Proveedor> existingProveedorByRuc = proveedorService.obtenerProveedorPorRuc(proveedor.getRuc());
+            if (existingProveedorByRuc.isPresent() && (proveedor.getIdProveedor() == null || !existingProveedorByRuc.get().getIdProveedor().equals(proveedor.getIdProveedor()))) {
+                response.put("status", "error");
+                response.put("message", "El RUC ya está registrado.");
+                return ResponseEntity.badRequest().body(response); // O HttpStatus.CONFLICT (409) para indicar duplicado
+            }
+
+            // Si las validaciones pasan, procede a guardar
+            proveedorService.guardarProveedor(proveedor);
+            response.put("status", "success");
+            response.put("message", "Proveedor guardado exitosamente!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // Captura cualquier otra excepción inesperada
+            response.put("status", "error");
+            response.put("message", "Error al guardar el proveedor: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
@@ -107,12 +143,12 @@ public class ProveedorController {
      * @param id El ID del proveedor a inactivar.
      * @return ResponseEntity con el estado de la operación y un mensaje.
      */
-    @PostMapping("/inactivar/{id}") 
+    @PostMapping("/inactivar/{id}") // Cambiado a POST, como lo usas en el frontend para inactivar
     @ResponseBody
     public ResponseEntity<Map<String, String>> inactivarProveedor(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
         try {
-            proveedorService.eliminarProveedor(id); 
+            proveedorService.eliminarProveedor(id); // Este método ya cambia el estado a 2 (inactivo/eliminado lógico)
             response.put("status", "success");
             response.put("message", "Proveedor inactivado exitosamente!");
             return ResponseEntity.ok(response);
@@ -131,22 +167,20 @@ public class ProveedorController {
      */
     @GetMapping("/checkRuc")
     @ResponseBody
-    public ResponseEntity<Map<String, Boolean>> checkRuc(
-            @RequestParam String ruc,
-            @RequestParam(required = false) Integer idProveedor) {
+    public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
+                                                         @RequestParam(required = false) Integer idProveedor) {
+        Map<String, Boolean> response = new HashMap<>();
         boolean exists = proveedorService.existsByRucExcludingId(ruc, idProveedor);
-        return ResponseEntity.ok(Map.of("exists",exists));
+        response.put("exists", exists);
+        return ResponseEntity.ok(response);
     }
-    // ---  ENDPOINTS PARA REPORTES ---
 
-    /**
-     * Muestra el fragmento del modal con opciones para generar el reporte de proveedores.
-     * @param model El modelo para pasar datos a la vista.
-     * @return El fragmento HTML del modal de reporte.
-     */
-    @GetMapping("/reporte/modal")
-    public String mostrarReporteModal(Model model) {
-        return "fragments/reporte_proveedores_modal :: reporteModalContent";
+    @GetMapping("/buscar") // <--- ¡AÑADE ESTE MÉTODO!
+    @ResponseBody // Indica que la respuesta del método debe serializarse directamente en el cuerpo de la respuesta HTTP
+    public ResponseEntity<List<Proveedor>> buscarProveedores(@ModelAttribute ProveedorFilterDTO filterDTO) {
+        // En tu service, tienes un método buscarProveedoresPorFiltros que ya usa el DTO.
+        List<Proveedor> proveedores = proveedorService.buscarProveedoresPorFiltros(filterDTO);
+        return ResponseEntity.ok(proveedores);
     }
 
     /**
@@ -163,7 +197,7 @@ public class ProveedorController {
         String headerValue = "inline; filename=reporte_proveedores.pdf";
         response.setHeader(headerKey, headerValue);
 
-        List<Proveedor> proveedores = proveedorService.buscarProveedoresPorFiltros(filterDTO);
+        List<Proveedor> proveedores = proveedorService.buscarProveedoresPorFiltros(filterDTO); // Reutiliza el método de filtrado
 
         Document document = new Document(PageSize.A4.rotate());
         PdfWriter.getInstance(document, response.getOutputStream());
@@ -175,6 +209,7 @@ public class ProveedorController {
         title.setSpacingAfter(20);
         document.add(title);
 
+        // Mostrar filtros aplicados
         Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
         StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
 
@@ -200,7 +235,6 @@ public class ProveedorController {
             filtrosAplicados.append("- Fecha Registro Hasta: ").append(filterDTO.getFechaRegistroHasta().format(formatter)).append("\n");
         }
 
-
         if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) {
             filtrosAplicados.append("- Ninguno (Reporte Completo)\n");
         }
@@ -210,8 +244,7 @@ public class ProveedorController {
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
 
-
-        PdfPTable table = new PdfPTable(9); 
+        PdfPTable table = new PdfPTable(9); // 9 columnas: ID, Fecha Reg, RUC, Nom Comercial, Razon Social, Telefono, Correo, Direccion, Estado
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
@@ -222,8 +255,8 @@ public class ProveedorController {
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); 
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); 
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
 
         String[] headers = {"ID", "Fecha Reg.", "RUC", "Nombre Comercial", "Razón Social", "Teléfono", "Correo", "Dirección", "Estado"};
         for (String header : headers) {
@@ -262,7 +295,7 @@ public class ProveedorController {
                     estadoFont = fontContentInactive;
                 } else {
                     estadoText = "Desconocido";
-                    estadoFont = fontContent; 
+                    estadoFont = fontContent; // Default to black if unknown
                 }
                 table.addCell(new Phrase(estadoText, estadoFont));              }
         }
