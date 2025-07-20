@@ -125,6 +125,12 @@ public class UsuarioService {
     public Optional<Usuario> findByNombre(String nombre) { // <--- ¡Cambiado el nombre del método en el servicio!
         return usuarioRepository.findByNombre(nombre); // <--- ¡Cambiado el nombre del método llamado en el repositorio!
     }
+
+    public List<Usuario> obtenerUsuariosPorTipoRol(String tipoRol) {
+        // Si necesitas un Optional en el servicio, puedes envolver la lista.
+        // Pero para tu caso, devolver la lista directamente es más útil.
+        return usuarioRepository.findByRolUsuario_TipoRolAndEstadoNot(tipoRol, (byte)2);
+    }
 }
 
 
