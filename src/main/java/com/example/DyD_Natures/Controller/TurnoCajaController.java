@@ -5,6 +5,8 @@ import com.example.DyD_Natures.Model.Usuario;
 import com.example.DyD_Natures.Service.TurnoCajaService;
 import com.example.DyD_Natures.Service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -14,7 +16,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.security.Principal; // Importante para obtener el usuario autenticado
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller
@@ -79,19 +83,39 @@ public class TurnoCajaController {
     }
 
     @PostMapping("/cerrar")
-    public String cerrarCaja(@RequestParam("idTurnoCaja") Integer idTurnoCaja,
-                             @RequestParam("conteoFinalEfectivo") BigDecimal conteoFinalEfectivo,
-                             RedirectAttributes redirectAttributes) {
+    @ResponseBody
+    // Usamos Map<String, Object> para recibir el JSON sin un DTO específico
+    public ResponseEntity<Map<String, String>> cerrarTurnoCaja(@RequestBody Map<String, Object> requestBody) {
+        Map<String, String> response = new HashMap<>();
         try {
-            turnoCajaService.cerrarYCuadrarTurnoCaja(idTurnoCaja, conteoFinalEfectivo);
-            redirectAttributes.addFlashAttribute("successMessage", "Turno de caja cerrado y cuadrado exitosamente.");
-            return "redirect:/caja/historial-caja";
-        } catch (RuntimeException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-            return "redirect:/caja/a-c-caja";
+            // Extraer los valores del mapa y castearlos
+            Integer idTurnoCaja = (Integer) requestBody.get("idTurnoCaja");
+            BigDecimal conteoFinalEfectivo = new BigDecimal(requestBody.get("conteoFinalEfectivo").toString());
+            BigDecimal conteoFinalMonedero = new BigDecimal(requestBody.get("conteoFinalMonedero").toString());
+
+            if (idTurnoCaja == null || conteoFinalEfectivo == null || conteoFinalMonedero == null) {
+                response.put("status", "error");
+                response.put("message", "Datos incompletos para cerrar el turno de caja.");
+                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            }
+
+            TurnoCaja turnoCerrado = turnoCajaService.cerrarYCuadrarTurnoCaja(
+                    idTurnoCaja,
+                    conteoFinalEfectivo,
+                    conteoFinalMonedero
+            );
+
+            response.put("status", "success");
+            response.put("message", "Turno de caja ID " + turnoCerrado.getIdTurnoCaja() + " cerrado y cuadrado exitosamente. Estado: " + turnoCerrado.getEstadoCuadre());
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ClassCastException e) {
+            response.put("status", "error");
+            response.put("message", "Error en el formato de los datos enviados: " + e.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Error inesperado al cerrar el turno de caja: " + e.getMessage());
-            return "redirect:/caja/a-c-caja";
+            response.put("status", "error");
+            response.put("message", "Error al cerrar el turno de caja: " + e.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
