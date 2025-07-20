@@ -781,8 +781,9 @@ window.addDetalleVenta = function(detalle = null, productsArray = allProductosDa
                  data-precio1="${p.precio1 || ''}"
                  data-precio2="${p.precio2 || ''}"
                  data-stock="${p.stock}"
+                 data-descripcion="${p.descripcion}"
                  ${detalle && detalle.producto && detalle.producto.idProducto === p.idProducto ? 'selected' : ''}>
-             ${p.nombre} (Stock: ${p.stock})
+             ${p.nombre} (Descripcion: ${p.descripcion}) (Stock: ${p.stock})
           </option>`
     ).join('');
 
