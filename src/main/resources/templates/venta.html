@@ -1101,101 +1101,102 @@ async function validateForm() {
 // LÓGICA DE GUARDADO DE LA VENTA (EN EL CLIENTE)
 // ===============================================
 window.saveVenta = async function(event) {
-    event.preventDefault();
+    event.preventDefault(); // Evita el envío tradicional del formulario
 
-    if (!(await validateForm())) {
+    // 1. Validar el formulario primero
+    const isValid = await validateForm();
+    if (!isValid) {
         showNotification('error', 'Por favor, corrige los errores en el formulario.');
         return;
     }
 
-    const idVenta = document.getElementById('idVenta') ? document.getElementById('idVenta').value : null;
-    const idCliente = document.getElementById('clienteSelect') ? document.getElementById('clienteSelect').value : null;
-
-    const tipoDocumento = document.getElementById('tipoDocumentoVentaSelect') ? document.getElementById('tipoDocumentoVentaSelect').value : '';
-    const numDocumento = document.getElementById('numDocumentoVenta') ? document.getElementById('numDocumentoVenta').value : '';
-
-    const efectivo = parseFloat(document.getElementById('cashPayment').value) || 0;
-    const yape = parseFloat(document.getElementById('yapePayment').value) || 0;
-
-    let tipoPagoCalculado = '';
-    if (efectivo > 0 && yape > 0) {
-        tipoPagoCalculado = 'MIXTO';
-    } else if (efectivo > 0) {
-        tipoPagoCalculado = 'EFECTIVO';
-    } else if (yape > 0) {
-        tipoPagoCalculado = 'YAPE';
-    } else {
-        tipoPagoCalculado = 'SIN_PAGO'; // O un valor por defecto si no hay pago
-    }
-
-    const igvSelect = document.getElementById('igvSelect');
-    const idIgv = igvSelect ? parseInt(igvSelect.value) : null;
-
-    const totalElement = document.getElementById('totalGeneralDisplay');
-    const total = totalElement ? parseFloat(totalElement.value) : 0;
-    const igvCalculatedAmount = document.getElementById('igvCalculatedDisplay') ? parseFloat(document.getElementById('igvCalculatedDisplay').value) : 0;
-
-    const detallesVentas = [];
-    document.querySelectorAll('#detalleVentasContainer tr.detalle-item').forEach(detalleRow => {
-        const index = detalleRow.getAttribute('data-index');
-        const getVal = (selector) => {
-            const element = detalleRow.querySelector(selector);
-            return element ? element.value : '';
-        };
-        const currentIdDetalleVenta = getVal(`input[name="detalleVentas[${index}].idDetalleVenta"]`);
-        const parsedIdDetalleVenta = (currentIdDetalleVenta && currentIdDetalleVenta.trim() !== '') ? parseInt(currentIdDetalleVenta) : null;
-
-        detallesVentas.push({
-            idDetalleVenta: parsedIdDetalleVenta,
-            producto: { idProducto: getVal(`#producto-${index}`) ? parseInt(getVal(`#producto-${index}`)) : null },
-            cantidad: getVal(`#cantidad-${index}`) ? parseInt(getVal(`#cantidad-${index}`)) : null,
-            precioUnitario: getVal(`#precioUnitario-${index}`) ? parseFloat(getVal(`#precioUnitario-${index}`)) : null,
-            total: getVal(`#detalleTotalDisplay-${index}`) ? parseFloat(getVal(`#detalleTotalDisplay-${index}`)) : null
-        });
+    Swal.fire({
+        title: 'Guardando Venta...',
+        text: 'Por favor, espera mientras se procesa la venta.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
     });
 
-    const data = {
-        idVenta: idVenta ? parseInt(idVenta) : null,
-        cliente: { idCliente: parseInt(idCliente) },
-        total: total,
-        tipoDocumento: tipoDocumento,
-        numDocumento: numDocumento,
-        efectivo: efectivo,
-        yape: yape,
-        tipoPago: tipoPagoCalculado,
-        tasa: igvCalculatedAmount, // Envía el monto calculado del IGV
-        igvEntity: { idIgv: idIgv }, // Envía el ID del IGV seleccionado
-        detalleVentas: detallesVentas
+    // 2. Recopilar todos los datos del formulario, incluyendo los detalles de la venta
+    const ventaData = {
+        // Campos directos de la venta
+        tipoDocumento: document.getElementById('tipoDocumentoVentaSelect').value,
+        numDocumento: document.getElementById('numDocumentoVenta').value,
+        fechaRegistro: document.getElementById('fechaRegistro').value, // Asegúrate de que el formato sea 'YYYY-MM-DD'
+
+        cliente: {
+            idCliente: document.getElementById('clienteSelect').value
+        },
+        igvEntity: { // Asegúrate de enviar solo el ID del IGV
+            idIgv: document.getElementById('igvSelect').value
+        },
+        total: parseFloat(document.getElementById('totalGeneralDisplay').value), // Usar el total calculado
+
+        // Nuevos campos para el pago mixto
+        montoEfectivo: parseFloat(document.getElementById('cashPayment').value) || 0,
+        montoMonederoElectronico: parseFloat(document.getElementById('yapePayment').value) || 0,
+        // Agrega el campo tipoPago desde tu HTML o lógica si lo tienes
+        tipoPago: document.getElementById('tipoPagoSelect').value // Asegúrate de tener este select en tu HTML
     };
 
-    console.log("JSON de la venta a enviar:");
-    console.log(JSON.stringify(data, null, 2));
+    // 3. Recopilar los detalles de la venta
+    const detalleVentas = [];
+    document.querySelectorAll('.detalle-item').forEach(row => {
+        const index = row.getAttribute('data-index');
+        detalleVentas.push({
+            idDetalleVenta: document.querySelector(`#detalleVentasContainer input[name="detalleVentas[${index}].idDetalleVenta"]`)?.value || null, // Para edición
+            producto: {
+                idProducto: document.getElementById(`producto-${index}`).value
+            },
+            cantidad: parseInt(document.getElementById(`cantidad-${index}`).value),
+            precioUnitario: parseFloat(document.getElementById(`precioUnitario-${index}`).value),
+            total: parseFloat(document.getElementById(`detalleTotalDisplay-${index}`).value)
+        });
+    });
+    ventaData.detalleVentas = detalleVentas;
 
-    const url = '/ventas/guardar';
     try {
-        const response = await fetch(url, {
-            method: 'POST',
+        const response = await fetch('/ventas/guardar', {
+            method: 'POST', // <--- ¡ESTO ES CLAVE!
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify(ventaData)
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            showNotification('error', errorData.message || 'Error al guardar la venta. Inténtalo de nuevo.');
-            return;
+        const data = await response.json();
+
+        if (response.ok) { // Si la respuesta HTTP es 2xx (éxito)
+            Swal.close();
+            showNotification('success', data.message || 'Venta guardada con éxito.');
+            closeFormModal(); // Cierra el modal de venta
+            recargarListaVentasCompleta(); // Actualiza la tabla principal de ventas
+            if (data.idVenta) {
+                // Opcional: abrir comprobante en nueva pestaña si es necesario
+                // window.open(`/ventas/comprobante/${data.idVenta}`, '_blank');
+            }
+        } else { // Si la respuesta HTTP es un error (4xx, 5xx)
+            Swal.close();
+            showNotification('error', data.message || 'Error al guardar la venta.');
+
+            // Si hay errores de validación, intenta mostrarlos
+            if (data.errors) {
+                for (const [field, errorMessage] of Object.entries(data.errors)) {
+                    displayError(`${field}Error`, errorMessage);
+                }
+            }
         }
-
-        const resultData = await response.json();
-        showNotification('success', resultData.message);
-        closeFormModal();
-        recargarListaVentasCompleta();
-
     } catch (error) {
-        showNotification('error', error.message || 'Ocurrió un error de red o interno al guardar la venta.');
+        Swal.close();
+        console.error('Error en la comunicación con el servidor:', error);
+        showNotification('error', 'Error de conexión con el servidor al guardar la venta.');
     }
-}
+};
+
+// ... el resto de tu código JavaScript
   // ===============================================
             // NUEVAS FUNCIONES PARA CANCELAR VENTA (cambioo para anular)
             // ===============================================
