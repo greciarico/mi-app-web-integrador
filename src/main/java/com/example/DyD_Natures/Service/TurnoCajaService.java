@@ -16,12 +16,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 @Service
 public class TurnoCajaService {
-    ZonedDateTime cierrePeru = ZonedDateTime.now(ZoneId.of("America/Lima"));
 
     private final TurnoCajaRepository turnoCajaRepository;
     private final VentaRepository ventaRepository;
