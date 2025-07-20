@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Service
 public class TurnoCajaService {
@@ -48,6 +50,7 @@ public class TurnoCajaService {
         nuevoTurno.setTotalVentasMonederoElectronicoSistema(BigDecimal.ZERO);
         nuevoTurno.setFechaApertura(LocalDateTime.now());
         nuevoTurno.setEstadoCuadre("Abierto");
+        nuevoTurno.setEstado(true);
         return turnoCajaRepository.save(nuevoTurno);
     }
 
@@ -160,6 +163,7 @@ public class TurnoCajaService {
         }
 
          turno.setFechaCierre(LocalDateTime.now());
+        turno.setEstado(false);
         return turnoCajaRepository.save(turno);
     }
 
