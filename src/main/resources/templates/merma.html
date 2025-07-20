@@ -20,70 +20,104 @@
                             </a>
                         </div>
                     </div>
-                    <!-- /.card-header -->
                     <div class="card-body">
-                        <!-- BUSCADOR SIMPLIFICADO DE MERMA -->
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <div class="input-group">
-                                    <input type="search" id="searchTermMerma" class="form-control" placeholder="Buscar por producto, descripción..."
-                                           onkeyup="aplicarFiltrosMerma()"/>
-                                    <div class="input-group-append">
-                                        <button class="btn btn-default" type="button" onclick="aplicarFiltrosMerma()">
+                        <div class="mb-3">
+                            <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#collapseMermaFilters" aria-expanded="false" aria-controls="collapseMermaFilters">
+                                <i class="fas fa-filter"></i> Mostrar/Ocultar Filtros de Merma
+                            </button>
+                        </div>
+
+                        <div class="collapse" id="collapseMermaFilters">
+                            <div class="card card-body">
+                                <form id="mainMermaFilterForm" onsubmit="event.preventDefault(); aplicarFiltrosMerma();">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="filtroIdProductoMermaMain">Producto:</label>
+                                                <select id="filtroIdProductoMermaMain" name="idProducto" class="form-control">
+                                                    <option value="">Todos los Productos</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="filtroNombreProductoMermaMain">Nombre de Producto (búsqueda):</label>
+                                                <input type="text" id="filtroNombreProductoMermaMain" name="nombreProducto" class="form-control" placeholder="Buscar por nombre de producto"/>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label for="filtroDescripcionMermaMain">Descripción de Merma:</label>
+                                                <input type="text" id="filtroDescripcionMermaMain" name="descripcionMerma" class="form-control" placeholder="Buscar por descripción de la merma"/>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Cantidad:</label>
+                                                <div class="input-group">
+                                                    <input type="number" id="cantidadMermaMinMain" name="cantidadMin" class="form-control" placeholder="Min">
+                                                    <input type="number" id="cantidadMermaMaxMain" name="cantidadMax" class="form-control" placeholder="Max">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Fecha de Registro:</label>
+                                                <div class="input-group">
+                                                    <input type="date" id="fechaRegistroMermaStartMain" name="fechaRegistroStart" class="form-control" onchange="setMermaMainDateMaxAttributes()">
+                                                    <input type="date" id="fechaRegistroMermaEndMain" name="fechaRegistroEnd" class="form-control" onchange="setMermaMainDateMinAttributes()">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <button class="btn btn-default" type="submit">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteMermasModal()">
-                                            <i class="fas fa-file-alt"></i> Generar Reporte
+                                        <button class="btn btn-primary ml-2" style="background-color:#b45f06 !important; border-color:#b45f06 !important;" type="button" onclick="ejecutarGenerarReporteMermas()">
+                                            <i class="fas fa-file-pdf"></i> Generar Reporte PDF
+                                        </button>
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="limpiarFiltrosMainMerma()">
+                                            <i class="fas fa-redo"></i> Limpiar Filtros
                                         </button>
                                     </div>
-                                </div>
+                                    <div class="alert alert-info text-center mt-3" role="alert">
+                                        <i class="fas fa-info-circle"></i> Deje todas las opciones de filtro sin marcar para buscar/generar un reporte de todas las mermas.
+                                    </div>
+                                </form>
                             </div>
                         </div>
-                        <!-- FIN BUSCADOR SIMPLIFICADO DE MERMA -->
-
-                        <!-- Tabla de Merma -->
-                        <div id="tablaMermaContainer">
-                            <table id="mermaTable" class="table table-bordered table-striped">
-                                <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Fecha Registro</th>
-                                    <th>Descripción</th>
-                                    <th>Acciones</th>
-                                </tr>
-                                </thead>
-                                <tbody id="mermaTableBody">
-                                <!-- Contenido de la tabla se generará con JavaScript -->
-                                </tbody>
-                            </table>
+                        <div id="tablaMermaContainer" class="mt-3"> <table id="mermaTable" class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Fecha Registro</th>
+                                <th>Descripción</th>
+                                <th>Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody id="mermaTableBody">
+                            </tbody>
+                        </table>
                         </div>
                     </div>
-                    <!-- /.card-body -->
                 </div>
-                <!-- /.card -->
             </div>
-            <!-- /.col -->
         </div>
-        <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
-
-    <!-- Modal para el Formulario de Merma -->
     <div class="modal fade" id="mermaModal" tabindex="-1" role="dialog" aria-labelledby="mermaModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div id="modalFormContentMerma">
-                    <!-- El fragmento merma_form_modal.html se insertará aquí -->
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal fade" id="reporteMermasModal" tabindex="-1" role="dialog" aria-labelledby="reporteMermasModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div id="modalReporteContentMerma">
                 </div>
             </div>
         </div>
@@ -94,8 +128,10 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
 
-        // Variable global para almacenar todos los registros de Merma
-        allMermas = /*[[${mermas}]]*/ [];
+        // `allMermas` ya no será necesaria para el filtrado en cliente
+        // ya que el filtrado se moverá completamente al servidor.
+        // Se mantiene si aún la usas para otras funciones (ej. para un "exportar a CSV" en cliente)
+        allMermas = [];
 
         // Función para renderizar la tabla con una lista de Merma
         function renderizarTablaMerma(mermasToDisplay) {
@@ -109,7 +145,7 @@
 
             mermasToDisplay.forEach(merma => {
                 const fechaRegistroFormatted = merma.fechaRegistro ? new Date(merma.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
-                const productName = merma.producto ? merma.producto.nombre : 'Producto Desconocido'; // Asegurarse de acceder al nombre del producto
+                const productName = merma.producto ? merma.producto.nombre : 'Producto Desconocido';
 
                 const row = `
                     <tr>
@@ -140,13 +176,13 @@
        *
        * @param {string|HTMLElement} container – selector o elemento DOM
        */
-      function clearErrors(container) {
-        const $c = (container instanceof HTMLElement)
-          ? $(container)
-          : $(container);
-        $c.find('.text-danger').text('');
-        $c.find('.is-invalid').removeClass('is-invalid');
-      }
+        function clearErrors(container) {
+            const $c = (container instanceof HTMLElement)
+                ? $(container)
+                : $(container);
+            $c.find('.text-danger').text('');
+            $c.find('.is-invalid').removeClass('is-invalid');
+        }
 
         // Función para mostrar un mensaje de error específico (genérica)
         function displayError(elementId, message) {
@@ -202,59 +238,54 @@
         // ===========================================
 
         function abrirFormularioMerma(url) {
-          console.log("Intentando abrir formulario de Merma desde URL:", url);
-          $('#modalFormContentMerma').load(url, function(response, status, xhr) {
-            if (status === "error") {
-              console.error("Error al cargar el formulario de Merma:", xhr.status, xhr.statusText, response);
-              Swal.fire({
-                icon: 'error',
-                title: 'Error al cargar formulario',
-                text: 'Hubo un problema al cargar el formulario de Merma. Por favor, inténtalo de nuevo.',
-                footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-              });
-              return;
-            }
-
-            console.log("Formulario de Merma cargado exitosamente.");
-
-            // 1) Limpia errores previos SOLO de este form
-            clearErrors('#formMerma');
-
-            // 2) Inicializa Select2 en #idProducto dentro del modal
-            //    Usamos un pequeño timeout para garantizar que el DOM ya esté renderizado
-            setTimeout(() => {
-              $('#idProducto').select2({
-                placeholder: "-- Seleccione o Busque un Producto --",
-                allowClear: true,
-                width: '100%',
-                dropdownParent: $('#mermaModal')
-              });
-              console.log("Select2 inicializado en #idProducto.");
-            }, 100);
-
-            // 3) Captura el submit y valida antes de enviar
-            $('#formMerma')
-              .off('submit')
-              .on('submit', async function(e) {
-                e.preventDefault();
-                const formIsValid = await validarFormularioMerma();
-                if (formIsValid) {
-                  guardarMermaAjax();  // tu función AJAX de guardado
-                } else {
-                  console.log("Formulario de Merma inválido. No se envía.");
-                  mostrarNotificacion("error", "Por favor, corrige los errores en el formulario de Merma.");
+            console.log("Intentando abrir formulario de Merma desde URL:", url);
+            $('#modalFormContentMerma').load(url, function(response, status, xhr) {
+                if (status === "error") {
+                    console.error("Error al cargar el formulario de Merma:", xhr.status, xhr.statusText, response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al cargar formulario',
+                        text: 'Hubo un problema al cargar el formulario de Merma. Por favor, inténtalo de nuevo.',
+                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                    });
+                    return;
                 }
-              });
 
-            // 4) Mostrar modal
-            $('#mermaModal').modal('show');
-            console.log("Modal de Merma intentando mostrarse.");
-          });
+                console.log("Formulario de Merma cargado exitosamente.");
+
+                clearErrors('#formMerma');
+
+                // Inicializa Select2 en #idProducto dentro del modal
+                setTimeout(() => {
+                    $('#idProducto').select2({
+                        placeholder: "-- Seleccione o Busque un Producto --",
+                        allowClear: true,
+                        width: '100%',
+                        dropdownParent: $('#mermaModal')
+                    });
+                    console.log("Select2 inicializado en #idProducto.");
+                }, 100);
+
+                $('#formMerma')
+                    .off('submit')
+                    .on('submit', async function(e) {
+                        e.preventDefault();
+                        const formIsValid = await validarFormularioMerma();
+                        if (formIsValid) {
+                            guardarMermaAjax();
+                        } else {
+                            console.log("Formulario de Merma inválido. No se envía.");
+                            mostrarNotificacion("error", "Por favor, corrige los errores en el formulario de Merma.");
+                        }
+                    });
+
+                $('#mermaModal').modal('show');
+                console.log("Modal de Merma intentando mostrarse.");
+            });
         }
 
         function cerrarFormularioMerma() {
             $('#mermaModal').modal('hide');
-            // NUEVO: Destruir la instancia de Select2 antes de limpiar el contenido del modal
             const selectProducto = $('#idProducto');
             if (selectProducto.data('select2')) {
                 selectProducto.select2('destroy');
@@ -270,23 +301,19 @@
             console.log("Modal de Merma cerrado.");
         }
 
-        // Esta función ahora construye los datos manualmente para AJAX y envía como JSON
         function guardarMermaAjax() {
-            // Recoger los datos del formulario
             const idMerma = $('#idMerma').val();
-            const fechaRegistro = $('#fechaRegistro').val(); // Se enviará si existe, de lo contrario será nulo
+            const fechaRegistro = $('#fechaRegistro').val();
             const cantidad = parseInt($('#cantidad').val(), 10);
             const descripcion = $('#descripcion').val();
-            // Para Select2, el valor seleccionado se obtiene del select original
             const idProducto = parseInt($('#idProducto').val(), 10);
 
-            // Construir el objeto de datos para enviar
             const dataToSend = {
                 idMerma: idMerma === '' ? null : parseInt(idMerma, 10),
-                fechaRegistro: fechaRegistro, // Spring Boot y Jackson lo manejarán
+                fechaRegistro: fechaRegistro,
                 cantidad: cantidad,
                 descripcion: descripcion,
-                producto: { idProducto: idProducto } // Solo necesitamos el ID del producto
+                producto: { idProducto: idProducto }
             };
 
             const url = '/merma/guardar';
@@ -300,7 +327,7 @@
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
                         cerrarFormularioMerma();
-                        recargarListaMermaCompleta();
+                        aplicarFiltrosMerma(); // Ahora llama a aplicarFiltrosMerma directamente
                     } else {
                         mostrarNotificacion("error", "Error: " + response.message);
                     }
@@ -333,12 +360,12 @@
                 if (result.isConfirmed) {
                     console.log("Eliminando Merma con ID:", id);
                     $.ajax({
-                        type: "GET", // La eliminación es un GET aquí
+                        type: "GET",
                         url: '/merma/eliminar/' + id,
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                recargarListaMermaCompleta();
+                                aplicarFiltrosMerma(); // Ahora llama a aplicarFiltrosMerma
                             } else {
                                 mostrarNotificacion("error", "Error: " + response.message);
                             }
@@ -359,124 +386,36 @@
         }
 
         // ===========================================
-        // FUNCIONES DE FILTRADO Y REPORTE DE MERMA (CLIENT-SIDE)
+        // FUNCIONES DE FILTRADO Y REPORTE DE MERMA (SERVER-SIDE)
         // ===========================================
 
-        // Esta función debe ser global para que layout.html pueda llamarla
-        function recargarListaMermaCompleta() {
+        // Esta función ahora enviará los filtros al servidor y recargará la tabla
+        function aplicarFiltrosMerma() {
+            const filterDTO = {
+                idProducto: $('#filtroIdProductoMermaMain').val() === "" ? null : parseInt($('#filtroIdProductoMermaMain').val()),
+                nombreProducto: $('#filtroNombreProductoMermaMain').val(),
+                descripcionMerma: $('#filtroDescripcionMermaMain').val(),
+                cantidadMin: $('#cantidadMermaMinMain').val() === "" ? null : parseInt($('#cantidadMermaMinMain').val()),
+                cantidadMax: $('#cantidadMermaMaxMain').val() === "" ? null : parseInt($('#cantidadMermaMaxMain').val()),
+                fechaRegistroStart: $('#fechaRegistroMermaStartMain').val() === "" ? null : $('#fechaRegistroMermaStartMain').val(),
+                fechaRegistroEnd: $('#fechaRegistroMermaEndMain').val() === "" ? null : $('#fechaRegistroMermaEndMain').val()
+            };
+
+            const queryString = $.param(filterDTO);
+            const url = '/merma/buscar?' + queryString; // Asegúrate de tener este endpoint en tu controlador
+
             $.ajax({
                 type: "GET",
-                url: '/merma/all',
+                url: url,
                 dataType: "json",
                 success: function(response) {
-                    allMermas = response;
-                    aplicarFiltrosMerma(); // Aplicar el filtro actual después de cargar todos los datos
+                    renderizarTablaMerma(response);
                 },
                 error: function(xhr, status, error) {
-                    console.error("Error al recargar la lista completa de Merma:", error);
-                    mostrarNotificacion("error", "Error al recargar la lista de Merma. Verifica el endpoint /merma/all en tu backend.");
+                    console.error("Error al buscar mermas con filtros:", error, xhr.responseText);
+                    mostrarNotificacion("error", "Error al buscar mermas. Intenta de nuevo.");
                 }
             });
-        }
-
-        function aplicarFiltrosMerma() {
-            const searchTerm = $('#searchTermMerma').val().toLowerCase().trim();
-            let filteredMermas = allMermas;
-
-            if (searchTerm) {
-                filteredMermas = allMermas.filter(merma => {
-                    const productName = merma.producto ? merma.producto.nombre.toLowerCase() : '';
-                    const description = merma.descripcion ? merma.descripcion.toLowerCase() : '';
-                    return (
-                        productName.includes(searchTerm) ||
-                        description.includes(searchTerm)
-                    );
-                });
-            }
-            renderizarTablaMerma(filteredMermas);
-        }
-
-        // ============== NUEVAS FUNCIONES PARA EL REPORTE DE MERMAS ==============
-
-        // Abre el modal de filtros del reporte de mermas
-        function abrirReporteMermasModal() {
-            console.log("Abriendo modal de reporte de mermas...");
-            $('#modalReporteContentMerma').load('/merma/reporte/modal', function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de reporte de mermas:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar reporte',
-                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    console.log("Formulario de reporte de mermas cargado exitosamente.");
-                    // Inicializar Select2 para el filtro de producto en el modal de reporte
-                    setTimeout(() => {
-                        $('#filtroIdProductoMerma').select2({
-                            placeholder: "-- Seleccione o Busque un Producto --",
-                            allowClear: true,
-                            width: '100%',
-                            dropdownParent: $('#reporteMermasModal')
-                        });
-                        console.log("Select2 inicializado en #filtroIdProductoMerma.");
-                    }, 100);
-
-                    // Establecer las fechas máximas/mínimas para los campos de fecha
-                    setMermaReportDateMaxAttributes(); // Para fecha de inicio
-                    setMermaReportDateMinAttributes(); // Para fecha de fin
-
-                    $('#reporteMermasModal').modal('show');
-                }
-            });
-        }
-
-        // Cierra el modal de reporte de mermas
-        function cerrarReporteMermasModal() {
-            $('#reporteMermasModal').modal('hide');
-            // Destruir la instancia de Select2 antes de limpiar el contenido del modal
-            const selectProductoReporte = $('#filtroIdProductoMerma');
-            if (selectProductoReporte.data('select2')) {
-                selectProductoReporte.select2('destroy');
-                console.log("Select2 destruido en #filtroIdProductoMerma.");
-            }
-            setTimeout(() => {
-                $('#modalReporteContentMerma').empty();
-            }, 300);
-        }
-
-        // Limpia los filtros del modal de reporte de mermas
-        function limpiarFiltrosReporteMermas() {
-            $('#formReporteMermas')[0].reset();
-            // Para Select2, necesitas establecer el valor a vacío y triggerear el cambio
-            $('#filtroIdProductoMerma').val('').trigger('change');
-            setMermaReportDateMaxAttributes(); // Restablecer límites de fecha
-            setMermaReportDateMinAttributes();
-        }
-
-        // Función para ajustar el atributo 'max' de la fecha de inicio del reporte
-        function setMermaReportDateMaxAttributes() {
-            const today = new Date().toISOString().split('T')[0];
-            $('#fechaRegistroMermaStart').attr('max', today);
-
-            const fechaFin = $('#fechaRegistroMermaEnd').val();
-            if (fechaFin && $('#fechaRegistroMermaStart').val() && new Date(fechaFin) < new Date($('#fechaRegistroMermaStart').val())) {
-                $('#fechaRegistroMermaEnd').val($('#fechaRegistroMermaStart').val());
-            }
-            $('#fechaRegistroMermaEnd').attr('min', $('#fechaRegistroMermaStart').val());
-        }
-
-        // Función para ajustar el atributo 'min' de la fecha de fin del reporte
-        function setMermaReportDateMinAttributes() {
-            const today = new Date().toISOString().split('T')[0];
-            $('#fechaRegistroMermaEnd').attr('max', today);
-
-            const fechaInicio = $('#fechaRegistroMermaStart').val();
-            if (fechaInicio && $('#fechaRegistroMermaEnd').val() && new Date(fechaInicio) > new Date($('#fechaRegistroMermaEnd').val())) {
-                $('#fechaRegistroMermaStart').val($('#fechaRegistroMermaEnd').val());
-            }
-            $('#fechaRegistroMermaStart').attr('max', $('#fechaRegistroMermaEnd').val() || today);
         }
 
         // Ejecuta la generación del reporte PDF de mermas
@@ -490,22 +429,90 @@
                 }
             });
 
-            const form = $('#formReporteMermas');
-            const formData = form.serialize();
+            const filterDTO = {
+                idProducto: $('#filtroIdProductoMermaMain').val() === "" ? null : parseInt($('#filtroIdProductoMermaMain').val()),
+                nombreProducto: $('#filtroNombreProductoMermaMain').val(),
+                descripcionMerma: $('#filtroDescripcionMermaMain').val(),
+                cantidadMin: $('#cantidadMermaMinMain').val() === "" ? null : parseInt($('#cantidadMermaMinMain').val()),
+                cantidadMax: $('#cantidadMermaMaxMain').val() === "" ? null : parseInt($('#cantidadMermaMaxMain').val()),
+                fechaRegistroStart: $('#fechaRegistroMermaStartMain').val() === "" ? null : $('#fechaRegistroMermaStartMain').val(),
+                fechaRegistroEnd: $('#fechaRegistroMermaEndMain').val() === "" ? null : $('#fechaRegistroMermaEndMain').val()
+            };
 
-            const url = '/merma/reporte/pdf?' + formData;
+            const queryString = $.param(filterDTO);
+            const url = '/merma/reporte/pdf?' + queryString;
 
             setTimeout(() => {
                 const newWindow = window.open(url, '_blank');
                 if (newWindow) {
                     Swal.close();
-                    mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
-                    cerrarReporteMermasModal();
+                    mostrarNotificacion("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
                 } else {
                     Swal.close();
-                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la apertura del PDF. Por favor, permite los pop-ups para este sitio.");
                 }
             }, 300);
+        }
+
+        // Limpia los filtros del formulario principal de Merma
+        function limpiarFiltrosMainMerma() {
+            $('#mainMermaFilterForm')[0].reset();
+            // Para Select2, necesitas establecer el valor a vacío y triggerear el cambio
+            $('#filtroIdProductoMermaMain').val('').trigger('change');
+            setMermaMainDateMaxAttributes(); // Restablecer límites de fecha
+            setMermaMainDateMinAttributes();
+            aplicarFiltrosMerma(); // Vuelve a cargar la tabla sin filtros
+        }
+
+        // Función para cargar los productos en el select de filtros
+        function cargarProductosEnFiltroMerma() {
+            $.ajax({
+                type: "GET",
+                url: '/merma/productos', // Este endpoint devuelve solo productos activos
+                dataType: "json",
+                success: function(productos) {
+                    const select = $('#filtroIdProductoMermaMain');
+                    select.empty();
+                    select.append('<option value="">Todos los Productos</option>');
+                    productos.forEach(producto => {
+                        select.append(`<option value="${producto.idProducto}">${producto.nombre}</option>`);
+                    });
+                    // Inicializar Select2 en el filtro principal
+                    $('#filtroIdProductoMermaMain').select2({
+                        placeholder: "-- Seleccione o Busque un Producto --",
+                        allowClear: true,
+                        width: '100%',
+                        dropdownParent: $('#collapseMermaFilters') // Asegúrate de que el dropdown se muestre correctamente
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error al cargar productos para el filtro de merma:", error);
+                }
+            });
+        }
+
+        // Función para ajustar el atributo 'max' de la fecha de inicio del reporte
+        function setMermaMainDateMaxAttributes() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroMermaStartMain').attr('max', today);
+
+            const fechaFin = $('#fechaRegistroMermaEndMain').val();
+            if (fechaFin && $('#fechaRegistroMermaStartMain').val() && new Date(fechaFin) < new Date($('#fechaRegistroMermaStartMain').val())) {
+                $('#fechaRegistroMermaEndMain').val($('#fechaRegistroMermaStartMain').val());
+            }
+            $('#fechaRegistroMermaEndMain').attr('min', $('#fechaRegistroMermaStartMain').val());
+        }
+
+        // Función para ajustar el atributo 'min' de la fecha de fin del reporte
+        function setMermaMainDateMinAttributes() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroMermaEndMain').attr('max', today);
+
+            const fechaInicio = $('#fechaRegistroMermaStartMain').val();
+            if (fechaInicio && $('#fechaRegistroMermaEndMain').val() && new Date(fechaInicio) > new Date($('#fechaRegistroMermaEndMain').val())) {
+                $('#fechaRegistroMermaStartMain').val($('#fechaRegistroMermaEndMain').val());
+            }
+            $('#fechaRegistroMermaStartMain').attr('max', $('#fechaRegistroMermaEndMain').val() || today);
         }
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
@@ -521,7 +528,10 @@
 
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            recargarListaMermaCompleta();
+            cargarProductosEnFiltroMerma(); // Carga los productos para el Select2 del filtro principal
+            setMermaMainDateMaxAttributes(); // Inicializa límites de fecha
+            setMermaMainDateMinAttributes();
+            aplicarFiltrosMerma(); // Carga inicial de datos con los filtros (vacíos al inicio)
         });
 
         /*]]>*/
