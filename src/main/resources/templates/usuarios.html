@@ -20,21 +20,68 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-12"> <div class="input-group">
-                                <input type="search" id="searchTerm" class="form-control" placeholder="Buscar por nombre, apellido, DNI, correo, estado..."
-                                       onkeyup="aplicarFiltros()"/> <div class="input-group-append">
-                                <button class="btn btn-default" type="button" onclick="aplicarFiltros()">
-                                    <i class="fas fa-search"></i> Buscar
-                                </button>
-                                <button class="btn btn-secondary ml-2" type="button" onclick="generarReporte()">
-                                    <i class="fas fa-file-alt"></i> Generar Reporte
-                                </button>
-                            </div>
-                            </div>
+                        <div class="mb-3">
+                            <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#collapseUserFilters" aria-expanded="false" aria-controls="collapseUserFilters">
+                                <i class="fas fa-filter"></i> Mostrar/Ocultar Filtros Avanzados
+                            </button>
+                        </div>
+
+                        <div class="collapse" id="collapseUserFilters">
+                            <div class="card card-body">
+                                <form id="mainUserFilterForm" onsubmit="event.preventDefault(); aplicarFiltrosUsuarios();">
+                                    <div class="form-row">
+                                        <div class="form-group col-md-4">
+                                            <label for="filtroNombreApellidoDniCorreo">Búsqueda General:</label>
+                                            <input type="text" id="filtroNombreApellidoDniCorreo" name="nombreApellidoDniCorreo" class="form-control" placeholder="Nombre, Apellido, DNI, Correo, Celular"/>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="filtroIdRoles">Rol:</label>
+                                            <select id="filtroIdRoles" name="idRoles" class="form-control">
+                                                <option value="">Todos los Roles</option> </select>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label>Estado:</label><br>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input estado-checkbox-usuario-main" type="checkbox" id="estadoActivoUsuarioMain" name="estados" value="1">
+                                                <label class="form-check-label" for="estadoActivoUsuarioMain">Activo</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input estado-checkbox-usuario-main" type="checkbox" id="estadoInactivoUsuarioMain" name="estados" value="0">
+                                                <label class="form-check-label" for="estadoInactivoUsuarioMain">Inactivo</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label>Fecha de Registro:</label>
+                                            <div class="input-group">
+                                                <input type="date" id="fechaRegistroStartUserMain" name="fechaRegistroStart" class="form-control" onchange="setMainDateMaxAttributesUser()">
+                                                <input type="date" id="fechaRegistroEndUserMain" name="fechaRegistroEnd" class="form-control" onchange="setMainDateMinAttributesUser()">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <button class="btn btn-default" type="submit">
+                                            <i class="fas fa-search"></i> Buscar
+                                        </button>
+                                        <button class="btn btn-success ml-2" type="button" onclick="ejecutarGenerarReporteUsuarios()"
+                                                style="background-color:#b45f06 !important; border-color:#b45f06 !important;">
+                                            <i class="fas fa-file-pdf"></i> Generar Reporte PDF
+                                        </button>
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="limpiarFiltrosMainUsuario()">
+                                            <i class="fas fa-redo"></i> Limpiar Filtros
+                                        </button>
+                                    </div>
+                                </form>
+                                <div class="alert alert-info text-center mt-3" role="alert">
+                                    <i class="fas fa-info-circle"></i> Deje todas las opciones de filtro sin marcar para buscar/generar un reporte de todos los usuarios.
+                                </div>
                             </div>
                         </div>
-                        <div id="tablaUsuariosContainer">
+
+                        <div id="tablaUsuariosContainer" class="mt-3">
                             <table id="usuariosTable" class="table table-bordered table-striped">
                                 <thead>
                                 <tr>
@@ -46,7 +93,8 @@
                                     <th>Rol</th>
                                     <th>Correo</th>
                                     <th>Celular</th>
-                                    <th>Estado</th> <th>Acciones</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
                                 </tr>
                                 </thead>
                                 <tbody id="usuariosTableBody">
@@ -66,26 +114,13 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="reporteUsuariosModal" tabindex="-1" role="dialog" aria-labelledby="reporteUsuariosModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div id="modalReporteContent">
-                </div>
-            </div>
-        </div>
-    </div>
 </section>
 <th:block layout:fragment="scripts">
     <script th:inline="javascript">
 
-    /*<![CDATA[*/
+        /*<![CDATA[*/
 
-        // Variable global para almacenar todos los usuarios
-        // Thymeleaf pasa la lista de usuarios del modelo a esta variable JavaScript
-        // Usamos 'let' para poder reasignarla después de operaciones CRUD
-        allUsers = /*[[${usuarios}]]*/ [];
-
-       // Función para renderizar la tabla con una lista de usuarios
+        // Función para renderizar la tabla con una lista de usuarios
         function renderizarTabla(usersToDisplay) {
             const tableBody = $('#usuariosTableBody');
             tableBody.empty(); // Limpiar el cuerpo de la tabla antes de añadir nuevos datos
@@ -97,11 +132,10 @@
 
             usersToDisplay.forEach(usuario => {
                 const estadoText = usuario.estado === 1 ? 'Activo' : 'Inactivo';
-                const estadoClass = usuario.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
+                // Puedes usar estadoClass si lo deseas para el botón de estado, pero lo haré directo en el HTML del botón.
+                // const estadoClass = usuario.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
 
-                // ¡CORRECCIÓN AQUÍ!
-                // Accedemos a 'tipoRol' porque así se llama la propiedad en tu clase RolUsuario.java
-                const rolNombre = usuario.rolUsuario ? usuario.rolUsuario.tipoRol : 'N/A'; // Asegúrate de que exista y usa 'tipoRol'
+                const rolNombre = usuario.rolUsuario ? usuario.rolUsuario.tipoRol : 'N/A';
 
                 const row = `
                     <tr>
@@ -110,7 +144,8 @@
                         <td>${usuario.apPaterno}</td>
                         <td>${usuario.apMaterno}</td>
                         <td>${usuario.dni}</td>
-                        <td>${rolNombre}</td> <td>${usuario.correo}</td>
+                        <td>${rolNombre}</td>
+                        <td>${usuario.correo}</td>
                         <td>${usuario.telefono}</td>
                         <td class="text-center">
                             <button class="btn btn-sm ${usuario.estado === 1 ? 'btn-success' : 'btn-secondary'}"
@@ -118,7 +153,6 @@
                                 ${usuario.estado === 1 ? '<i class="fas fa-toggle-on"></i> Activo' : '<i class="fas fa-toggle-off"></i> Inactivo'}
                             </button>
                         </td>
-
                         <td>
                             <a href="javascript:void(0)" onclick="abrirFormulario('/usuarios/editar/${usuario.idUsuario}')"
                                class="btn btn-info btn-sm">
@@ -138,141 +172,134 @@
         // Función para limpiar todos los mensajes de error
         function clearErrors() {
             $('.text-danger').text('');
-            $('.form-control').removeClass('is-invalid');
+            $('.form-control, .form-control-plaintext, .is-invalid').removeClass('is-invalid'); // Quitar is-invalid de todos
         }
 
         // Función para mostrar un mensaje de error específico
         function displayError(elementId, message) {
             $('#' + elementId).text(message);
-            $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
+            // Busca el input/select asociado y añade la clase is-invalid
+            $('#' + elementId).closest('.form-group').find('.form-control, .form-control-plaintext, .selectpicker').first().addClass('is-invalid');
         }
 
         // ===========================================
-        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS
+        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS (AHORA UNIFICADAS PARA REAL-TIME Y SUBMIT)
         // ===========================================
 
-        function validateNombreApellido(inputElementId, errorElementId, fieldName) {
+        function validateNombreApellido(inputElementId, errorElementId, fieldName, isSubmit = false) {
             const input = $('#' + inputElementId);
             let value = input.val();
-            const originalValue = value; // Store original value before cleaning
-            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/; // Allows empty string and only letters
+            const originalValue = value;
+            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
 
-            // Remove any non-alphabetic characters
             value = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
-
-            // Update input value if characters were removed
             if (value !== originalValue) {
                 input.val(value);
             }
 
-            if (value.trim() === "") {
-                // If it's just spaces, or empty, clear error and remove invalid class
-                displayError(errorElementId, '');
-                input.removeClass('is-invalid');
-                return true; // Consider valid for real-time if only letters
-            } else if (!regex.test(value)) {
-                // This case should ideally not be hit if we are stripping invalid chars,
-                // but keep for robustness if stripping fails for some reason
+            if (isSubmit && value.trim() === "") {
+                displayError(errorElementId, `${fieldName} es obligatorio.`);
+                input.addClass('is-invalid'); // Asegurar que el input se marque como inválido
+                return false;
+            } else if (value.length > 0 && !regex.test(value)) {
                 displayError(errorElementId, `${fieldName} solo debe contener letras.`);
+                input.addClass('is-invalid'); // Asegurar que el input se marque como inválido
                 return false;
             } else {
-                displayError(errorElementId, ''); // Clear error if valid
+                displayError(errorElementId, '');
                 input.removeClass('is-invalid');
                 return true;
             }
         }
 
-        function validateTelefono(inputElementId, errorElementId) {
+        function validateTelefono(inputElementId, errorElementId, isSubmit = false) {
             const input = $('#' + inputElementId);
             let value = input.val();
-            const originalValue = value; // Store original value before cleaning
+            const originalValue = value;
             const regex = /^\d{9}$/;
 
-            // Remove any non-digit characters and truncate to 9 digits
             value = value.replace(/\D/g, '').substring(0, 9);
-
-            // Update input value if characters were removed or truncated
             if (value !== originalValue) {
                 input.val(value);
             }
 
-            if (value.length > 0 && !regex.test(value)) {
+            if (isSubmit && value === "") {
+                displayError(errorElementId, "El teléfono es obligatorio.");
+                input.addClass('is-invalid');
+                return false;
+            } else if (value.length > 0 && !regex.test(value)) {
                 displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
                 input.addClass('is-invalid');
                 return false;
-            } else if (value.length === 0) {
-                // If empty, clear error and remove invalid class (will be checked by main validation on submit)
-                displayError(errorElementId, '');
-                input.removeClass('is-invalid');
-                return true;
             } else {
-                displayError(errorElementId, ''); // Clear error if valid
+                displayError(errorElementId, '');
                 input.removeClass('is-invalid');
                 return true;
             }
         }
 
-        function validateDni(inputElementId, errorElementId) {
+        function validateDni(inputElementId, errorElementId, isSubmit = false) {
             const input = $('#' + inputElementId);
             let value = input.val();
-            const originalValue = value; // Store original value before cleaning
+            const originalValue = value;
             const regex = /^\d{8}$/;
 
-            // Remove any non-digit characters and truncate to 8 digits
             value = value.replace(/\D/g, '').substring(0, 8);
-
-            // Update input value if characters were removed or truncated
             if (value !== originalValue) {
                 input.val(value);
             }
 
-            if (value.length > 0 && !regex.test(value)) {
+            if (isSubmit && value === "") {
+                displayError(errorElementId, "El DNI es obligatorio.");
+                input.addClass('is-invalid');
+                return false;
+            } else if (value.length > 0 && !regex.test(value)) {
                 displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
                 input.addClass('is-invalid');
                 return false;
-            } else if (value.length === 0) {
-                // If empty, clear error and remove invalid class (will be checked by main validation on submit)
-                displayError(errorElementId, '');
-                input.removeClass('is-invalid');
-                return true;
             } else {
-                displayError(errorElementId, ''); // Clear error if valid
+                displayError(errorElementId, '');
                 input.removeClass('is-invalid');
                 return true;
             }
         }
 
-        function validateCorreo(inputElementId, errorElementId) {
+        function validateCorreo(inputElementId, errorElementId, isSubmit = false) {
             const input = $('#' + inputElementId);
             const value = input.val().trim();
             const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-            if (value === "") {
-                input.removeClass('is-invalid');
-                displayError(errorElementId, ''); // Clear error if empty
-                return true;
-            } else if (!regex.test(value)) {
+            if (isSubmit && value === "") {
+                displayError(errorElementId, "El correo electrónico es obligatorio.");
+                input.addClass('is-invalid');
+                return false;
+            } else if (value.length > 0 && !regex.test(value)) {
                 displayError(errorElementId, "Formato de correo electrónico inválido.");
                 input.addClass('is-invalid');
                 return false;
             }
             input.removeClass('is-invalid');
-            displayError(errorElementId, ''); // Clear error if valid
+            displayError(errorElementId, '');
             return true;
         }
 
-        function validateContrasena(inputElementId, errorElementId, isNewUser) {
+        function validateContrasena(inputElementId, errorElementId, isNewUser, isSubmit = false) {
             const input = $('#' + inputElementId);
             const value = input.val();
             const minLength = 8;
             const regexSegura = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-={}[\]:;"'<>,.?/~`\\|]).{8,}$/;
 
             // Mostrar requisitos dinámicamente (opcional)
-            $('#reqLongitud').text(value.length >= minLength ? '✅ Al menos 8 caracteres' : '❌ Al menos 8 caracteres');
-            $('#reqMayuscula').text(/[A-Z]/.test(value) ? '✅ Una letra mayúscula' : '❌ Una letra mayúscula');
-            $('#reqEspecial').text(/[!@#$%^&*()_+\-={}[\]:;"\'<>,.?/~`\\|]/.test(value) ? '✅ Un carácter especial' : '❌ Un carácter especial');
+            const reqLongitud = $('#reqLongitud');
+            const reqMayuscula = $('#reqMayuscula');
+            const reqEspecial = $('#reqEspecial');
 
-            if (isNewUser) {
+            if (reqLongitud.length) reqLongitud.text(value.length >= minLength ? '✅ Al menos 8 caracteres' : '❌ Al menos 8 caracteres');
+            if (reqMayuscula.length) reqMayuscula.text(/[A-Z]/.test(value) ? '✅ Una letra mayúscula' : '❌ Una letra mayúscula');
+            if (reqEspecial.length) reqEspecial.text(/[!@#$%^&*()_+\-={}[\]:;"\'<>,.?/~`\\|]/.test(value) ? '✅ Un carácter especial' : '❌ Un carácter especial');
+
+
+            if (isNewUser || (isSubmit && value.length > 0)) { // Contraseña obligatoria para nuevos usuarios, o si se está enviando y hay algo escrito
                 if (value === "") {
                     displayError(errorElementId, "La contraseña es obligatoria.");
                     input.addClass('is-invalid');
@@ -282,19 +309,16 @@
                     input.addClass('is-invalid');
                     return false;
                 }
-            } else {
-                if (value.length > 0 && !regexSegura.test(value)) {
-                    displayError(errorElementId, "Debe contener al menos 8 caracteres, una mayúscula y un símbolo.");
-                    input.addClass('is-invalid');
-                    return false;
-                }
+            } else if (!isNewUser && value.length > 0 && !regexSegura.test(value)) { // Si no es nuevo usuario y se está cambiando
+                displayError(errorElementId, "Debe contener al menos 8 caracteres, una mayúscula y un símbolo.");
+                input.addClass('is-invalid');
+                return false;
             }
 
             input.removeClass('is-invalid');
             displayError(errorElementId, '');
             return true;
         }
-
 
         // Función asíncrona para verificar la unicidad del DNI
         async function checkDniUnico(dniInputId, dniErrorId, userId) {
@@ -334,25 +358,39 @@
         }
 
         // ===========================================
-        // FUNCIÓN PRINCIPAL DE VALIDACIÓN DEL FORMULARIO AL ENVIAR
+        // FUNCIÓN PRINCIPAL DE VALIDACIÓN DEL FORMULARIO AL ENVIAR (MODAL)
         // ===========================================
 
         async function validarFormulario() {
-            clearErrors(); // Clear all errors before re-validating
+            clearErrors(); // Limpiar todos los errores antes de revalidar
 
             let isValid = true;
-
-            // Perform final validation checks including emptiness
-            // These will set the errors correctly for submission
-            if (!validateNombreApellidoSubmit('nombre', 'nombreError', 'El nombre')) isValid = false;
-            if (!validateNombreApellidoSubmit('apPaterno', 'apPaternoError', 'El apellido paterno')) isValid = false;
-            if (!validateNombreApellidoSubmit('apMaterno', 'apMaternoError', 'El apellido materno')) isValid = false;
-            if (!validateTelefonoSubmit('telefono', 'telefonoError')) isValid = false;
-            if (!validateDniSubmit('dni', 'dniError')) isValid = false;
-            if (!validateCorreo('correo', 'correoError')) isValid = false; // Correo still uses its general validation
-
             const isNewUser = $('#idUsuario').val() === '';
-            if (!validateContrasena('contrasena', isNewUser ? 'contrasenaValidation' : 'contrasenaError', isNewUser)) isValid = false;
+
+            // Validaciones que requieren valor no vacío para el submit
+            if (!validateNombreApellido('nombre', 'nombreError', 'El nombre', true)) isValid = false;
+            if (!validateNombreApellido('apPaterno', 'apPaternoError', 'El apellido paterno', true)) isValid = false;
+            if (!validateNombreApellido('apMaterno', 'apMaternoError', 'El apellido materno', true)) isValid = false;
+            if (!validateTelefono('telefono', 'telefonoError', true)) isValid = false;
+            if (!validateDni('dni', 'dniError', true)) isValid = false;
+            if (!validateCorreo('correo', 'correoError', true)) isValid = false;
+            // Solo validamos la contraseña si es un nuevo usuario O si hay algo escrito en el campo de contraseña
+            if (isNewUser || $('#contrasena').val().length > 0) {
+                 if (!validateContrasena('contrasena', 'contrasenaError', isNewUser, true)) isValid = false;
+            }
+
+
+            // Validar selección de rol (siempre obligatoria)
+            const rolSeleccionado = $('#rolUsuario').val();
+            if (rolSeleccionado === null || rolSeleccionado === "" || rolSeleccionado === "0") {
+                displayError('rolUsuarioError', 'Debe seleccionar un rol.');
+                $('#rolUsuario').addClass('is-invalid');
+                isValid = false;
+            } else {
+                $('#rolUsuario').removeClass('is-invalid');
+                $('#rolUsuarioError').text('');
+            }
+
 
             if (!isValid) {
                 return false;
@@ -365,58 +403,6 @@
             }
 
             return isValid;
-        }
-
-        // New validation functions for form submission (to ensure fields are not empty)
-        function validateNombreApellidoSubmit(inputElementId, errorElementId, fieldName) {
-            const input = $('#' + inputElementId);
-            const value = input.val().trim();
-            const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-
-            if (value === "") {
-                displayError(errorElementId, `${fieldName} es obligatorio.`);
-                return false;
-            } else if (!regex.test(value)) {
-                displayError(errorElementId, `${fieldName} solo debe contener letras.`);
-                return false;
-            }
-            input.removeClass('is-invalid');
-            displayError(errorElementId, '');
-            return true;
-        }
-
-        function validateTelefonoSubmit(inputElementId, errorElementId) {
-            const input = $('#' + inputElementId);
-            const value = input.val().trim();
-            const regex = /^\d{9}$/;
-
-            if (value === "") {
-                displayError(errorElementId, "El teléfono es obligatorio.");
-                return false;
-            } else if (!regex.test(value)) {
-                displayError(errorElementId, "El teléfono debe tener 9 dígitos numéricos.");
-                return false;
-            }
-            input.removeClass('is-invalid');
-            displayError(errorElementId, '');
-            return true;
-        }
-
-        function validateDniSubmit(inputElementId, errorElementId) {
-            const input = $('#' + inputElementId);
-            const value = input.val().trim();
-            const regex = /^\d{8}$/;
-
-            if (value === "") {
-                displayError(errorElementId, "El DNI es obligatorio.");
-                return false;
-            } else if (!regex.test(value)) {
-                displayError(errorElementId, "El DNI debe tener 8 dígitos numéricos.");
-                return false;
-            }
-            input.removeClass('is-invalid');
-            displayError(errorElementId, '');
-            return true;
         }
 
         // ===========================================
@@ -435,15 +421,30 @@
                         footer: `Detalles: ${xhr.status} ${xhr.statusText}`
                     });
                 } else {
-                    console.log("Formulario cargado exitosamente. Contenido:", response.substring(0, 200) + "...");
-                    // Add oninput event listeners for real-time validation after the form is loaded
+                    console.log("Formulario cargado exitosamente.");
+                    clearErrors(); // Limpiar errores del formulario antes de mostrarlo
+
+                    // Aplicar validaciones en tiempo real después de que el formulario se carga
                     $('#nombre').on('input', function() { validateNombreApellido('nombre', 'nombreError', 'El nombre'); });
                     $('#apPaterno').on('input', function() { validateNombreApellido('apPaterno', 'apPaternoError', 'El apellido paterno'); });
                     $('#apMaterno').on('input', function() { validateNombreApellido('apMaterno', 'apMaternoError', 'El apellido materno'); });
                     $('#dni').on('input', function() { validateDni('dni', 'dniError'); });
                     $('#telefono').on('input', function() { validateTelefono('telefono', 'telefonoError'); });
                     $('#correo').on('input', function() { validateCorreo('correo', 'correoError'); });
-                    $('#contrasena').on('input', function() { validateContrasena('contrasena', $('#idUsuario').val() === '' ? 'contrasenaValidation' : 'contrasenaError', $('#idUsuario').val() === ''); });
+                    $('#contrasena').on('input', function() {
+                        const isNewUser = $('#idUsuario').val() === '';
+                        validateContrasena('contrasena', 'contrasenaError', isNewUser);
+                    });
+
+                    // Validar unicidad de DNI en tiempo real (con un debounce para no saturar el servidor)
+                    let dniCheckTimeout;
+                    $('#dni').on('input', function() {
+                        clearTimeout(dniCheckTimeout);
+                        dniCheckTimeout = setTimeout(async () => {
+                            const userId = $('#idUsuario').val();
+                            await checkDniUnico('dni', 'dniError', userId ? parseInt(userId) : null);
+                        }, 500); // Espera 500ms después de que el usuario deja de escribir
+                    });
 
 
                     $('#formUsuario').off('submit').on('submit', async function(e) {
@@ -482,10 +483,22 @@
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
                         cerrarFormulario();
-                        // Después de guardar/editar, recargar la lista completa de usuarios
-                        recargarListaUsuariosCompleta(); // Se llama aquí
+                        aplicarFiltrosUsuarios(); // Ahora llama al nuevo método de filtrado
                     } else {
-                        mostrarNotificacion("error", "Error: " + response.message);
+                        // Si hay errores de validación desde el backend (ej: DNI duplicado)
+                        if (response.message) {
+                            mostrarNotificacion("error", "Error: " + response.message);
+                        } else {
+                             mostrarNotificacion("error", "Error desconocido al guardar el usuario.");
+                        }
+
+                        // Puedes intentar mostrar errores específicos si el backend los envía en un formato esperado
+                        // Por ejemplo, si el backend devuelve { "errors": { "dni": "DNI ya existe" } }
+                        if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            for (const field in xhr.responseJSON.errors) {
+                                displayError(field + 'Error', xhr.responseJSON.errors[field]);
+                            }
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
@@ -521,8 +534,7 @@
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                // Después de eliminar, recargar la lista completa de usuarios
-                                recargarListaUsuariosCompleta(); // Se llama aquí
+                                aplicarFiltrosUsuarios(); // Ahora llama al nuevo método de filtrado
                             } else {
                                 mostrarNotificacion("error", "Error: " + response.message);
                             }
@@ -543,147 +555,152 @@
         }
 
         // ===========================================
-        // FUNCIONES DE FILTRADO Y REPORTE (ACTUALIZADAS)
+        // FUNCIONES DE FILTRADO Y REPORTE (SERVER-SIDE)
         // ===========================================
 
-        // Función para recargar la lista completa de usuarios desde el servidor
-        // y luego aplicar los filtros locales. (Mantenida)
-        function recargarListaUsuariosCompleta() {
+        // NUEVA FUNCIÓN: Aplica los filtros y recarga la tabla de usuarios via AJAX
+        function aplicarFiltrosUsuarios() {
+            const filterDTO = {
+                nombreApellidoDniCorreo: $('#filtroNombreApellidoDniCorreo').val(),
+                idRoles: [], // Se llenará con los roles seleccionados
+                estados: [], // Se llenará con los estados seleccionados
+                fechaRegistroStart: $('#fechaRegistroStartUserMain').val() === "" ? null : $('#fechaRegistroStartUserMain').val(),
+                fechaRegistroEnd: $('#fechaRegistroEndUserMain').val() === "" ? null : $('#fechaRegistroEndUserMain').val()
+            };
+
+            // Llenar idRoles para un select simple
+            const selectedRolId = $('#filtroIdRoles').val();
+            if (selectedRolId !== "" && selectedRolId !== null) { // Si hay un rol seleccionado (no la opción "Todos los Roles")
+                filterDTO.idRoles.push(parseInt(selectedRolId));
+            }
+
+            // Llenar estados
+            $('.estado-checkbox-usuario-main:checked').each(function() {
+                filterDTO.estados.push(parseInt($(this).val()));
+            });
+
+            const queryString = $.param(filterDTO);
+            const url = '/usuarios/buscar?' + queryString;
+
             $.ajax({
                 type: "GET",
-                url: '/usuarios/all', // Este endpoint DEBE existir en tu backend y devolver JSON
+                url: url,
                 dataType: "json",
                 success: function(response) {
-                    allUsers = response; // Actualizar la variable global con los nuevos datos
-                    aplicarFiltros(); // Aplicar el filtro actual a la nueva lista (mantener el término de búsqueda)
+                    renderizarTabla(response); // Renderizar la tabla con los usuarios filtrados del servidor
                 },
                 error: function(xhr, status, error) {
-                    console.error("Error al recargar la lista completa de usuarios:", error);
-                    mostrarNotificacion("error", "Error al recargar la lista de usuarios. Verifica el endpoint /usuarios/all en tu backend.");
+                    console.error("Error al buscar usuarios con filtros:", error, xhr.responseText);
+                    mostrarNotificacion("error", "Error al buscar usuarios. Intenta de nuevo.");
                 }
             });
-        }
-
-        // La función aplicarFiltros YA NO HACE UNA LLAMADA AJAX a la URL principal,
-        // SINO QUE FILTRA LA LISTA allUsers EN EL CLIENTE Y RENDERIZA LA TABLA. (Mantenida)
-        function aplicarFiltros() {
-            const searchTerm = $('#searchTerm').val().toLowerCase().trim();
-            let filteredUsers = allUsers; // Siempre empezamos con la lista completa
-
-            if (searchTerm) {
-                // Filtro específico para "activo" o "inactivo"
-                if (searchTerm === 'activo') {
-                    filteredUsers = allUsers.filter(usuario => usuario.estado === 1);
-                } else if (searchTerm === 'inactivo') {
-                    filteredUsers = allUsers.filter(usuario => usuario.estado === 0);
-                } else {
-                    // Si no es "activo" o "inactivo", aplica el filtro general en todos los campos
-                    filteredUsers = allUsers.filter(usuario => {
-                        const estadoText = usuario.estado === 1 ? 'activo' : 'inactivo'; // Para buscar por texto de estado
-                        const rolNombre = usuario.rolUsuario ? usuario.rolUsuario.tipoRol.toLowerCase() : ''; // Para buscar por texto de rol
-                        return (
-                            (usuario.nombre && usuario.nombre.toLowerCase().includes(searchTerm)) ||
-                            (usuario.apPaterno && usuario.apPaterno.toLowerCase().includes(searchTerm)) ||
-                            (usuario.apMaterno && usuario.apMaterno.toLowerCase().includes(searchTerm)) ||
-                            (usuario.dni && usuario.dni.toLowerCase().includes(searchTerm)) ||
-                            (usuario.correo && usuario.correo.toLowerCase().includes(searchTerm)) ||
-                            estadoText.includes(searchTerm) ||
-                            rolNombre.includes(searchTerm) // Añadir búsqueda por rol
-                        );
-                    });
-                }
-            }
-            renderizarTabla(filteredUsers); // Renderizar la tabla con los usuarios filtrados
-        }
-
-        // NUEVA FUNCIÓN: Abre el modal de generación de reporte
-        function generarReporte() {
-            console.log("Abriendo modal de generación de reporte.");
-            $('#modalReporteContent').load('/usuarios/reporte/modal', function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el modal de reporte:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    $('#reporteUsuariosModal').modal('show');
-                    console.log("Modal de reporte cargado y mostrado.");
-                }
-            });
-        }
-
-        // NUEVA FUNCIÓN: Cierra el modal de generación de reporte
-        function cerrarReporteModal() {
-            $('#reporteUsuariosModal').modal('hide');
-            $('#modalReporteContent').empty();
-            console.log("Modal de reporte cerrado.");
         }
 
         // NUEVA FUNCIÓN: Ejecuta la generación del reporte PDF con los filtros
-        function ejecutarGenerarReporte() {
-            const form = $('#formReporteUsuarios');
-            const formData = form.serialize(); // Obtiene todos los parámetros del formulario de filtros
+        function ejecutarGenerarReporteUsuarios() {
+            Swal.fire({
+                title: 'Generando Reporte...',
+                text: 'Por favor, espera mientras se genera el PDF.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
-            // Construir la URL con los parámetros de los filtros
-            const url = '/usuarios/reporte/pdf?' + formData;
+            const filterDTO = {
+                nombreApellidoDniCorreo: $('#filtroNombreApellidoDniCorreo').val(),
+                idRoles: [],
+                estados: [],
+                fechaRegistroStart: $('#fechaRegistroStartUserMain').val() === "" ? null : $('#fechaRegistroStartUserMain').val(),
+                fechaRegistroEnd: $('#fechaRegistroEndUserMain').val() === "" ? null : $('#fechaRegistroEndUserMain').val()
+            };
 
-            // Abrir una nueva ventana o pestaña para la descarga del PDF
-            // Esto es crucial porque la respuesta es un archivo, no JSON.
-            window.open(url, '_blank');
+            const selectedRolId = $('#filtroIdRoles').val();
+            if (selectedRolId !== "" && selectedRolId !== null) {
+                filterDTO.idRoles.push(parseInt(selectedRolId));
+            }
 
-            mostrarNotificacion("success", "Generando reporte PDF...");
-            cerrarReporteModal(); // Cierra el modal después de iniciar la descarga
+            $('.estado-checkbox-usuario-main:checked').each(function() {
+                filterDTO.estados.push(parseInt($(this).val()));
+            });
+
+            const queryString = $.param(filterDTO);
+            const url = '/usuarios/reporte/pdf?' + queryString;
+
+            setTimeout(() => {
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    Swal.close();
+                    mostrarNotificacion("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
+                } else {
+                    Swal.close();
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la apertura del PDF. Por favor, permite los pop-ups para este sitio.");
+                }
+            }, 300);
         }
-        // NUEVA FUNCIÓN: Limpia los filtros del modal de reporte
-    function limpiarFiltrosReporte() {
-        $('#formReporteUsuarios')[0].reset(); // Resetea el campo de texto
-        // Desmarcar todos los checkboxes de roles
-        $('.rol-checkbox').prop('checked', false);
-        // Desmarcar todos los checkboxes de estados
-        $('.estado-checkbox').prop('checked', false);
-    }
+
+        // NUEVA FUNCIÓN: Limpia todos los filtros principales de usuario
+        function limpiarFiltrosMainUsuario() {
+            $('#mainUserFilterForm')[0].reset();
+            // Desmarcar todos los checkboxes de estados
+            $('.estado-checkbox-usuario-main').prop('checked', false);
+            // Restablecer el select de roles a la opción por defecto
+            $('#filtroIdRoles').val('');
+
+            // Restablecer atributos max/min de las fechas
+            setMainDateMaxAttributesUser();
+            setMainDateMinAttributesUser();
+
+            aplicarFiltrosUsuarios(); // Volver a cargar la tabla sin filtros
+        }
+
+        // Función para cargar los roles en el select del filtro
+        function cargarRolesEnFiltro() {
+            $.ajax({
+                type: "GET",
+                url: '/roles/all', // Este endpoint DEBE existir y devolver los roles
+                dataType: "json",
+                success: function(roles) {
+                    const select = $('#filtroIdRoles');
+                    select.empty();
+                    // select.append('<option value="">Seleccione Rol(es)</option>'); // No es necesario si es multiple y tiene placeholder
+                    roles.forEach(rol => {
+                        select.append(`<option value="${rol.idRol}">${rol.tipoRol}</option>`);
+                    });
+
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error al cargar roles para el filtro de usuarios:", error);
+                    mostrarNotificacion("error", "Error al cargar los roles. Verifica el endpoint /roles/all.");
+                }
+            });
+        }
 
 
-    // NUEVA FUNCIÓN: Ejecuta la generación del reporte PDF con los filtros
-    function ejecutarGenerarReporte() {
-        const form = $('#formReporteUsuarios');
-        const formData = form.serialize(); // Obtiene todos los parámetros del formulario de filtros
+        // Funciones para manejar los atributos min/max de los campos de fecha en el filtro principal
+        function setMainDateMaxAttributesUser() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroStartUserMain').attr('max', today);
 
-        // Mostrar indicador de carga con SweetAlert2
-        Swal.fire({
-            title: 'Generando Reporte...',
-            html: 'Por favor espera, esto puede tardar unos segundos.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
+            const fechaFin = $('#fechaRegistroEndUserMain').val();
+            if (fechaFin && $('#fechaRegistroStartUserMain').val() && new Date(fechaFin) < new Date($('#fechaRegistroStartUserMain').val())) {
+                $('#fechaRegistroEndUserMain').val($('#fechaRegistroStartUserMain').val());
             }
-        });
+            // Asegura que la fecha de fin no sea anterior a la de inicio
+            $('#fechaRegistroEndUserMain').attr('min', $('#fechaRegistroStartUserMain').val() || '');
+        }
 
-        // Construir la URL con los parámetros de los filtros
-        const url = '/usuarios/reporte/pdf?' + formData;
+        function setMainDateMinAttributesUser() {
+            const today = new Date().toISOString().split('T')[0];
+            $('#fechaRegistroEndUserMain').attr('max', today);
 
-        // Abrir una nueva ventana o pestaña para la descarga del PDF
-        // Esto es crucial porque la respuesta es un archivo, no JSON.
-        // Usamos un pequeño retraso para que el Swal.fire() tenga tiempo de renderizarse.
-        setTimeout(() => {
-            const newWindow = window.open(url, '_blank');
-            // Opcional: Intentar detectar si la ventana se abrió y cerró para ocultar el spinner
-            // Esto es complicado y a menudo poco fiable, una simple notificación es mejor.
-            if (newWindow) {
-                // Si la ventana/pestaña se abrió, asumimos que la descarga ha comenzado.
-                Swal.close();
-                mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
-                cerrarReporteModal(); // Cierra el modal después de iniciar la descarga
-            } else {
-                // El navegador bloqueó el popup o hubo un problema.
-                Swal.close();
-                mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+            const fechaInicio = $('#fechaRegistroStartUserMain').val();
+            if (fechaInicio && $('#fechaRegistroEndUserMain').val() && new Date(fechaInicio) > new Date($('#fechaRegistroEndUserMain').val())) {
+                $('#fechaRegistroStartUserMain').val($('#fechaRegistroEndUserMain').val());
             }
-        }, 300); // Pequeño retraso
-    }
+            // Asegura que la fecha de inicio no sea posterior a la de fin
+            $('#fechaRegistroStartUserMain').attr('max', $('#fechaRegistroEndUserMain').val() || today);
+        }
 
         // Función para mostrar notificaciones usando AdminLTE Toasts
         function mostrarNotificacion(type, message) {
@@ -714,7 +731,7 @@
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                recargarListaUsuariosCompleta();
+                                aplicarFiltrosUsuarios(); // Ahora llama al nuevo método de filtrado
                             } else {
                                 mostrarNotificacion("error", response.message);
                             }
@@ -727,15 +744,14 @@
                 }
             });
         }
-
-
-
-
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            // La variable allUsers ya viene inicializada por Thymeleaf en la primera carga.
-            // Solo necesitamos renderizar la tabla con esos datos.
-            aplicarFiltros(); // Esto también aplicará cualquier searchTerm inicial si lo hubiera
+            // Importante: Cargar roles primero, y luego aplicar filtros para que la tabla se llene.
+            cargarRolesEnFiltro();
+            setMainDateMaxAttributesUser();
+            setMainDateMinAttributesUser();
+            // Retrasar ligeramente la aplicación de filtros para asegurar que selectpicker se inicialice
+            setTimeout(aplicarFiltrosUsuarios, 100);
         });
 
         /*]]>*/
