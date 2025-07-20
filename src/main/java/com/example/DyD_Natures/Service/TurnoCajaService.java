@@ -162,7 +162,7 @@ public class TurnoCajaService {
             turno.setEstadoCuadre("Con Sobrante");
         }
 
-        turno.setFechaCierre(cierrePeru.toLocalDateTime());
+         turno.setFechaCierre(LocalDateTime.now());
         return turnoCajaRepository.save(turno);
     }
 
