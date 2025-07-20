@@ -9,6 +9,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -17,6 +18,9 @@ import java.util.Optional;
 
 @Service
 public class ProductoService {
+
+    private static final byte ESTADO_ACTIVO    = 1;
+    private static final byte ESTADO_ELIMINADO = 2;
 
     @Autowired
     private ProductoRepository productoRepository;
@@ -31,8 +35,7 @@ public class ProductoService {
      * @return Lista de productos activos/inactivos (no eliminados).
      */
     public List<Producto> listarProductosActivos() {
-        // CAMBIO CLAVE AQUÍ: Llamar al nuevo método con @Query y pasar un Byte
-        return productoRepository.findByEstadoExcluding((byte) 2);
+        return productoRepository.findByEstadoExcluding(ESTADO_ELIMINADO);
     }
 
     public List<Producto> listarSoloProductosActivos() {
@@ -48,35 +51,35 @@ public class ProductoService {
         return productoRepository.findById(id);
     }
 
-
     /**
      * Guarda un producto nuevo o actualiza uno existente.
      * Si es un producto nuevo, establece el estado inicial a '1' (Activo) y la fecha de registro.
      * @param producto El objeto Producto a guardar.
      * @return El Producto guardado.
      */
+    @Transactional
     public Producto guardarProducto(Producto producto) {
+        // Si es creación
         if (producto.getIdProducto() == null) {
-            // Nuevo producto: validar nombre + descripción
-            if (productoRepository.existsByNombreAndDescripcion(producto.getNombre(), producto.getDescripcion())) {
-                throw new IllegalArgumentException("Ya existe un producto con el mismo nombre y descripción.");
+            if (productoRepository.existsByNombreAndIdProductoIsNotAndEstadoNot(
+                    producto.getNombre(), 0, ESTADO_ELIMINADO)) {
+                throw new IllegalArgumentException("Ya existe un producto con ese nombre.");
             }
-            producto.setEstado((byte) 1);
             producto.setFechaRegistro(LocalDate.now());
-        } else {
-            // Edición de producto: validar duplicidad excluyendo su propio ID
-            if (productoRepository.existsByNombreAndDescripcionAndIdProductoIsNot(
-                    producto.getNombre(),
-                    producto.getDescripcion(),
-                    producto.getIdProducto()
-            )) {
-                throw new IllegalArgumentException("Ya existe otro producto con el mismo nombre y descripción.");
-            }
+            producto.setEstado(ESTADO_ACTIVO);
         }
+        else {
+            if (productoRepository.existsByNombreAndIdProductoIsNotAndEstadoNot(
+                    producto.getNombre(), producto.getIdProducto(), ESTADO_ELIMINADO)) {
+                throw new IllegalArgumentException("Ya existe otro producto con ese nombre.");
+            }
+            // conservar fecha de registro original
+            productoRepository.findById(producto.getIdProducto())
+                    .ifPresent(orig -> producto.setFechaRegistro(orig.getFechaRegistro()));
+        }
+
         return productoRepository.save(producto);
     }
-
-
 
     /**
      * Realiza una eliminación lógica de un producto, cambiando su estado a '2'.
@@ -90,8 +93,6 @@ public class ProductoService {
             productoRepository.save(producto);
         }
     }
-
-
 
     /**
      * Lista solo las categorías que están en estado '1' (Activas).
@@ -184,4 +185,3 @@ public class ProductoService {
         });
     }
 }
-
