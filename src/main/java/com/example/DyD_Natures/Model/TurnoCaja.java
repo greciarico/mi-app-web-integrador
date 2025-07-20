@@ -46,6 +46,9 @@ public class TurnoCaja {
 
     @Column(name = "diferencia_monedero", precision = 10, scale = 2)
     private BigDecimal diferenciaMonedero;
+
+    @Column(nullable = false)
+    private Boolean estado;
     // ---------------------------------------------------------------------------------
 
     @Column(name = "estado_cuadre", nullable = false, length = 50)
@@ -170,6 +173,15 @@ public class TurnoCaja {
     public void setEstadoCuadre(String estadoCuadre) {
         this.estadoCuadre = estadoCuadre;
     }
+
+    public Boolean getEstado() {
+        return estado;
+    }
+
+    public void setEstado(Boolean estado) {
+        this.estado = estado;
+    }
+
 
     @Override
     public boolean equals(Object o) {
