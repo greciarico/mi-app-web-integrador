@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{dashboard}"> <!-- Asegúrate que 'dashboard' es el nombre correcto de tu layout principal -->
+      layout:decorate="~{dashboard}">
 <head>
     <title layout:fragment="title">Gestión de Turno de Caja Abierto</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.2/dist/sweetalert2.min.css">
+
 </head>
 <section layout:fragment="content">
     <div class="container-fluid">
@@ -13,9 +15,7 @@
                     <div class="card-header">
                         <h3 class="card-title">Detalles del Turno de Caja Actual</h3>
                     </div>
-                    <!-- /.card-header -->
                     <div class="card-body">
-                        <!-- Mensajes flash de Spring (éxito/error) -->
                         <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
                             <span th:text="${successMessage}"></span>
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -40,25 +40,35 @@
 
                             <hr>
                             <h5>Cerrar Turno de Caja</h5>
-                            <form th:action="@{/caja/cerrar}" method="post">
+                            <form id="cerrarTurnoForm" th:action="@{/caja/cerrar}" method="post">
                                 <input type="hidden" name="idTurnoCaja" th:value="${currentTurno.idTurnoCaja}">
                                 <div class="form-group">
                                     <label for="conteoFinalEfectivo">Conteo Final de Efectivo (S/)</label>
                                     <input type="number" step="0.01" class="form-control" id="conteoFinalEfectivo"
                                            name="conteoFinalEfectivo" required min="0.00" placeholder="Ej: 500.00" value="0.00">
                                 </div>
+                                <div class="form-group">
+                                    <label for="conteoFinalMonedero">Conteo Final de Monedero Electrónico / Yape (S/)</label>
+                                    <input type="number" step="0.01" class="form-control" id="conteoFinalMonedero"
+                                           name="conteoFinalMonedero" required min="0.00" placeholder="Ej: 150.00" value="0.00">
+                                </div>
 
-                                <!-- Nuevos campos para mostrar cálculos en tiempo real -->
                                 <div class="form-group">
                                     <label>Efectivo Esperado (Sistema)</label>
                                     <input type="text" class="form-control bg-light" id="efectivoEsperadoDisplay" readonly value="0.00">
                                 </div>
                                 <div class="form-group">
-                                    <label>Diferencia (Faltante/Sobrante)</label>
-                                    <input type="text" class="form-control" id="diferenciaDisplay" readonly value="0.00">
+                                    <label>Diferencia Efectivo (Faltante/Sobrante)</label>
+                                    <input type="text" class="form-control" id="diferenciaEfectivoDisplay" readonly value="0.00">
                                 </div>
-                                <!-- Fin nuevos campos -->
-
+                                <div class="form-group">
+                                    <label>Monedero Electrónico Esperado (Sistema)</label>
+                                    <input type="text" class="form-control bg-light" id="monederoEsperadoDisplay" readonly value="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Diferencia Monedero Electrónico (Faltante/Sobrante)</label>
+                                    <input type="text" class="form-control" id="diferenciaMonederoDisplay" readonly value="0.00">
+                                </div>
                                 <button type="submit" class="btn btn-danger">Cerrar y Cuadrar Caja</button>
                             </form>
                         </div>
@@ -67,53 +77,143 @@
                             <a th:href="@{/caja/a-c-caja}" class="btn btn-primary">Abrir Nuevo Turno</a>
                         </div>
                     </div>
-                    <!-- /.card-body -->
                 </div>
-                <!-- /.card -->
             </div>
-            <!-- /.col -->
         </div>
-        <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
 </section>
 
 <th:block layout:fragment="scripts">
+
     <script th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function() {
             const fondoInicial = parseFloat($('#fondoInicialDisplay').text().replace('S/ ', '')) || 0;
             const ventasEfectivoSistema = parseFloat($('#ventasEfectivoSistemaDisplay').text().replace('S/ ', '')) || 0;
-            const ventasMonederoSistema = parseFloat($('#ventasMonederoSistemaDisplay').text().replace('S/ ', '')) || 0; // Obtener el valor de ventas por monedero
-            const conteoFinalEfectivoInput = $('#conteoFinalEfectivo');
-            const efectivoEsperadoDisplay = $('#efectivoEsperadoDisplay');
-            const diferenciaDisplay = $('#diferenciaDisplay');
+            const ventasMonederoSistema = parseFloat($('#ventasMonederoSistemaDisplay').text().replace('S/ ', '')) || 0;
 
-            // Función para calcular y actualizar los totales
+            const conteoFinalEfectivoInput = $('#conteoFinalEfectivo');
+            const conteoFinalMonederoInput = $('#conteoFinalMonedero');
+
+            const efectivoEsperadoDisplay = $('#efectivoEsperadoDisplay');
+            const diferenciaEfectivoDisplay = $('#diferenciaEfectivoDisplay');
+            const monederoEsperadoDisplay = $('#monederoEsperadoDisplay');
+            const diferenciaMonederoDisplay = $('#diferenciaMonederoDisplay');
+
             function calcularCuadre() {
-                const conteoFinal = parseFloat(conteoFinalEfectivoInput.val()) || 0;
-                // Modificación aquí: Incluir ventasMonederoSistema en el cálculo del efectivo esperado
-                const efectivoEsperado = fondoInicial + ventasEfectivoSistema + ventasMonederoSistema;
-                const diferencia = conteoFinal - efectivoEsperado;
+                const conteoFinalEfectivo = parseFloat(conteoFinalEfectivoInput.val()) || 0;
+                const conteoFinalMonedero = parseFloat(conteoFinalMonederoInput.val()) || 0;
+
+                const efectivoEsperado = fondoInicial + ventasEfectivoSistema;
+                const diferenciaEfectivo = conteoFinalEfectivo - efectivoEsperado;
+
+                const monederoEsperado = ventasMonederoSistema;
+                const diferenciaMonedero = conteoFinalMonedero - monederoEsperado;
 
                 efectivoEsperadoDisplay.val(efectivoEsperado.toFixed(2));
-                diferenciaDisplay.val(diferencia.toFixed(2));
+                diferenciaEfectivoDisplay.val(diferenciaEfectivo.toFixed(2));
+                aplicarEstiloDiferencia(diferenciaEfectivo, diferenciaEfectivoDisplay);
 
-                // Opcional: Cambiar color de la diferencia
+                monederoEsperadoDisplay.val(monederoEsperado.toFixed(2));
+                diferenciaMonederoDisplay.val(diferenciaMonedero.toFixed(2));
+                aplicarEstiloDiferencia(diferenciaMonedero, diferenciaMonederoDisplay);
+            }
+
+            function aplicarEstiloDiferencia(diferencia, displayElement) {
+                displayElement.removeClass('bg-danger bg-warning bg-success');
                 if (diferencia.toFixed(2) === '0.00') {
-                    diferenciaDisplay.removeClass('bg-danger bg-warning').addClass('bg-success');
+                    displayElement.addClass('bg-success');
                 } else if (diferencia < 0) {
-                    diferenciaDisplay.removeClass('bg-success bg-warning').addClass('bg-danger');
+                    displayElement.addClass('bg-danger');
                 } else {
-                    diferenciaDisplay.removeClass('bg-success bg-danger').addClass('bg-warning');
+                    displayElement.addClass('bg-warning');
                 }
             }
 
-            // Inicializar los cálculos al cargar la página
             calcularCuadre();
 
-            // Escuchar cambios en el campo de conteo final para actualizar en tiempo real
             conteoFinalEfectivoInput.on('input', calcularCuadre);
+            conteoFinalMonederoInput.on('input', calcularCuadre);
+
+            $('#cerrarTurnoForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const idTurnoCaja = $('input[name="idTurnoCaja"]').val();
+                const conteoFinalEfectivo = parseFloat(conteoFinalEfectivoInput.val());
+                const conteoFinalMonedero = parseFloat(conteoFinalMonederoInput.val());
+
+                if (isNaN(conteoFinalEfectivo) || conteoFinalEfectivo < 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Datos Inválidos',
+                        text: 'Por favor, ingresa un valor válido para el Conteo Final de Efectivo.',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+                if (isNaN(conteoFinalMonedero) || conteoFinalMonedero < 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Datos Inválidos',
+                        text: 'Por favor, ingresa un valor válido para el Conteo Final de Monedero Electrónico / Yape.',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+
+                // Confirmación antes de enviar con SweetAlert2
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: "¡No podrás revertir el cierre de caja!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, cerrar caja',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/caja/cerrar',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                idTurnoCaja: parseInt(idTurnoCaja),
+                                conteoFinalEfectivo: conteoFinalEfectivo,
+                                conteoFinalMonedero: conteoFinalMonedero
+                            }),
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: '¡Caja Cerrada!',
+                                        text: response.message,
+                                        confirmButtonText: 'Aceptar'
+                                    }).then(() => {
+                                        window.location.reload(); // Recargar la página después de aceptar
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: 'Error al cerrar el turno: ' + response.message,
+                                        confirmButtonText: 'Entendido'
+                                    });
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error AJAX:', xhr.responseText);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error de Conexión',
+                                    text: 'Ocurrió un error al intentar cerrar el turno de caja. Por favor, intenta de nuevo.',
+                                    confirmButtonText: 'Entendido'
+                                });
+                            }
+                        });
+                    }
+                }); // Fin del .then de la confirmación
+            });
         });
         /*]]>*/
     </script>
