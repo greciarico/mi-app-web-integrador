@@ -83,49 +83,44 @@ public class VentaService {
         return ventaRepository.findById(id);
     }
 
-    // --- Método de Guardado / Actualización (CRÍTICO) ---
-
     @Transactional
     public Venta guardarVenta(Venta ventaForm) {
         Venta ventaToManage;
+        TurnoCaja turnoAsociado = null; // Variable para guardar el turno de caja
 
         // 1) Obtener/Crear la entidad Venta gestionada
         if (ventaForm.getIdVenta() == null) {
             ventaToManage = new Venta();
             ventaToManage.setFechaRegistro(LocalDate.now());
 
-            // → En lugar de “usuarioPorDefecto”, usa el que vino del Controller
             if (ventaForm.getUsuario() == null || ventaForm.getUsuario().getIdUsuario() == null) {
                 throw new IllegalArgumentException("No se pudo determinar el usuario autenticado para la venta.");
             }
-            ventaToManage.setUsuario(ventaForm.getUsuario());
+            Usuario usuarioVendedor = usuarioRepository.findById(ventaForm.getUsuario().getIdUsuario())
+                    .orElseThrow(() -> new IllegalArgumentException("Usuario vendedor no encontrado con ID: " + ventaForm.getUsuario().getIdUsuario()));
+            ventaToManage.setUsuario(usuarioVendedor);
 
-            // --- NUEVA LÓGICA: ASOCIAR VENTA AL TURNO DE CAJA ACTIVO ---
+            // --- LÓGICA: ASOCIAR VENTA AL TURNO DE CAJA ACTIVO ---
             Optional<TurnoCaja> turnoAbierto = turnoCajaService.getTurnoCajaAbierto(ventaToManage.getUsuario());
             if (turnoAbierto.isPresent()) {
-                ventaToManage.setTurnoCaja(turnoAbierto.get());
+                turnoAsociado = turnoAbierto.get(); // Guarda el turno encontrado
+                ventaToManage.setTurnoCaja(turnoAsociado); // Asigna el turno a la venta
             } else {
-                // Opcional: Lanzar una excepción si una venta DEBE tener un turno de caja
-                // throw new IllegalStateException("No hay un turno de caja abierto para el usuario actual. No se puede registrar la venta.");
-                // O simplemente la venta se guarda sin turno de caja (nullable = true en Venta.turnoCaja)
-                System.out.println("Advertencia: No se encontró un turno de caja abierto para el usuario " + ventaToManage.getUsuario().getNombre() + ". La venta se guardará sin asociar a un turno.");
+                throw new IllegalStateException("No hay un turno de caja abierto para el usuario " + ventaToManage.getUsuario().getNombre() + ". La venta no puede ser guardada.");
             }
-            // --- FIN NUEVA LÓGICA ---
-
         } else {
             ventaToManage = ventaRepository.findById(ventaForm.getIdVenta())
                     .orElseThrow(() -> new RuntimeException("Venta con ID " + ventaForm.getIdVenta() + " no encontrada para editar."));
-            // (opcional) podrías permitir cambiar el usuario aquí, si quisieras:
-            // ventaToManage.setUsuario(ventaForm.getUsuario());
-            // Si es una edición, no se cambia el turno de caja.
+            // Si es edición, se podría necesitar revertir los montos del TurnoCaja antes de recalcular
+            // y luego aplicar los nuevos montos. Por simplicidad, este ejemplo asume nuevas ventas.
+            // Para edición compleja de ventas que afectan el cuadre, se necesita una lógica más robusta.
+            turnoAsociado = ventaToManage.getTurnoCaja(); // Recupera el turno asociado si es una edición
         }
 
-        // 2) Actualizar las propiedades principales de la venta
         ventaToManage.setTipoDocumento(ventaForm.getTipoDocumento());
         ventaToManage.setNumDocumento(ventaForm.getNumDocumento());
         ventaToManage.setTipoPago(ventaForm.getTipoPago());
 
-        // 3) Validar y adjuntar Cliente e IGV
         Cliente cliente = clienteRepository.findById(
                 Optional.ofNullable(ventaForm.getCliente())
                         .map(Cliente::getIdCliente)
@@ -143,12 +138,19 @@ public class VentaService {
         ventaToManage.setCliente(cliente);
         ventaToManage.setIgvEntity(igvEntity);
 
-        // 4) Procesar detalles, stock, subtotal, IGV y total...
         BigDecimal currentSubtotal = BigDecimal.ZERO;
         List<DetalleVenta> detallesToSave = new ArrayList<>();
 
+        // Revertir stock de detalles existentes antes de actualizar (solo en caso de edición)
+        if (ventaToManage.getIdVenta() != null) { // Si es una venta existente
+            ventaToManage.getDetalleVentas().forEach(detalleExistente -> {
+                if (detalleExistente.getProducto() != null) {
+                    updateProductStock(detalleExistente.getProducto().getIdProducto(), detalleExistente.getCantidad()); // Revertir stock
+                }
+            });
+        }
+
         for (DetalleVenta dForm : ventaForm.getDetalleVentas()) {
-            // ...validaciones, búsqueda de producto, ajuste de stock...
             Producto prod = productoRepository.findById(dForm.getProducto().getIdProducto())
                     .orElseThrow(() -> new RuntimeException("Producto con ID " + dForm.getProducto().getIdProducto() + " no encontrado."));
 
@@ -156,16 +158,11 @@ public class VentaService {
             BigDecimal price = Optional.ofNullable(dForm.getPrecioUnitario()).orElse(prod.getPrecio1());
             BigDecimal totalDetalle = price.multiply(BigDecimal.valueOf(qty));
 
-            // actualizar stock
-            // Si es una venta nueva, descontar stock. Si es edición, manejar diferencias.
-            // Por simplicidad, aquí siempre descontamos. Una lógica más robusta manejaría reversiones en edición.
-            if (ventaForm.getIdVenta() == null) { // Solo descontar stock en ventas nuevas
-                if (prod.getStock() < qty) {
-                    throw new RuntimeException("Stock insuficiente para el producto: " + prod.getNombre());
-                }
-                updateProductStock(prod.getIdProducto(), -qty);
+            // Validar stock y actualizarlo
+            if (prod.getStock() < qty) {
+                throw new RuntimeException("Stock insuficiente para el producto: " + prod.getNombre());
             }
-
+            updateProductStock(prod.getIdProducto(), -qty); // Restar stock
 
             // montar detalle
             DetalleVenta detalle = new DetalleVenta();
@@ -173,34 +170,60 @@ public class VentaService {
             detalle.setCantidad(qty);
             detalle.setPrecioUnitario(price);
             detalle.setTotal(totalDetalle);
-            detalle.setVenta(ventaToManage); // Asegura la relación bidireccional
+            detalle.setVenta(ventaToManage); // Asocia el detalle a la venta que se está gestionando
 
             detallesToSave.add(detalle);
             currentSubtotal = currentSubtotal.add(totalDetalle);
         }
 
-        // Limpiar y añadir nuevos detalles para manejar el CascadeType.ALL + orphanRemoval
-        if (ventaToManage.getDetalleVentas() != null) {
-            ventaToManage.getDetalleVentas().clear();
-        } else {
-            ventaToManage.setDetalleVentas(new ArrayList<>());
-        }
+        ventaToManage.getDetalleVentas().clear();
         ventaToManage.getDetalleVentas().addAll(detallesToSave);
 
-
-        // 5) Calcular IGV y total final
-        BigDecimal porcentajeIgv = igvEntity.getTasa();           // ej. 0.18
+        BigDecimal porcentajeIgv = igvEntity.getTasa();
         BigDecimal montoIgv     = currentSubtotal.multiply(porcentajeIgv);
         ventaToManage.setIgv(montoIgv);
         ventaToManage.setTotal(currentSubtotal.add(montoIgv));
 
-        // 6) Guarda y devuelve
-        return ventaRepository.save(ventaToManage);
+        // ** LÓGICA PARA LOS MONTOS DE PAGO **
+        if ("EFECTIVO".equalsIgnoreCase(ventaForm.getTipoPago())) {
+            ventaToManage.setMontoEfectivo(ventaForm.getTotal());
+            ventaToManage.setMontoMonederoElectronico(BigDecimal.ZERO);
+        } else if ("MONEDERO_ELECTRONICO".equalsIgnoreCase(ventaForm.getTipoPago()) || "YAPE".equalsIgnoreCase(ventaForm.getTipoPago())) {
+            ventaToManage.setMontoMonederoElectronico(ventaForm.getTotal());
+            ventaToManage.setMontoEfectivo(BigDecimal.ZERO);
+        } else if ("MIXTO".equalsIgnoreCase(ventaForm.getTipoPago())) {
+            if (ventaForm.getMontoEfectivo() == null || ventaForm.getMontoMonederoElectronico() == null) {
+                throw new IllegalArgumentException("Para tipo de pago 'MIXTO', los montos de efectivo y monedero electrónico (Yape) son requeridos.");
+            }
+            BigDecimal sumatoriaMontosMixtos = ventaForm.getMontoEfectivo().add(ventaForm.getMontoMonederoElectronico());
+            if (sumatoriaMontosMixtos.compareTo(ventaForm.getTotal()) != 0) {
+                throw new IllegalArgumentException("La suma de los montos de pago (Efectivo + Monedero) no coincide con el total de la venta para pago mixto.");
+            }
+            ventaToManage.setMontoEfectivo(ventaForm.getMontoEfectivo());
+            ventaToManage.setMontoMonederoElectronico(ventaForm.getMontoMonederoElectronico());
+        } else {
+            ventaToManage.setMontoEfectivo(BigDecimal.ZERO);
+            ventaToManage.setMontoMonederoElectronico(BigDecimal.ZERO);
+        }
+
+        // 6) Guarda la venta
+        Venta savedVenta = ventaRepository.save(ventaToManage);
+
+        // --- ¡AQUÍ ESTÁ LA INTEGRACIÓN CLAVE! ---
+        // Actualiza los montos en el TurnoCaja asociado, usando el TurnoCajaService
+        if (turnoAsociado != null) {
+            turnoCajaService.registrarMontoVentaEnCaja(
+                    turnoAsociado,
+                    savedVenta.getMontoEfectivo(),
+                    savedVenta.getMontoMonederoElectronico()
+            );
+        } else {
+            System.err.println("Advertencia: Venta guardada sin turno de caja asociado. ID Venta: " + savedVenta.getIdVenta());
+        }
+
+        return savedVenta;
     }
 
-    // El resto de la clase (cancelarVenta, updateProductStock, etc.) se mantiene igual...
-
-    // METODO ACTUALIZADO PARA CANCELAR VENTA
     @Transactional
     public void cancelarVenta(Integer idVenta, Usuario usuarioAnulacion) { // Añadir Usuario como parámetro
         Venta venta = ventaRepository.findById(idVenta)
