@@ -138,8 +138,9 @@
             proveedoresToDisplay.forEach(proveedor => {
                 const estadoText = proveedor.estado === 1 ? 'Activo' : 'Inactivo';
                 const estadoClass = proveedor.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
-                const fechaRegistroFormatted = proveedor.fechaRegistro ? new Date(proveedor.fechaRegistro).toLocaleDateString('es-ES') : 'N/A';
-
+                 const fechaRegistroFormatted = proveedor.fechaRegistro
+                                              ? proveedor.fechaRegistro.split('-').reverse().join('/')
+                                              : 'N/A';
                 const row = `
                     <tr>
                         <td>${proveedor.idProveedor}</td>
