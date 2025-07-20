@@ -59,6 +59,7 @@ public class ClienteController {
         return clienteService.listarClientes(idTipoCliente, searchTerm);
     }
 
+    // ClienteController
     @GetMapping("/activos")
     @ResponseBody
     public List<Cliente> getActiveClientesJson() {
@@ -138,6 +139,7 @@ public class ClienteController {
     public ResponseEntity<Map<String, Boolean>> checkDni(@RequestParam String dni,
                                                          @RequestParam(required = false) Integer idCliente) {
         Map<String, Boolean> response = new HashMap<>();
+        // CAMBIADO: Llamar al método expuesto por el servicio
         boolean exists = clienteService.existsByDniExcludingCurrent(dni, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
@@ -154,6 +156,7 @@ public class ClienteController {
     public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
                                                          @RequestParam(required = false) Integer idCliente) {
         Map<String, Boolean> response = new HashMap<>();
+        // CAMBIADO: Llamar al método expuesto por el servicio
         boolean exists = clienteService.existsByRucExcludingCurrent(ruc, idCliente);
         response.put("exists", exists);
         return ResponseEntity.ok(response);
@@ -172,6 +175,7 @@ public class ClienteController {
     @ResponseBody
     public ResponseEntity<?> buscarPorDocumento(@RequestParam String tipoDocumento, @RequestParam String numeroDocumento) {
         System.out.println("DEBUG: Entrando a buscarPorDocumento para tipo: " + tipoDocumento + ", numero: " + numeroDocumento);
+        // ... el resto de tu código
         if ("dni".equalsIgnoreCase(tipoDocumento)) {
             if (numeroDocumento.length() != 8 || !numeroDocumento.matches("\\d+")) {
                 return ResponseEntity.badRequest().body(Map.of("message", "El DNI debe tener 8 dígitos numéricos."));
@@ -196,29 +200,26 @@ public class ClienteController {
             return ResponseEntity.badRequest().body(Map.of("message", "Tipo de documento no válido. Use 'dni' o 'ruc'."));
         }
     }
+
     // ===============================================
-    // ENDPOINTS PARA EL REPORTE DE CLIENTES
+    // NUEVO/MODIFICADO ENDPOINT PARA FILTRADO DE TABLA (COMO EN PRODUCTOS)
     // ===============================================
 
     /**
-     * Muestra el fragmento del modal de filtros para el reporte de clientes.
-     * También carga los tipos de cliente para el dropdown de filtro.
-     * @param model El modelo para pasar datos a la vista.
-     * @return La ruta al fragmento del modal.
+     * Nuevo endpoint para buscar/filtrar clientes en la tabla principal vía AJAX.
+     * Recibe los filtros del ClienteFilterDTO y devuelve una lista de clientes en formato JSON.
+     * @param filterDTO DTO con los criterios de filtrado.
+     * @return Lista de clientes que coinciden con los filtros.
      */
-    @GetMapping("/reporte/modal")
-    public String obtenerModalReporteClientes(Model model) {
-        model.addAttribute("tiposCliente", tipoClienteService.listarTiposCliente());
-        return "fragments/reporte_clientes_modal :: reporteModalContent";
+    @GetMapping("/buscar")
+    @ResponseBody
+    public List<Cliente> buscarClientes(@ModelAttribute ClienteFilterDTO filterDTO) {
+        // Reutiliza el mismo servicio y lógica que usas para el reporte.
+        // Asegúrate de que buscarClientesPorFiltros en ClienteService maneje bien los nulls
+        // si un filtro no se proporciona desde el frontend.
+        return clienteService.buscarClientesPorFiltros(filterDTO);
     }
-
-    /**
-     * Genera y devuelve un informe PDF de clientes basado en los filtros.
-     * @param filterDTO DTO con los criterios de filtrado para el reporte.
-     * @param response Objeto HttpServletResponse para escribir el PDF.
-     * @throws DocumentException Si ocurre un error al crear el documento PDF.
-     * @throws IOException Si ocurre un error de E/S.
-     */
+    // El endpoint de reporte PDF se mantiene igual, ya que ClienteFilterDTO es completo
     @GetMapping("/reporte/pdf")
     public void generarReporteClientePdf(@ModelAttribute ClienteFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, IOException {
         response.setContentType("application/pdf");
@@ -226,9 +227,9 @@ public class ClienteController {
         String headerValue = "inline; filename=reporte_clientes.pdf";
         response.setHeader(headerKey, headerValue);
 
-        List<Cliente> clientes = clienteService.buscarClientesPorFiltros(filterDTO);
+        List<Cliente> clientes = clienteService.buscarClientesPorFiltros(filterDTO); // Usa el mismo método de filtrado
 
-        Document document = new Document(PageSize.A4.rotate()); 
+        Document document = new Document(PageSize.A4.rotate()); // A4 horizontal
         PdfWriter.getInstance(document, response.getOutputStream());
         document.open();
 
@@ -238,16 +239,26 @@ public class ClienteController {
         title.setSpacingAfter(20);
         document.add(title);
 
-        // Mostrar filtros aplicados
+        // --- Mostrar filtros aplicados (como en productos) ---
         Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
         StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
 
         if (filterDTO.getNombreCompletoODoc() != null && !filterDTO.getNombreCompletoODoc().isEmpty()) {
-            filtrosAplicados.append("- Nombre/Documento: ").append(filterDTO.getNombreCompletoODoc()).append("\n");
+            filtrosAplicados.append("- Nombre, Apellidos, DNI o RUC: ").append(filterDTO.getNombreCompletoODoc()).append("\n");
         }
         if (filterDTO.getIdTipoCliente() != null) {
-            Optional<TipoCliente> tipoClienteOpt = tipoClienteService.obtenerTipoClientePorId(filterDTO.getIdTipoCliente());
-            tipoClienteOpt.ifPresent(tc -> filtrosAplicados.append("- Tipo de Cliente: ").append(tc.getRolCliente()).append("\n"));
+            // CORRECCIÓN AQUÍ: Ahora el método existe en clienteService
+            clienteService.obtenerTipoClientePorId(filterDTO.getIdTipoCliente())
+                    .ifPresent(tipo -> filtrosAplicados.append("- Tipo de Cliente: ").append(tipo.getRolCliente()).append("\n"));
+        }
+        if (filterDTO.getDireccion() != null && !filterDTO.getDireccion().isEmpty()) {
+            filtrosAplicados.append("- Dirección: ").append(filterDTO.getDireccion()).append("\n");
+        }
+        if (filterDTO.getTelefono() != null && !filterDTO.getTelefono().isEmpty()) {
+            filtrosAplicados.append("- Teléfono: ").append(filterDTO.getTelefono()).append("\n");
+        }
+        if (filterDTO.getEstado() != null) {
+            filtrosAplicados.append("- Estado: ").append(filterDTO.getEstado() == 1 ? "Activo" : (filterDTO.getEstado() == 0 ? "Inactivo" : "Desconocido")).append("\n");
         }
         if (filterDTO.getFechaRegistroStart() != null || filterDTO.getFechaRegistroEnd() != null) {
             filtrosAplicados.append("- Fecha de Registro: ");
@@ -256,52 +267,34 @@ public class ClienteController {
             if (filterDTO.getFechaRegistroEnd() != null) filtrosAplicados.append("Hasta ").append(filterDTO.getFechaRegistroEnd().format(formatter));
             filtrosAplicados.append("\n");
         }
-        if (filterDTO.getDireccion() != null && !filterDTO.getDireccion().isEmpty()) {
-            filtrosAplicados.append("- Dirección: ").append(filterDTO.getDireccion()).append("\n");
-        }
-        if (filterDTO.getTelefono() != null && !filterDTO.getTelefono().isEmpty()) {
-            filtrosAplicados.append("- Teléfono: ").append(filterDTO.getTelefono()).append("\n");
-        }
-        // Mostrar filtro de estado aplicado
-        if (filterDTO.getEstado() != null) {
-            String estadoTexto = "";
-            if (filterDTO.getEstado() == 1) {
-                estadoTexto = "Activo";
-            } else if (filterDTO.getEstado() == 0) {
-                estadoTexto = "Inactivo";
-            } else {
-                estadoTexto = "Desconocido/No Reportable";
-            }
-            filtrosAplicados.append("- Estado: ").append(estadoTexto).append("\n");
-        } else {
-            filtrosAplicados.append("- Estado: Activos e Inactivos\n");
-        }
 
-
-        if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) { 
-            filtrosAplicados.append("- Ninguno (Reporte Completo de Clientes)\n"); 
+        if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) {
+            filtrosAplicados.append("- Ninguno (Reporte Completo)\n");
         }
 
         Paragraph pFiltros = new Paragraph(filtrosAplicados.toString(), fontFilters);
         pFiltros.setAlignment(Paragraph.ALIGN_LEFT);
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
+        // --- Fin Mostrar filtros aplicados ---
 
-        PdfPTable table = new PdfPTable(8); 
+        // Crear la tabla PDF (ajustar columnas según tu modelo Cliente)
+        PdfPTable table = new PdfPTable(8); // Ejemplo: ID, Tipo, DNI/RUC, Nombre/Razón Social, Dirección, Teléfono, Estado, F. Registro
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
 
-        float[] columnWidths = {0.5f, 1f, 1f, 2f, 0.8f, 2f, 1f, 0.8f}; 
+        // Ajusta los anchos de columna según tus datos de cliente
+        float[] columnWidths = {0.5f, 1f, 1f, 2f, 2f, 0.8f, 0.7f, 1.2f};
         table.setWidths(columnWidths);
 
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 7, BaseColor.BLACK);
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); 
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); 
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
 
-        String[] headers = {"ID", "Tipo Cliente", "Doc. Identidad", "Nombre/Raz. Social", "Teléfono", "Dirección", "F. Registro", "Estado"}; 
+        String[] headers = {"ID", "Tipo", "DNI/RUC", "Nombre/Razón Social", "Dirección", "Teléfono", "Estado", "F. Registro"};
         for (String header : headers) {
             cell = new PdfPCell(new Phrase(header, fontHeader));
             cell.setBackgroundColor(new BaseColor(24, 61, 0));
@@ -312,8 +305,8 @@ public class ClienteController {
         }
 
         if (clientes.isEmpty()) {
-            cell = new PdfPCell(new Phrase("No se encontraron registros de clientes con los filtros aplicados.", fontContent));
-            cell.setColspan(8); 
+            cell = new PdfPCell(new Phrase("No se encontraron clientes con los filtros aplicados.", fontContent));
+            cell.setColspan(8);
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(10);
             table.addCell(cell);
@@ -322,48 +315,36 @@ public class ClienteController {
             for (Cliente cliente : clientes) {
                 table.addCell(new Phrase(String.valueOf(cliente.getIdCliente()), fontContent));
                 table.addCell(new Phrase(cliente.getTipoCliente() != null ? cliente.getTipoCliente().getRolCliente() : "N/A", fontContent));
-
-                // Documento de Identidad
-                String docIdentidad = "N/A";
-                if (cliente.getDni() != null && !cliente.getDni().isEmpty()) {
-                    docIdentidad = "DNI: " + cliente.getDni();
-                } else if (cliente.getRuc() != null && !cliente.getRuc().isEmpty()) {
-                    docIdentidad = "RUC: " + cliente.getRuc();
-                }
-                table.addCell(new Phrase(docIdentidad, fontContent));
-
-                // Nombre / Razón Social
-                String nombreRazonSocial = "N/A";
-                if (cliente.getTipoCliente() != null) { 
-                    if (cliente.getTipoCliente().getIdRolCliente() == 1) { 
-                        nombreRazonSocial = String.format("%s %s %s",
-                                Optional.ofNullable(cliente.getNombre()).orElse(""),
-                                Optional.ofNullable(cliente.getApPaterno()).orElse(""),
-                                Optional.ofNullable(cliente.getApMaterno()).orElse("")).trim();
+                table.addCell(new Phrase(cliente.getDni() != null ? cliente.getDni() : (cliente.getRuc() != null ? cliente.getRuc() : "N/A"), fontContent));
+                String nombreDisplay = "N/A";
+                if (cliente.getTipoCliente() != null) {
+                    if (cliente.getTipoCliente().getIdRolCliente() == 1) { // Natural
+                        nombreDisplay = String.format("%s %s %s",
+                                cliente.getNombre() != null ? cliente.getNombre() : "",
+                                cliente.getApPaterno() != null ? cliente.getApPaterno() : "",
+                                cliente.getApMaterno() != null ? cliente.getApMaterno() : "").trim();
                     } else if (cliente.getTipoCliente().getIdRolCliente() == 2) { // Jurídica
-                        nombreRazonSocial = Optional.ofNullable(cliente.getRazonSocial()).orElse("N/A");
+                        nombreDisplay = cliente.getRazonSocial() != null ? cliente.getRazonSocial() : "N/A";
                     }
                 }
-                table.addCell(new Phrase(nombreRazonSocial, fontContent));
-
-
+                table.addCell(new Phrase(nombreDisplay, fontContent));
+                table.addCell(new Phrase(cliente.getDireccion() != null ? cliente.getDireccion() : "N/A", fontContent));
                 table.addCell(new Phrase(cliente.getTelefono() != null ? cliente.getTelefono() : "N/A", fontContent));
-                table.addCell(new Phrase(cliente.getDireccion() != null && !cliente.getDireccion().isEmpty() ? cliente.getDireccion() : "Sin dirección", fontContent));
-                table.addCell(new Phrase(cliente.getFechaRegistro() != null ? cliente.getFechaRegistro().format(formatter) : "N/A", fontContent));
 
-                String estadoTexto;
+                String estadoText;
                 Font estadoFont;
                 if (cliente.getEstado() == 1) {
-                    estadoTexto = "Activo";
+                    estadoText = "Activo";
                     estadoFont = fontContentActive;
                 } else if (cliente.getEstado() == 0) {
-                    estadoTexto = "Inactivo";
+                    estadoText = "Inactivo";
                     estadoFont = fontContentInactive;
                 } else {
-                    estadoTexto = "Eliminado"; 
-                    estadoFont = fontContent; 
+                    estadoText = "Desconocido";
+                    estadoFont = fontContent;
                 }
-                table.addCell(new Phrase(estadoTexto, estadoFont));
+                table.addCell(new Phrase(estadoText, estadoFont));
+                table.addCell(new Phrase(cliente.getFechaRegistro() != null ? cliente.getFechaRegistro().format(formatter) : "N/A", fontContent));
             }
         }
 
