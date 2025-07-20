@@ -1,7 +1,7 @@
 package com.example.DyD_Natures.Controller;
 
 import com.example.DyD_Natures.Model.Categoria;
-import com.example.DyD_Natures.Dto.CategoriaFilterDTO; 
+import com.example.DyD_Natures.Dto.CategoriaFilterDTO; // Importar
 import com.example.DyD_Natures.Service.CategoriaService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,13 +10,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import com.itextpdf.text.*; 
-import com.itextpdf.text.pdf.PdfPCell; 
-import com.itextpdf.text.pdf.PdfPTable; 
-import com.itextpdf.text.pdf.PdfWriter; 
+import com.itextpdf.text.*; // Importar iText
+import com.itextpdf.text.pdf.PdfPCell; // Importar iText
+import com.itextpdf.text.pdf.PdfPTable; // Importar iText
+import com.itextpdf.text.pdf.PdfWriter; // Importar iText
 
-import jakarta.servlet.http.HttpServletResponse; 
-import java.io.IOException; 
+import jakarta.servlet.http.HttpServletResponse; // Importar
+import java.io.IOException; // Importar
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +75,7 @@ public class CategoriaController {
     public ResponseEntity<Map<String, String>> guardarCategoria(@ModelAttribute Categoria categoria) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones 
+            // Validaciones básicas
             if (categoria.getNombreCategoria() == null || categoria.getNombreCategoria().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "El nombre de la categoría es obligatorio.");
@@ -132,20 +132,24 @@ public class CategoriaController {
         return ResponseEntity.ok(response);
     }
     // ===============================================
-    //  ENDPOINTS PARA EL REPORTE DE CATEGORÍAS
+    // NUEVOS/MODIFICADOS ENDPOINTS PARA FILTRADO Y REPORTE
     // ===============================================
 
     /**
-     * Muestra el fragmento del modal de filtros para el reporte de categorías.
-     * @return La ruta al fragmento del modal.
+     * Nuevo endpoint para buscar/filtrar categorías en la tabla principal vía AJAX.
+     * Recibe los filtros y devuelve una lista de categorías en formato JSON.
+     * @param filterDTO DTO con los criterios de filtrado.
+     * @return Lista de categorías que coinciden con los filtros.
      */
-    @GetMapping("/reporte/modal")
-    public String obtenerModalReporteCategorias() {
-        return "fragments/reporte_categorias_modal :: reporteModalContent";
+    @GetMapping("/buscar")
+    @ResponseBody
+    public List<Categoria> buscarCategorias(@ModelAttribute CategoriaFilterDTO filterDTO) {
+        return categoriaService.buscarCategoriasPorFiltros(filterDTO);
     }
 
     /**
      * Genera y devuelve un informe PDF de categorías basado en los filtros.
+     * Este endpoint ya existía y está bien. Ahora se llamará directamente desde el JS.
      * @param filterDTO DTO con los criterios de filtrado para el reporte.
      * @param response Objeto HttpServletResponse para escribir el PDF.
      * @throws DocumentException Si ocurre un error al crear el documento PDF.
@@ -160,7 +164,7 @@ public class CategoriaController {
 
         List<Categoria> categorias = categoriaService.buscarCategoriasPorFiltros(filterDTO);
 
-        Document document = new Document(PageSize.A4); 
+        Document document = new Document(PageSize.A4);
         PdfWriter.getInstance(document, response.getOutputStream());
         document.open();
 
@@ -198,19 +202,19 @@ public class CategoriaController {
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
 
-        PdfPTable table = new PdfPTable(3); 
+        PdfPTable table = new PdfPTable(3); // 3 columnas: ID, Nombre Categoría, Estado
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
 
-        float[] columnWidths = {0.5f, 3f, 1f}; 
+        float[] columnWidths = {0.5f, 3f, 1f}; // Ajusta anchos según necesidad
         table.setWidths(columnWidths);
 
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); 
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); 
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
 
         String[] headers = {"ID", "Nombre Categoría", "Estado"};
         for (String header : headers) {
@@ -224,7 +228,7 @@ public class CategoriaController {
 
         if (categorias.isEmpty()) {
             cell = new PdfPCell(new Phrase("No se encontraron categorías con los filtros aplicados.", fontContent));
-            cell.setColspan(3); 
+            cell.setColspan(3); // Abarca todas las columnas
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(10);
             table.addCell(cell);
@@ -243,13 +247,12 @@ public class CategoriaController {
                     estadoFont = fontContentInactive;
                 } else {
                     estadoText = "Desconocido";
-                    estadoFont = fontContent; 
+                    estadoFont = fontContent; // Default to black if unknown
                 }
-                table.addCell(new Phrase(estadoText, estadoFont));}
+                table.addCell(new Phrase(estadoText, estadoFont));              }
         }
 
         document.add(table);
         document.close();
     }
-
 }
