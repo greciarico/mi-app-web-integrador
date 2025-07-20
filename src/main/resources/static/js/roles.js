@@ -1,5 +1,24 @@
 var tablaRoles;
 
+const permisoColorMap = {};
+function randomPastelColor() {
+  const hue = Math.floor(Math.random() * 360);
+  return `hsl(${hue}, 70%, 85%)`;
+}
+function getPermColor(code) {
+  if (!permisoColorMap[code]) permisoColorMap[code] = randomPastelColor();
+  return permisoColorMap[code];
+}
+function friendlyPermName(code) {
+  return code
+    .toLowerCase()
+    .replace(/^ver_/, '')
+    .replace(/^gestion_/, '')
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 $(document).ready(() => {
   tablaRoles = $("#tablaRoles").DataTable({
     responsive: true,    // activa el plugin responsive
@@ -11,13 +30,13 @@ $(document).ready(() => {
        {
          data: "permisos",
          render: function(perms) {
-           if (!perms || perms.length === 0) {
-             return "";
-           }
-           // Usamos función normal en lugar de arrow
-           return perms.map(function(p) {
-             return p.nombre;
-           }).join(", ");
+           if (!perms || perms.length === 0) return "";
+           return perms.map(p => {
+             const code = p.nombre;               // e.g. "VER_VENTAS"
+             const label = friendlyPermName(code);// → "Ventas"
+             const bg    = getPermColor(code);    // color pastel consistente
+             return `<span class="tag-perm" style="background-color:${bg};">${label}</span>`;
+           }).join("");
          }
        },
       {
