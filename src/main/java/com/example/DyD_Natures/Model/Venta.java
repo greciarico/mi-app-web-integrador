@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Objects;
 import java.time.LocalDateTime; // Importar LocalDateTime
 
-@Data // Lombok genera getters, setters, equals, hashCode y toString
+@Data
 @Entity
 @Table(name = "venta")
 public class Venta {
@@ -22,14 +22,9 @@ public class Venta {
     @Column(name = "id_venta", nullable = false)
     private Integer idVenta;
 
-    // --- CAMPO PARA LA BASE DE DATOS ---
-    // Este es el campo que SÍ se guarda en la base de datos, en la columna "igv".
-    // Almacenará el MONTO del IGV (ej: 18.00).
     @Column(name = "igv", nullable = false, precision = 10, scale = 2)
     private BigDecimal igv;
 
-    // --- CAMPO TRANSITORIO PARA EL FORMULARIO/JSON ---
-    // Este campo NO se guarda en la BD. Solo existe para recibir el dato 'tasa' del JSON que envía el frontend.
     @Transient
     private BigDecimal tasa;
 
@@ -49,6 +44,12 @@ public class Venta {
     @Column(name = "total", nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    @Column(name = "monto_efectivo", nullable = false, precision = 10, scale = 2)
+    private BigDecimal montoEfectivo;
+
+    @Column(name = "monto_monedero_electronico", nullable = false, precision = 10, scale = 2)
+    private BigDecimal montoMonederoElectronico;
+
     @Column(name = "tipo_documento", nullable = false, length = 50)
     private String tipoDocumento;
 
@@ -63,16 +64,12 @@ public class Venta {
             foreignKey = @ForeignKey(name = "fk_venta_igv"))
     private Igv igvEntity;
 
-    // --- NUEVO CAMPO: Relación con TurnoCaja ---
-    @ManyToOne(fetch = FetchType.LAZY) // Usar LAZY para evitar cargar el turno si no es necesario
-    @JoinColumn(name = "id_turno_caja", // Nombre de la columna FK en la tabla 'venta'
-            foreignKey = @ForeignKey(name = "fk_venta_turno_caja")) // Nombre de la clave foránea
-    @JsonIgnore // <--- ¡IMPORTANTE! AÑADIR ESTA ANOTACIÓN PARA EVITAR ERRORES DE SERIALIZACIÓN
-    private TurnoCaja turnoCaja; // Objeto TurnoCaja asociado a esta venta
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_turno_caja",
+            foreignKey = @ForeignKey(name = "fk_venta_turno_caja"))
+    @JsonIgnore
+    private TurnoCaja turnoCaja;
 
-    // --- RELACIÓN CON DETALLES ---
-    // @JsonManagedReference evita problemas de bucles infinitos al convertir a JSON.
-    // FetchType.LAZY es una buena práctica para mejorar el rendimiento.
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<DetalleVenta> detalleVentas = new ArrayList<>();
@@ -80,20 +77,16 @@ public class Venta {
     @Column(name = "estado", nullable = true)
     private Byte estado = 1;
 
-    // Nuevos campos para auditoría de anulación
     @Column(name = "fecha_anulacion")
-    private LocalDateTime fechaAnulacion; // Fecha y hora exacta de la anulación
+    private LocalDateTime fechaAnulacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario_anulacion")
-    private Usuario usuarioAnulacion; // Usuario que realizó la anulación
-    // --- Fin nuevos campos ---
+    private Usuario usuarioAnulacion;
 
     public Venta() {
     }
 
-    // El resto de getters y setters son generados por Lombok (@Data).
-    // Solo se mantiene el setter de detalleVentas si tiene lógica personalizada.
     public void setDetalleVentas(List<DetalleVenta> detalleVentas) {
         if (this.detalleVentas == null) {
             this.detalleVentas = new ArrayList<>();
