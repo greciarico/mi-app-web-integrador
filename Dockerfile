@@ -3,6 +3,17 @@
 # Puedes ajustar la versión de Java si tu proyecto usa otra (ej. 11, 21)
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 
+# 1) Instala tzdata y configura America/Lima
+ENV TZ=America/Lima
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends tzdata && \
+    ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime && \
+    echo "${TZ}" > /etc/timezone && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 2) Fija la JVM también en esa zona
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=${TZ}"
+
 # Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
