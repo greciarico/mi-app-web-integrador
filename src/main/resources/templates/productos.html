@@ -19,74 +19,124 @@
               </a>
             </div>
           </div>
-          <!-- /.card-header -->
           <div class="card-body">
-            <!-- BUSCADOR SIMPLIFICADO DE PRODUCTOS -->
-            <div class="row mb-3">
-              <div class="col-md-12">
-                <div class="input-group">
-                  <input type="search" id="searchTermProducto" class="form-control" placeholder="Buscar por nombre, descripción, estado..."
-                         onkeyup="aplicarFiltrosProductos()"/>
-                  <div class="input-group-append">
-                    <button class="btn btn-default" type="button" onclick="aplicarFiltrosProductos()">
+            <div class="mb-3">
+              <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#collapseProductFilters" aria-expanded="false" aria-controls="collapseProductFilters">
+                <i class="fas fa-filter"></i> Mostrar/Ocultar Filtros Avanzados
+              </button>
+            </div>
+
+            <div class="collapse" id="collapseProductFilters">
+              <div class="card card-body">
+                <form id="mainProductFilterForm" onsubmit="event.preventDefault(); aplicarFiltrosProductos();">
+                  <div class="form-row">
+                    <div class="form-group col-md-4">
+                      <label for="filtroNombreProductoMain">Nombre:</label>
+                      <input type="text" id="filtroNombreProductoMain" name="nombre" class="form-control" placeholder="Nombre del producto"/>
+                    </div>
+                    <div class="form-group col-md-4">
+                      <label for="filtroDescripcionProductoMain">Presentación:</label>
+                      <input type="text" id="filtroDescripcionProductoMain" name="descripcion" class="form-control" placeholder="Presentación del producto"/>
+                    </div>
+                    <div class="form-group col-md-4">
+                      <label for="filtroIdCategoriaProductoMain">Categoría:</label>
+                      <select id="filtroIdCategoriaProductoMain" name="idCategoria" class="form-control">
+                        <option value="">Todas las Categorías</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group col-md-3">
+                      <label>Precio 1 (Min/Max):</label>
+                      <div class="input-group">
+                        <input type="number" step="0.01" id="precio1MinMain" name="precio1Min" class="form-control" placeholder="Min">
+                        <input type="number" step="0.01" id="precio1MaxMain" name="precio1Max" class="form-control" placeholder="Max">
+                      </div>
+                    </div>
+                    <div class="form-group col-md-3">
+                      <label>Precio 2 (Min/Max):</label>
+                      <div class="input-group">
+                        <input type="number" step="0.01" id="precio2MinMain" name="precio2Min" class="form-control" placeholder="Min">
+                        <input type="number" step="0.01" id="precio2MaxMain" name="precio2Max" class="form-control" placeholder="Max">
+                      </div>
+                    </div>
+                    <div class="form-group col-md-3">
+                      <label>Stock (Min/Max):</label>
+                      <div class="input-group">
+                        <input type="number" id="stockMinMain" name="stockMin" class="form-control" placeholder="Min">
+                        <input type="number" id="stockMaxMain" name="stockMax" class="form-control" placeholder="Max">
+                      </div>
+                    </div>
+                    <div class="form-group col-md-3">
+                      <label>Estado:</label><br>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input estado-checkbox-producto-main" type="checkbox" id="estadoActivoProductoMain" name="estados" value="1">
+                        <label class="form-check-label" for="estadoActivoProductoMain">Activo</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input estado-checkbox-producto-main" type="checkbox" id="estadoInactivoProductoMain" name="estados" value="0">
+                        <label class="form-check-label" for="estadoInactivoProductoMain">Inactivo</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group col-md-6">
+                      <label>Fecha de Registro:</label>
+                      <div class="input-group">
+                        <input type="date" id="fechaRegistroStartMain" name="fechaRegistroStart" class="form-control" onchange="setMainDateMaxAttributes()">
+                        <input type="date" id="fechaRegistroEndMain" name="fechaRegistroEnd" class="form-control" onchange="setMainDateMinAttributes()">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <button class="btn btn-default" type="submit">
                       <i class="fas fa-search"></i> Buscar
                     </button>
-                    <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteProductosModal()">
-                      <i class="fas fa-file-alt"></i> Generar Reporte
+                    <button class="btn btn-success ml-2" type="button" onclick="ejecutarGenerarReporteProductos()"
+                            style="background-color:#b45f06 !important; border-color:#b45f06 !important;">
+                      <i class="fas fa-file-pdf"></i> Generar Reporte PDF
+                    </button>
+                    <button class="btn btn-secondary ml-2" type="button" onclick="limpiarFiltrosMainProducto()">
+                      <i class="fas fa-redo"></i> Limpiar Filtros
                     </button>
                   </div>
+                </form>
+                <div class="alert alert-info text-center mt-3" role="alert">
+                  <i class="fas fa-info-circle"></i> Deje todas las opciones de filtro sin marcar para buscar/generar un reporte de todos los productos.
                 </div>
               </div>
             </div>
-            <!-- FIN BUSCADOR SIMPLIFICADO DE PRODUCTOS -->
-
-            <!-- Tabla de Productos -->
-            <div id="tablaProductosContainer">
-              <table id="productosTable" class="table table-bordered table-striped">
-                <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Presentación</th>
-                  <th>Categoría</th>
-                  <th>Precio 1</th>
-                  <th>Precio 2</th>
-                  <th>Stock</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-                </thead>
-                <tbody id="productosTableBody">
-                <!-- Contenido de la tabla se generará con JavaScript -->
-                </tbody>
-              </table>
+            <div id="tablaProductosContainer" class="mt-3"> <table id="productosTable" class="table table-bordered table-striped">
+              <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Presentación</th>
+                <th>Categoría</th>
+                <th>Precio 1</th>
+                <th>Precio 2</th>
+                <th>Stock</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+              </thead>
+              <tbody id="productosTableBody">
+              </tbody>
+            </table>
             </div>
           </div>
-          <!-- /.card-body -->
         </div>
-        <!-- /.card -->
       </div>
-      <!-- /.col -->
     </div>
-    <!-- /.row -->
   </div>
-  <!-- /.container-fluid -->
-
-  <!-- Modal para el Formulario de Producto -->
   <div class="modal fade" id="productoModal" tabindex="-1" role="dialog" aria-labelledby="productoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div id="modalFormContentProducto">
-          <!-- El fragmento productos_form_modal.html se insertará aquí -->
         </div>
       </div>
-    </div>
-  </div>
-  <div class="modal fade" id="reporteProductosModal" tabindex="-1" role="dialog" aria-labelledby="reporteProductosModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl" role="document"> <div class="modal-content">
-      <div id="modalReporteContentProducto">
-      </div>
-    </div>
     </div>
   </div>
 </section>
@@ -95,352 +145,342 @@
   <script th:inline="javascript">
     /*<![CDATA[*/
 
-   // Variable global para almacenar todos los productos
-   allProducts = /*[[${productos}]]*/ [];
+    allProducts = []; // Se inicializa vacío
 
-   // Función para renderizar la tabla con una lista de productos
-   function renderizarTablaProductos(productsToDisplay) {
-       const tableBody = $('#productosTableBody');
-       tableBody.empty();
+    function renderizarTablaProductos(productsToDisplay) {
+        const tableBody = $('#productosTableBody');
+        tableBody.empty();
 
-       if (productsToDisplay.length === 0) {
-           // CAMBIO: colspan se ajusta a 8 (antes 9)
-           tableBody.append('<tr><td colspan="8" class="text-center">No se encontraron productos.</td></tr>');
-           return;
-       }
+        if (productsToDisplay.length === 0) {
+            tableBody.append('<tr><td colspan="9" class="text-center">No se encontraron productos.</td></tr>');
+            return;
+        }
 
-       productsToDisplay.forEach(producto => {
-           const estadoText = producto.estado === 1 ? 'Activo' : 'Inactivo';
-           const estadoClass = producto.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
-           const categoriaNombre = producto.categoria ? producto.categoria.nombreCategoria : 'N/A';
+        productsToDisplay.forEach(producto => {
+            const estadoText = producto.estado === 1 ? 'Activo' : 'Inactivo';
+            const estadoClass = producto.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
+            const categoriaNombre = producto.categoria ? producto.categoria.nombreCategoria : 'N/A';
 
-           const row = `
-               <tr>
-                   <td>${producto.idProducto}</td>
-                   <td>${producto.nombre}</td>
-                   <td>${producto.descripcion}</td>
-                   <td>${categoriaNombre}</td>
-                   <td>${producto.precio1 ? producto.precio1.toFixed(2) : 'N/A'}</td>
-                   <td>${producto.precio2 ? producto.precio2.toFixed(2) : 'N/A'}</td>
-                   <td>${producto.stock}</td>
-                   <td class="text-center"><span class="${estadoClass}">${estadoText}</span></td>
-                   <td>
-                       <a href="javascript:void(0)" onclick="abrirFormularioProducto('/productos/editar/${producto.idProducto}')"
-                          class="btn btn-info btn-sm">
-                           <i class="fas fa-edit"></i>
-                       </a>
-                       <a href="javascript:void(0)" onclick="confirmarEliminarProducto(${producto.idProducto})"
-                          class="btn btn-danger btn-sm">
-                           <i class="fas fa-trash"></i>
-                       </a>
-                   </td>
-               </tr>
-           `;
-           tableBody.append(row);
-       });
-   }
+            const row = `
+                <tr>
+                    <td>${producto.idProducto}</td>
+                    <td>${producto.nombre}</td>
+                    <td>${producto.descripcion}</td>
+                    <td>${categoriaNombre}</td>
+                    <td>${producto.precio1 ? producto.precio1.toFixed(2) : 'N/A'}</td>
+                    <td>${producto.precio2 ? producto.precio2.toFixed(2) : 'N/A'}</td>
+                    <td>${producto.stock}</td>
+                    <td class="text-center"><span class="${estadoClass}">${estadoText}</span></td>
+                    <td>
+                        <a href="javascript:void(0)" onclick="abrirFormularioProducto('/productos/editar/${producto.idProducto}')"
+                           class="btn btn-info btn-sm">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="confirmarEliminarProducto(${producto.idProducto})"
+                           class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+            `;
+            tableBody.append(row);
+        });
+    }
 
-      /**
-      * Limpia mensajes de error y clases inválidas
-      * SOLO dentro del contenedor que le pases.
-      *
-      * @param {string|HTMLElement} container – selector o elemento DOM
-      */
-     function clearErrors(container) {
-       const $c = (container instanceof HTMLElement)
-         ? $(container)
-         : $(container);
-       $c.find('.text-danger').text('');
-       $c.find('.is-invalid').removeClass('is-invalid');
-     }
+    function clearErrors(container) {
+        const $c = (container instanceof HTMLElement)
+            ? $(container)
+            : $(container);
+        $c.find('.text-danger').text('');
+        $c.find('.is-invalid').removeClass('is-invalid');
+    }
 
-   // Función para mostrar un mensaje de error específico (genérica)
-   function displayError(elementId, message) {
-       $('#' + elementId).text(message);
-       $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
-   }
+    function displayError(elementId, message) {
+        $('#' + elementId).text(message);
+        $('#' + elementId).prevAll('.form-control, .input-group').first().find('input, select').first().addClass('is-invalid');
+    }
 
-   // ===========================================
-   // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE PRODUCTO (sin 'codigo')
-   // ===========================================
+
+    // ===========================================
+    // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE PRODUCTO
+    // ===========================================
 
     function abrirFormularioProducto(url) {
-     console.log("Intentando abrir formulario de producto desde URL:", url);
-     $('#modalFormContentProducto').load(url, function(response, status, xhr) {
-       if (status === "error") {
-         console.error("Error al cargar el formulario de producto:", xhr.status, xhr.statusText, response);
-         Swal.fire({
-           icon: 'error',
-           title: 'Error al cargar formulario',
-           text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
-           footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-         });
-         return;
-       }
+        console.log("Intentando abrir formulario de producto desde URL:", url);
+        $('#modalFormContentProducto').load(url, function(response, status, xhr) {
+            if (status === "error") {
+                console.error("Error al cargar el formulario de producto:", xhr.status, xhr.statusText, response);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al cargar formulario',
+                    text: 'Hubo un problema al cargar el formulario. Por favor, inténtalo de nuevo.',
+                    footer: `Detalles: ${xhr.status} ${xhr.statusText}`
+                });
+                return;
+            }
 
-       console.log("Formulario de producto cargado exitosamente.");
+            console.log("Formulario de producto cargado exitosamente.");
 
-       // 1) Limpia errores previos SOLO de este form
-       clearErrors('#formProducto');
+            clearErrors('#formProducto');
 
-       // 2) (Opcional) Adjunta validaciones en tiempo real
-       // p.ej. $('#nombreProducto').on('input', () => validarNombreProducto());
+            $('#formProducto')
+                .off('submit')
+                .on('submit', async function(e) {
+                    e.preventDefault();
+                    const formIsValid = await validarFormularioProducto();
+                    if (formIsValid) {
+                        guardarProductoAjax($(this));
+                    } else {
+                        console.log("Formulario de producto inválido. No se envía.");
+                        mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
+                    }
+                });
 
-       // 3) Captura el submit
-       $('#formProducto')
-         .off('submit')
-         .on('submit', async function(e) {
-           e.preventDefault();
-           const formIsValid = await validarFormularioProducto();
-           if (formIsValid) {
-             guardarProductoAjax($(this));
-           } else {
-             console.log("Formulario de producto inválido. No se envía.");
-             mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
-           }
-         });
+            $('#productoModal').modal('show');
+            console.log("Modal de producto intentando mostrarse.");
+        });
+    }
 
-       // 4) Mostrar modal
-       $('#productoModal').modal('show');
-       console.log("Modal de producto intentando mostrarse.");
-     });
-   }
+    function cerrarFormularioProducto() {
+        $('#productoModal').modal('hide');
+        $('#modalFormContentProducto').empty();
+        clearErrors('#formProducto');
+        console.log("Modal de producto cerrado.");
+    }
 
-   function cerrarFormularioProducto() {
-       $('#productoModal').modal('hide');
-       $('#modalFormContentProducto').empty();
-       clearErrors('#formProducto');
-       console.log("Modal de producto cerrado.");
-   }
+    function guardarProductoAjax(formElement) {
+        let formData = formElement.serialize();
+        let url = formElement.attr('action');
 
-   function guardarProductoAjax(formElement) {
-       let formData = formElement.serialize();
-       let url = formElement.attr('action');
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: formData,
+            success: function(response) {
+                if (response.status === "success") {
+                    mostrarNotificacion("success", response.message);
+                    cerrarFormularioProducto();
+                    aplicarFiltrosProductos();
+                } else {
+                    // Si hay errores de validación desde el backend (ej. duplicidad de nombre/desc)
+                    if (response.errors) {
+                        // Parsea la cadena JSON de errores si viene como string
+                        const errors = JSON.parse(response.errors);
+                        for (const [key, value] of Object.entries(errors)) {
+                            // Asegúrate que los IDs de los elementos de error coincidan con el HTML del modal
+                            displayError(key + 'Error', value);
+                        }
+                    }
+                    mostrarNotificacion("error", "Error: " + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                let errorMessage = "Error al procesar la solicitud.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage += ": " + xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    errorMessage += ": " + xhr.responseText.substring(0, 100) + "...";
+                }
+                mostrarNotificacion("error", errorMessage);
+                console.error("Error AJAX al guardar producto:", error, xhr.responseText);
+            }
+        });
+    }
 
-       $.ajax({
-           type: "POST",
-           url: url,
-           data: formData,
-           success: function(response) {
-               if (response.status === "success") {
-                   mostrarNotificacion("success", response.message);
-                   cerrarFormularioProducto();
-                   recargarListaProductosCompleta();
-               } else {
-                   mostrarNotificacion("error", "Error: " + response.message);
-               }
-           },
-           error: function(xhr, status, error) {
-               let errorMessage = "Error al procesar la solicitud.";
-               if (xhr.responseJSON && xhr.responseJSON.message) {
-                   errorMessage += ": " + xhr.responseJSON.message;
-               } else if (xhr.responseText) {
-                   errorMessage += ": " + xhr.responseText.substring(0, 100) + "...";
-               }
-               mostrarNotificacion("error", errorMessage);
-               console.error("Error AJAX al guardar producto:", error, xhr.responseText);
-           }
-       });
-   }
+    function confirmarEliminarProducto(id) {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¡No podrás revertir esto!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                console.log("Eliminando producto con ID:", id);
+                $.ajax({
+                    type: "GET",
+                    url: '/productos/eliminar/' + id,
+                    success: function(response) {
+                        if (response.status === "success") {
+                            mostrarNotificacion("success", response.message);
+                            aplicarFiltrosProductos();
+                        } else {
+                            mostrarNotificacion("error", "Error: " + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        let errorMessage = "Error al eliminar el producto.";
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage += ": " + xhr.responseJSON.message;
+                        } else if (xhr.responseText) {
+                            errorMessage += ": " + xhr.responseText.substring(0, 100) + "...";
+                        }
+                        mostrarNotificacion("error", errorMessage);
+                        console.error("Error AJAX al eliminar producto:", error, xhr.responseText);
+                    }
+                });
+            }
+        });
+    }
 
-   function confirmarEliminarProducto(id) {
-       Swal.fire({
-           title: '¿Estás seguro?',
-           text: "¡No podrás revertir esto!",
-           icon: 'warning',
-           showCancelButton: true,
-           confirmButtonColor: '#3085d6',
-           cancelButtonColor: '#d33',
-           confirmButtonText: 'Sí, eliminar',
-           cancelButtonText: 'Cancelar'
-       }).then((result) => {
-           if (result.isConfirmed) {
-               console.log("Eliminando producto con ID:", id);
-               $.ajax({
-                   type: "GET",
-                   url: '/productos/eliminar/' + id,
-                   success: function(response) {
-                       if (response.status === "success") {
-                           mostrarNotificacion("success", response.message);
-                           recargarListaProductosCompleta();
-                       } else {
-                           mostrarNotificacion("error", "Error: " + response.message);
-                       }
-                   },
-                   error: function(xhr, status, error) {
-                       let errorMessage = "Error al eliminar el producto.";
-                       if (xhr.responseJSON && xhr.responseJSON.message) {
-                           errorMessage += ": " + xhr.responseJSON.message;
-                       } else if (xhr.responseText) {
-                           errorMessage += ": " + xhr.responseText.substring(0, 100) + "...";
-                       }
-                       mostrarNotificacion("error", errorMessage);
-                       console.error("Error AJAX al eliminar producto:", error, xhr.responseText);
-                   }
-               });
-           }
-       });
-   }
+    // ===========================================
+    // FUNCIONES DE FILTRADO Y REPORTE DE PRODUCTOS (SERVER-SIDE)
+    // ===========================================
 
-   // ===========================================
-   // FUNCIONES DE FILTRADO Y REPORTE DE PRODUCTOS (CLIENT-SIDE - sin 'codigo')
-   // ===========================================
+    function aplicarFiltrosProductos() {
+        const filterDTO = {
+            nombre: $('#filtroNombreProductoMain').val(),
+            descripcion: $('#filtroDescripcionProductoMain').val(),
+            idCategoria: $('#filtroIdCategoriaProductoMain').val() === "" ? null : parseInt($('#filtroIdCategoriaProductoMain').val()),
+            precio1Min: $('#precio1MinMain').val() === "" ? null : parseFloat($('#precio1MinMain').val()),
+            precio1Max: $('#precio1MaxMain').val() === "" ? null : parseFloat($('#precio1MaxMain').val()),
+            precio2Min: $('#precio2MinMain').val() === "" ? null : parseFloat($('#precio2MinMain').val()),
+            precio2Max: $('#precio2MaxMain').val() === "" ? null : parseFloat($('#precio2MaxMain').val()),
+            stockMin: $('#stockMinMain').val() === "" ? null : parseInt($('#stockMinMain').val()),
+            stockMax: $('#stockMaxMain').val() === "" ? null : parseInt($('#stockMaxMain').val()),
+            estados: [],
+            fechaRegistroStart: $('#fechaRegistroStartMain').val() === "" ? null : $('#fechaRegistroStartMain').val(),
+            fechaRegistroEnd: $('#fechaRegistroEndMain').val() === "" ? null : $('#fechaRegistroEndMain').val()
+        };
 
-   function recargarListaProductosCompleta() {
-       $.ajax({
-           type: "GET",
-           url: '/productos/all',
-           dataType: "json",
-           success: function(response) {
-               allProducts = response;
-               aplicarFiltrosProductos();
-           },
-           error: function(xhr, status, error) {
-               console.error("Error al recargar la lista completa de productos:", error);
-               mostrarNotificacion("error", "Error al recargar la lista de productos. Verifica el endpoint /productos/all en tu backend.");
-           }
-       });
-   }
+        $('.estado-checkbox-producto-main:checked').each(function() {
+            filterDTO.estados.push(parseInt($(this).val()));
+        });
 
-   function aplicarFiltrosProductos() {
-       const searchTerm = $('#searchTermProducto').val().toLowerCase().trim();
-       let filteredProducts = allProducts;
+        const queryString = $.param(filterDTO);
+        const url = '/productos/buscar?' + queryString;
 
-       if (searchTerm) {
-           if (searchTerm === 'activo') {
-               filteredProducts = allProducts.filter(producto => producto.estado === 1);
-           } else if (searchTerm === 'inactivo') {
-               filteredProducts = allProducts.filter(producto => producto.estado === 0);
-           } else {
-               filteredProducts = allProducts.filter(producto => {
-                   const estadoText = producto.estado === 1 ? 'activo' : 'inactivo';
-                   const categoriaNombre = producto.categoria ? producto.categoria.nombreCategoria.toLowerCase() : '';
-                   return (
-                       (producto.nombre && producto.nombre.toLowerCase().includes(searchTerm)) ||
-                       (producto.descripcion && producto.descripcion.toLowerCase().includes(searchTerm)) ||
-                       // ELIMINADO: Búsqueda por 'codigo'
-                       categoriaNombre.includes(searchTerm) ||
-                       estadoText.includes(searchTerm)
-                   );
-               });
-           }
-       }
-       renderizarTablaProductos(filteredProducts);
-   }
+        $.ajax({
+            type: "GET",
+            url: url,
+            dataType: "json",
+            success: function(response) {
+                renderizarTablaProductos(response);
+            },
+            error: function(xhr, status, error) {
+                console.error("Error al buscar productos con filtros:", error, xhr.responseText);
+                mostrarNotificacion("error", "Error al buscar productos. Intenta de nuevo.");
+            }
+        });
+    }
 
-   // ============== NUEVAS FUNCIONES PARA EL REPORTE DE PRODUCTOS ==============
+    function ejecutarGenerarReporteProductos() {
+        Swal.fire({
+            title: 'Generando Reporte...',
+            text: 'Por favor, espera mientras se genera el PDF.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-   // Abre el modal de filtros del reporte de productos
-   function abrirReporteProductosModal() {
-       console.log("Abriendo modal de reporte de productos...");
-       $('#modalReporteContentProducto').load('/productos/reporte/modal', function(response, status, xhr) {
-           if (status === "error") {
-               console.error("Error al cargar el formulario de reporte de productos:", xhr.status, xhr.statusText, response);
-               Swal.fire({
-                   icon: 'error',
-                   title: 'Error al cargar reporte',
-                   text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
-                   footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-               });
-           } else {
-               console.log("Formulario de reporte de productos cargado exitosamente.");
-               // Establecer las fechas máximas/mínimas para los campos de fecha
-               setReportDateMaxAttributes(); // Para fecha de inicio
-               setReportDateMinAttributes(); // Para fecha de fin
-               $('#reporteProductosModal').modal('show');
-           }
-       });
-   }
+        const filterDTO = {
+            nombre: $('#filtroNombreProductoMain').val(),
+            descripcion: $('#filtroDescripcionProductoMain').val(),
+            idCategoria: $('#filtroIdCategoriaProductoMain').val() === "" ? null : parseInt($('#filtroIdCategoriaProductoMain').val()),
+            precio1Min: $('#precio1MinMain').val() === "" ? null : parseFloat($('#precio1MinMain').val()),
+            precio1Max: $('#precio1MaxMain').val() === "" ? null : parseFloat($('#precio1MaxMain').val()),
+            precio2Min: $('#precio2MinMain').val() === "" ? null : parseFloat($('#precio2MinMain').val()),
+            precio2Max: $('#precio2MaxMain').val() === "" ? null : parseFloat($('#precio2MaxMain').val()),
+            stockMin: $('#stockMinMain').val() === "" ? null : parseInt($('#stockMinMain').val()),
+            stockMax: $('#stockMaxMain').val() === "" ? null : parseInt($('#stockMaxMain').val()),
+            estados: [],
+            fechaRegistroStart: $('#fechaRegistroStartMain').val() === "" ? null : $('#fechaRegistroStartMain').val(),
+            fechaRegistroEnd: $('#fechaRegistroEndMain').val() === "" ? null : $('#fechaRegistroEndMain').val()
+        };
 
-   // Cierra el modal de reporte de productos
-   function cerrarReporteProductosModal() {
-       $('#reporteProductosModal').modal('hide');
-       setTimeout(() => {
-           $('#modalReporteContentProducto').empty();
-       }, 300);
-   }
+        $('.estado-checkbox-producto-main:checked').each(function() {
+            filterDTO.estados.push(parseInt($(this).val()));
+        });
 
-   // Limpia los filtros del modal de reporte de productos
-   function limpiarFiltrosReporteProductos() {
-       $('#formReporteProductos')[0].reset();
-       $('.estado-checkbox-producto').prop('checked', false);
-       setReportDateMaxAttributes(); // Restablecer límites de fecha
-       setReportDateMinAttributes();
-   }
+        const queryString = $.param(filterDTO);
+        const url = '/productos/reporte/pdf?' + queryString;
 
-   // Función para ajustar el atributo 'max' de la fecha de inicio
-   function setReportDateMaxAttributes() {
-       const today = new Date().toISOString().split('T')[0];
-       $('#fechaRegistroStart').attr('max', today);
+        setTimeout(() => {
+            const newWindow = window.open(url, '_blank');
+            if (newWindow) {
+                Swal.close();
+                mostrarNotificacion("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
+            } else {
+                Swal.close();
+                mostrarNotificacion("error", "Error: Tu navegador bloqueó la apertura del PDF. Por favor, permite los pop-ups para este sitio.");
+            }
+        }, 300);
+    }
 
-       // Si la fecha de fin está establecida y es anterior a la fecha de inicio, ajustarla
-       const fechaFin = $('#fechaRegistroEnd').val();
-       if (fechaFin && $('#fechaRegistroStart').val() && new Date(fechaFin) < new Date($('#fechaRegistroStart').val())) {
-           $('#fechaRegistroEnd').val($('#fechaRegistroStart').val());
-       }
-       $('#fechaRegistroEnd').attr('min', $('#fechaRegistroStart').val());
-   }
+    function limpiarFiltrosMainProducto() {
+        $('#mainProductFilterForm')[0].reset();
+        $('.estado-checkbox-producto-main').prop('checked', false);
+        $('#filtroIdCategoriaProductoMain').val('');
+        setMainDateMaxAttributes();
+        setMainDateMinAttributes();
+        aplicarFiltrosProductos();
+    }
 
-   // Función para ajustar el atributo 'min' de la fecha de fin
-   function setReportDateMinAttributes() {
-       const today = new Date().toISOString().split('T')[0];
-       $('#fechaRegistroEnd').attr('max', today);
+    function cargarCategoriasEnFiltro() {
+        $.ajax({
+            type: "GET",
+            url: '/categorias/all',
+            dataType: "json",
+            success: function(categorias) {
+                const select = $('#filtroIdCategoriaProductoMain');
+                select.empty();
+                select.append('<option value="">Todas las Categorías</option>');
+                categorias.forEach(categoria => {
+                    if (categoria.estado === 1) { // Mostrar solo categorías activas
+                        select.append(`<option value="${categoria.idCategoria}">${categoria.nombreCategoria}</option>`);
+                    }
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error("Error al cargar categorías para el filtro de productos:", error);
+            }
+        });
+    }
 
-       // Si la fecha de inicio está establecida y es posterior a la fecha de fin, ajustarla
-       const fechaInicio = $('#fechaRegistroStart').val();
-       if (fechaInicio && $('#fechaRegistroEnd').val() && new Date(fechaInicio) > new Date($('#fechaRegistroEnd').val())) {
-           $('#fechaRegistroStart').val($('#fechaRegistroEnd').val());
-       }
-       $('#fechaRegistroStart').attr('max', $('#fechaRegistroEnd').val() || today); // Si fechaEnd vacía, max es hoy
-   }
+    function setMainDateMaxAttributes() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#fechaRegistroStartMain').attr('max', today);
 
-   // Ejecuta la generación del reporte PDF de productos
-   function ejecutarGenerarReporteProductos() {
-       Swal.fire({
-           title: 'Generando Reporte...',
-           text: 'Por favor, espera mientras se genera el PDF.',
-           allowOutsideClick: false,
-           didOpen: () => {
-               Swal.showLoading();
-           }
-       });
+        const fechaFin = $('#fechaRegistroEndMain').val();
+        if (fechaFin && $('#fechaRegistroStartMain').val() && new Date(fechaFin) < new Date($('#fechaRegistroStartMain').val())) {
+            $('#fechaRegistroEndMain').val($('#fechaRegistroStartMain').val());
+        }
+        $('#fechaRegistroEndMain').attr('min', $('#fechaRegistroStartMain').val());
+    }
 
-       const form = $('#formReporteProductos');
-       const formData = form.serialize();
+    function setMainDateMinAttributes() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#fechaRegistroEndMain').attr('max', today);
 
-       const url = '/productos/reporte/pdf?' + formData;
+        const fechaInicio = $('#fechaRegistroStartMain').val();
+        if (fechaInicio && $('#fechaRegistroEndMain').val() && new Date(fechaInicio) > new Date($('#fechaRegistroEndMain').val())) {
+            $('#fechaRegistroStartMain').val($('#fechaRegistroEndMain').val());
+        }
+        $('#fechaRegistroStartMain').attr('max', $('#fechaRegistroEndMain').val() || today);
+    }
 
-       setTimeout(() => {
-           const newWindow = window.open(url, '_blank');
-           if (newWindow) {
-               Swal.close();
-               mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
-               cerrarReporteProductosModal();
-           } else {
-               Swal.close();
-               mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
-           }
-       }, 300);
-   }
+    function mostrarNotificacion(type, message) {
+        $(document).Toasts('create', {
+            class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
+            title: type === 'success' ? 'Éxito' : (type === 'info' ? 'Información' : 'Error'),
+            body: message,
+            autohide: true,
+            delay: 3000
+        });
+    }
 
-   // Función para mostrar notificaciones usando AdminLTE Toasts
-   function mostrarNotificacion(type, message) {
-       $(document).Toasts('create', {
-           class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
-           title: type === 'success' ? 'Éxito' : (type === 'info' ? 'Información' : 'Error'),
-           body: message,
-           autohide: true,
-           delay: 3000
-       });
-   }
+    $(document).ready(function() {
+        cargarCategoriasEnFiltro();
+        setMainDateMaxAttributes();
+        setMainDateMinAttributes();
+        aplicarFiltrosProductos();
+    });
 
-
-   // Ejecutar al cargar la página por primera vez
-   $(document).ready(function() {
-       aplicarFiltrosProductos();
-   });
-
-   /*]]>*/
+    /*]]>*/
   </script>
 </th:block>
 </html>
