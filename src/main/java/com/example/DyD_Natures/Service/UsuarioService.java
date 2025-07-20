@@ -83,39 +83,45 @@ public class UsuarioService {
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("apPaterno")), searchTerm),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("apMaterno")), searchTerm),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("dni")), searchTerm),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("correo")), searchTerm)
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("correo")), searchTerm),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("telefono")), searchTerm) // Añadir búsqueda por teléfono
                 );
                 predicates.add(generalSearchPredicate);
             }
 
             // Filtro por Rol (tipo de usuario) - Ahora maneja múltiples selecciones
             if (filterDTO.getIdRoles() != null && !filterDTO.getIdRoles().isEmpty()) {
-                // Si la lista de roles contiene todos los roles posibles (ej. Administrador y Vendedor)
-                // y no hay otros filtros, es como no filtrar por rol.
-                // Sin embargo, es más seguro aplicar el filtro `in` directamente.
                 Join<Usuario, RolUsuario> rolJoin = root.join("rolUsuario"); // Unir con la entidad RolUsuario
                 predicates.add(rolJoin.get("idRol").in(filterDTO.getIdRoles()));
             }
-
 
             // Filtro por Estado - Ahora maneja múltiples selecciones
             if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
                 // Si ambos (0 y 1) están seleccionados, no necesitamos filtrar por estado.
                 // Esto asume que 0 y 1 son los únicos estados 'visibles' además de 2 (eliminado).
                 if (!(filterDTO.getEstados().contains(0) && filterDTO.getEstados().contains(1))) {
-                    predicates.add(root.get("estado").in(filterDTO.getEstados()));
+                    // Convertir List<Integer> a List<Byte> para la comparación con el campo 'estado'
+                    List<Byte> estadosBytes = new ArrayList<>();
+                    filterDTO.getEstados().forEach(estadoInt -> estadosBytes.add(estadoInt.byteValue()));
+                    predicates.add(root.get("estado").in(estadosBytes));
                 }
             }
+
+            // Filtro por rango de Fecha de Registro
+            if (filterDTO.getFechaRegistroStart() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
+            }
+            if (filterDTO.getFechaRegistroEnd() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
+            }
+
 
             // Excluir usuarios con estado = 2 (eliminado) por defecto en los reportes
             predicates.add(criteriaBuilder.notEqual(root.get("estado"), (byte) 2));
 
-
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         });
     }
-
-
     public Optional<Usuario> findByNombre(String nombre) { // <--- ¡Cambiado el nombre del método en el servicio!
         return usuarioRepository.findByNombre(nombre); // <--- ¡Cambiado el nombre del método llamado en el repositorio!
     }
