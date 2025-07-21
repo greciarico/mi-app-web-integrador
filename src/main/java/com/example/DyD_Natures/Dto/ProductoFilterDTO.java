@@ -18,11 +18,10 @@ public class ProductoFilterDTO {
     private LocalDate fechaRegistroStart;
     private LocalDate fechaRegistroEnd;
 
-    // Constructor vacío
     public ProductoFilterDTO() {
     }
 
-    // Getters y Setters
+
     public String getNombre() {
         return nombre;
     }
