@@ -12,19 +12,17 @@ public class Permiso {
     private Integer idPermiso;
 
     @Column(nullable = false, unique = true, length = 50)
-    private String nombre;        // Ej. "VER_USUARIOS", "EDT_VENTAS"
+    private String nombre;       
 
     @Column(name = "url_pattern", nullable = false, length = 100)
-    private String urlPattern;    // Ej. "/usuarios/**", "/ventas/**"
+    private String urlPattern;   
 
-    // Constructores
     public Permiso() {}
     public Permiso(String nombre, String urlPattern) {
         this.nombre = nombre;
         this.urlPattern = urlPattern;
     }
 
-    // Getters / setters
     public Integer getIdPermiso() { return idPermiso; }
     public void setIdPermiso(Integer idPermiso) { this.idPermiso = idPermiso; }
 
@@ -34,7 +32,7 @@ public class Permiso {
     public String getUrlPattern() { return urlPattern; }
     public void setUrlPattern(String urlPattern) { this.urlPattern = urlPattern; }
 
-    // equals/hashCode (por id)
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
