@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonManagedReference; // Importar
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
 
 @Data
@@ -36,8 +36,7 @@ public class DocumentoCompra {
     @Column(name = "num_documento", nullable = false, length = 45)
     private String numDocumento;
 
-    // AÑADIDO: @JsonManagedReference para manejar la referencia bidireccional
-    // Esta es la "parte" que Jackson va a serializar normalmente.
+
     @JsonManagedReference
     @OneToMany(mappedBy = "documentoCompra", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DetalleCompra> detalleCompras = new ArrayList<>();
@@ -126,13 +125,13 @@ public class DocumentoCompra {
         this.detalleCompras.remove(detalle);
         detalle.setDocumentoCompra(null);
     }
-    // --- Nuevos campos para auditoría de anulación ---
+
     @Column(name = "fecha_anulacion")
-    private LocalDateTime fechaAnulacion; // Fecha y hora exacta de la anulación
+    private LocalDateTime fechaAnulacion; 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario_anulacion") // Asegúrate de que esta columna exista en tu DB
-    private Usuario usuarioAnulacion; // Usuario que realizó la anulación
-    // --- Fin nuevos campos ---
+    @JoinColumn(name = "id_usuario_anulacion") 
+    private Usuario usuarioAnulacion; 
+
 
 }
