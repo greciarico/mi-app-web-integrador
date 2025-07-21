@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PermisoRepository extends JpaRepository<Permiso, Integer> {
-    // Si quisieras búsquedas adicionales, p. ej. por nombre:
-    // Optional<Permiso> findByNombre(String nombre);
+
 }
