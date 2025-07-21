@@ -3,7 +3,7 @@ package com.example.DyD_Natures.Service;
 import com.example.DyD_Natures.Repository.VentaRepository;
 import com.example.DyD_Natures.Repository.UsuarioRepository;
 import com.example.DyD_Natures.Repository.ClienteRepository;
-import com.example.DyD_Natures.Repository.DocumentoCompraRepository; // ¡IMPORTANTE! Importar DocumentoCompraRepository
+import com.example.DyD_Natures.Repository.DocumentoCompraRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +28,7 @@ public class DashboardService {
     @Autowired
     private ClienteRepository clienteRepository;
     @Autowired
-    private DocumentoCompraRepository documentoCompraRepository; // ¡IMPORTANTE! Inyectar DocumentoCompraRepository
+    private DocumentoCompraRepository documentoCompraRepository; 
 
     public Map<String, Object> getDashboardStats(String period) {
         Map<String, Object> stats = new HashMap<>();
@@ -57,8 +57,8 @@ public class DashboardService {
 
         BigDecimal totalSales = ventaRepository.sumTotalByFechaRegistroBetweenAndEstado(startDate, endDate);
         Long numberOfSales = ventaRepository.countByFechaRegistroBetweenAndEstado(startDate, endDate);
-        Long userRegistrations = usuarioRepository.countAllActiveUsers(); // O si quieres por período: usuarioRepository.countByFechaRegistroBetweenAndEstadoIsTrue(startDate, endDate);
-        Long clientRegistrations = clienteRepository.countAllActiveClients(); // O si quieres por período: clienteRepository.countByFechaRegistroBetweenAndEstadoIsNot(startDate, endDate);
+        Long userRegistrations = usuarioRepository.countAllActiveUsers(); 
+        Long clientRegistrations = clienteRepository.countAllActiveClients(); 
 
 
         stats.put("totalSales", totalSales != null ? totalSales : BigDecimal.ZERO);
@@ -69,30 +69,26 @@ public class DashboardService {
         return stats;
     }
 
-    /**
-     * Obtiene los datos de ventas y compras por mes para el año actual y el año anterior.
-     * @return Un mapa con listas de ventas y compras para 'thisYear' y 'lastYear', y las etiquetas de los meses.
-     */
+
     public Map<String, Object> getSalesPurchasesChartData() {
         Map<String, Object> chartData = new HashMap<>();
         int currentYear = LocalDate.now().getYear();
         int lastYear = currentYear - 1;
 
-        // Meses en orden para las etiquetas del gráfico
+
         List<String> monthLabels = IntStream.rangeClosed(1, 12)
-                .mapToObj(monthNum -> Month.of(monthNum).name().substring(0, 3).toUpperCase()) // Convertir a mayúsculas para mejor visualización
+                .mapToObj(monthNum -> Month.of(monthNum).name().substring(0, 3).toUpperCase()) 
                 .collect(Collectors.toList());
         chartData.put("labels", monthLabels);
 
-        // --- Datos para el Año Actual ---
         Map<Integer, BigDecimal> currentYearSalesMap = ventaRepository.findTotalSalesByMonthForYear(currentYear).stream()
                 .collect(Collectors.toMap(
-                        obj -> (Integer) obj[0], // Mes
-                        obj -> (BigDecimal) obj[1], // Suma total
-                        (existing, replacement) -> existing // Estrategia de fusión para claves duplicadas (no debería ocurrir con GROUP BY)
+                        obj -> (Integer) obj[0], 
+                        obj -> (BigDecimal) obj[1],
+                        (existing, replacement) -> existing 
                 ));
 
-        Map<Integer, BigDecimal> currentYearPurchasesMap = documentoCompraRepository.findTotalPurchasesByMonthForYear(currentYear).stream() // ¡Usar documentoCompraRepository!
+        Map<Integer, BigDecimal> currentYearPurchasesMap = documentoCompraRepository.findTotalPurchasesByMonthForYear(currentYear).stream() 
                 .collect(Collectors.toMap(
                         obj -> (Integer) obj[0],
                         obj -> (BigDecimal) obj[1],
@@ -109,7 +105,7 @@ public class DashboardService {
         chartData.put("thisYearPurchases", currentYearPurchases);
 
 
-        // --- Datos para el Año Anterior ---
+
         Map<Integer, BigDecimal> lastYearSalesMap = ventaRepository.findTotalSalesByMonthForYear(lastYear).stream()
                 .collect(Collectors.toMap(
                         obj -> (Integer) obj[0],
@@ -117,7 +113,7 @@ public class DashboardService {
                         (existing, replacement) -> existing
                 ));
 
-        Map<Integer, BigDecimal> lastYearPurchasesMap = documentoCompraRepository.findTotalPurchasesByMonthForYear(lastYear).stream() // ¡Usar documentoCompraRepository!
+        Map<Integer, BigDecimal> lastYearPurchasesMap = documentoCompraRepository.findTotalPurchasesByMonthForYear(lastYear).stream() 
                 .collect(Collectors.toMap(
                         obj -> (Integer) obj[0],
                         obj -> (BigDecimal) obj[1],
