@@ -1,24 +1,23 @@
 package com.example.DyD_Natures.Dto;
 
-import org.springframework.format.annotation.DateTimeFormat; // Importar
-import java.time.LocalDate; // Importar
+import org.springframework.format.annotation.DateTimeFormat; 
+import java.time.LocalDate; 
 import java.util.List;
 
 public class ProveedorFilterDTO {
     private String nombreRucRazonSocialCorreo;
     private List<Byte> estados;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd") // Para que Spring pueda mapear la fecha del formulario
+    @DateTimeFormat(pattern = "yyyy-MM-dd") 
     private LocalDate fechaRegistroDesde;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd") // Para que Spring pueda mapear la fecha del formulario
+    @DateTimeFormat(pattern = "yyyy-MM-dd") 
     private LocalDate fechaRegistroHasta;
 
-    // Constructor vacío
+
     public ProveedorFilterDTO() {
     }
 
-    // Getters y Setters existentes
 
     public String getNombreRucRazonSocialCorreo() {
         return nombreRucRazonSocialCorreo;
@@ -36,7 +35,6 @@ public class ProveedorFilterDTO {
         this.estados = estados;
     }
 
-    // NUEVOS GETTERS Y SETTERS
     public LocalDate getFechaRegistroDesde() {
         return fechaRegistroDesde;
     }
