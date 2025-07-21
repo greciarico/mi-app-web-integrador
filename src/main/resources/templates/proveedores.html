@@ -20,40 +20,88 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <div class="input-group">
-                                    <input type="search" id="searchTermProveedor" class="form-control" placeholder="Buscar por RUC, nombre comercial, razón social, estado..."
-                                           onkeyup="aplicarFiltrosProveedores()"/>
-                                    <div class="input-group-append">
-                                        <button class="btn btn-default" type="button" onclick="aplicarFiltrosProveedores()">
+                        <div class="mb-3">
+                            <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#collapseProveedorFilters" aria-expanded="false" aria-controls="collapseProveedorFilters">
+                                <i class="fas fa-filter"></i> Mostrar/Ocultar Filtros de Proveedores
+                            </button>
+                        </div>
+
+                        <div class="collapse" id="collapseProveedorFilters">
+                            <div class="card card-body">
+                                <form id="mainProveedorFilterForm" onsubmit="event.preventDefault(); aplicarFiltrosProveedores();">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="filtroGeneralProveedorMain">Búsqueda General (RUC, Nombre Comercial, Razón Social, Correo):</label>
+                                                <input type="text" id="filtroGeneralProveedorMain" name="nombreRucRazonSocialCorreo" class="form-control" placeholder="Buscar..."/>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Estado:</label>
+                                                <div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input estado-checkbox-proveedor" type="checkbox" id="estadoActivoMain" name="estados" value="1">
+                                                        <label class="form-check-label" for="estadoActivoMain">Activo</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input estado-checkbox-proveedor" type="checkbox" id="estadoInactivoMain" name="estados" value="0">
+                                                        <label class="form-check-label" for="estadoInactivoMain">Inactivo</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="fechaRegistroDesdeMain">Fecha de Registro Desde:</label>
+                                                <input type="date" id="fechaRegistroDesdeMain" name="fechaRegistroDesde" class="form-control" onchange="setProveedorMainDateConstraints()">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="fechaRegistroHastaMain">Fecha de Registro Hasta:</label>
+                                                <input type="date" id="fechaRegistroHastaMain" name="fechaRegistroHasta" class="form-control" onchange="setProveedorMainDateConstraints()">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <button class="btn btn-default" type="submit">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="abrirReporteProveedoresModal()">
-                                            <i class="fas fa-file-alt"></i> Generar Reporte
+                                        <button class="btn btn-primary ml-2" style="background-color:#b45f06 !important; border-color:#b45f06 !important;" type="button" onclick="ejecutarGenerarReporteProveedores()">
+                                            <i class="fas fa-file-pdf"></i> Generar Reporte PDF
+                                        </button>
+                                        <button class="btn btn-secondary ml-2" type="button" onclick="limpiarFiltrosMainProveedor()">
+                                            <i class="fas fa-redo"></i> Limpiar Filtros
                                         </button>
                                     </div>
-                                </div>
+                                    <div class="alert alert-info text-center mt-3" role="alert">
+                                        <i class="fas fa-info-circle"></i> Deje todas las opciones de filtro sin marcar para buscar/generar un reporte de todos los proveedores no eliminados.
+                                    </div>
+                                </form>
                             </div>
                         </div>
-                        <div id="tablaProveedoresContainer">
-                            <table id="proveedoresTable" class="table table-bordered table-striped">
-                                <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>RUC</th>
-                                    <th>Nombre Comercial</th>
-                                    <th>Razón Social</th>
-                                    <th>Teléfono</th>
-                                    <th>Correo</th>
-                                    <th>Dirección</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                                </thead>
-                                <tbody id="proveedoresTableBody">
-                                </tbody>
-                            </table>
+                        <div id="tablaProveedoresContainer" class="mt-3"> <table id="proveedoresTable" class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>RUC</th>
+                                <th>Nombre Comercial</th>
+                                <th>Razón Social</th>
+                                <th>Teléfono</th>
+                                <th>Correo</th>
+                                <th>Dirección</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody id="proveedoresTableBody">
+                            </tbody>
+                        </table>
                         </div>
                     </div>
                 </div>
@@ -68,21 +116,13 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="reporteProveedoresModal" tabindex="-1" role="dialog" aria-labelledby="reporteProveedoresModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div id="modalReporteContentProveedor">
-                </div>
-            </div>
-        </div>
-    </div>
 </section>
 <th:block layout:fragment="scripts">
     <script th:inline="javascript">
         /*<![CDATA[*/
 
-        // Variable global para almacenar todos los proveedores
-        allProveedores = /*[[${proveedores}]]*/ [];
+        // Variable global para almacenar todos los proveedores (esto se carga inicialmente desde el modelo de Thymeleaf)
+        // allProveedores = /*[[${proveedores}]]*/ []; // Esta línea ya no es tan necesaria si siempre cargas con aplicarFiltrosProveedores()
 
         // Función para renderizar la tabla con una lista de proveedores
         function renderizarTablaProveedores(proveedoresToDisplay) {
@@ -97,6 +137,7 @@
             proveedoresToDisplay.forEach(proveedor => {
                 const estadoText = proveedor.estado === 1 ? 'Activo' : 'Inactivo';
                 const estadoClass = proveedor.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
+
                 const row = `
                     <tr>
                         <td>${proveedor.idProveedor}</td>
@@ -447,10 +488,15 @@
         }
 
         function cerrarFormularioProveedor() {
-          $('#proveedorModal').modal('hide');
-          $('#modalFormContentProveedor').empty();
-          clearErrors('#formProveedor');
-          console.log("Modal de proveedor cerrado.");
+            $('#proveedorModal').modal('hide');
+            // Retraso para asegurar que el modal se oculte completamente antes de limpiar el contenido
+            setTimeout(function() {
+                $('#modalFormContentProveedor').empty();
+                $('.modal-backdrop').remove(); // Limpiar el fondo oscuro del modal si se queda
+                $('body').removeClass('modal-open'); // Quitar la clase que bloquea el scroll
+            }, 300); // 300ms, coincide con la duración de la transición del modal
+            clearErrors('#formProveedor');
+            console.log("Modal de proveedor cerrado.");
         }
 
 
@@ -464,18 +510,6 @@
             setupGeneralTextInput('direccion', 'direccionError', 'La Dirección');
         }
 
-
-        function cerrarFormularioProveedor() {
-            $('#proveedorModal').modal('hide');
-            // Retraso para asegurar que el modal se oculte completamente antes de limpiar el contenido
-            setTimeout(function() {
-                $('#modalFormContentProveedor').empty();
-                $('.modal-backdrop').remove(); // Limpiar el fondo oscuro del modal si se queda
-                $('body').removeClass('modal-open'); // Quitar la clase que bloquea el scroll
-            }, 300); // 300ms, coincide con la duración de la transición del modal
-            clearErrors('#formProveedor');
-            console.log("Modal de proveedor cerrado.");
-        }
 
         function guardarProveedorAjax(formElement) {
             // Recopilar datos del formulario
@@ -502,7 +536,7 @@
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
                         cerrarFormularioProveedor();
-                        recargarListaProveedoresCompleta();
+                        aplicarFiltrosProveedores(); // CAMBIO: Usar aplicarFiltrosProveedores
                     } else {
                         // Si el backend devuelve errores de validación por campo
                         if (response.errors) {
@@ -546,7 +580,7 @@
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                recargarListaProveedoresCompleta();
+                                aplicarFiltrosProveedores(); // CAMBIO: Usar aplicarFiltrosProveedores
                             } else {
                                 mostrarNotificacion("error", "Error: " + response.message);
                             }
@@ -567,98 +601,79 @@
         }
 
         // ===========================================
-        // FUNCIONES DE FILTRADO Y REPORTE DE PROVEEDORES
+        // FUNCIONES DE FILTRADO Y REPORTE DE PROVEEDORES (SERVER-SIDE)
         // ===========================================
 
-        // Esta función debe ser global para que layout.html pueda llamarla
-        function recargarListaProveedoresCompleta() {
-            const searchTerm = $('#searchTermProveedor').val(); // Obtener el término de búsqueda actual
+        // Esta función ahora construye el DTO de filtro y lo envía al servidor para la tabla
+        function aplicarFiltrosProveedores() {
+            const filterDTO = {
+                nombreRucRazonSocialCorreo: $('#filtroGeneralProveedorMain').val(),
+                estados: [],
+                fechaRegistroDesde: $('#fechaRegistroDesdeMain').val(),
+                fechaRegistroHasta: $('#fechaRegistroHastaMain').val()
+            };
 
-            let url = '/proveedores/all?'; // Endpoint del backend para obtener todos los proveedores
-            const params = [];
-            if (searchTerm) {
-                params.push('searchTerm=' + encodeURIComponent(searchTerm));
-            }
-            url += params.join('&');
+            // Recoger los estados seleccionados
+            $('.estado-checkbox-proveedor:checked').each(function() {
+                filterDTO.estados.push(parseInt($(this).val()));
+            });
+
+            // ELIMINAR ESTE BLOQUE: Si ningún estado está seleccionado, enviar vacío para que el backend maneje "todos no eliminados"
+            // if (filterDTO.estados.length === 0) {
+            //     // Si ninguno está chequeado, no incluir el parámetro 'estados' en la query string
+            //     delete filterDTO.estados;
+            // }
+
+            const queryString = $.param(filterDTO, true); // `true` para array params
+            const url = '/proveedores/buscar?' + queryString; // Usar un nuevo endpoint para la búsqueda de tabla
 
             $.ajax({
                 type: "GET",
                 url: url,
                 dataType: "json",
                 success: function(response) {
-                    allProveedores = response; // Actualizar la variable global con los datos del servidor
-                    renderizarTablaProveedores(allProveedores); // Renderizar con los datos recibidos
+                    renderizarTablaProveedores(response);
                 },
                 error: function(xhr, status, error) {
-                    console.error("Error al recargar la lista completa de proveedores:", error);
-                    mostrarNotificacion("error", "Error al recargar la lista de proveedores. Verifica el endpoint /proveedores/all en tu backend.");
+                    console.error("Error al buscar proveedores con filtros:", error, xhr.responseText);
+                    mostrarNotificacion("error", "Error al buscar proveedores. Intenta de nuevo.");
                 }
             });
         }
 
-        function aplicarFiltrosProveedores() {
-            // Esta función ahora solo llama a recargarListaProveedoresCompleta()
-            // que se encargará de obtener los datos filtrados del servidor.
-            recargarListaProveedoresCompleta();
+
+        // NUEVAS FUNCIONES PARA EL REPORTE PDF DE PROVEEDORES (AHORA USAN LOS FILTROS PRINCIPALES)
+
+        // Limpia los filtros del formulario principal de Proveedores
+        function limpiarFiltrosMainProveedor() {
+            $('#mainProveedorFilterForm')[0].reset(); // Resetea todos los campos del formulario
+            //$('#estadoActivoMain').prop('checked', true); // Marca 'Activo' por defecto
+            $('#estadoInactivoMain').prop('checked', false); // Desmarca 'Inactivo'
+            setProveedorMainDateConstraints(); // Restablece los límites de fecha
+            aplicarFiltrosProveedores(); // Vuelve a cargar la tabla sin filtros (solo Activos)
         }
 
-        // FUNCIONES PARA EL REPORTE PDF DE PROVEEDORES
+        // Función para ajustar los atributos 'min' y 'max' de los campos de fecha en el filtro principal
+        function setProveedorMainDateConstraints() {
+            const today = new Date().toISOString().split('T')[0];
+            const fechaDesdeInput = $('#fechaRegistroDesdeMain');
+            const fechaHastaInput = $('#fechaRegistroHastaMain');
 
-        // Abre el modal de filtros del reporte
-        function abrirReporteProveedoresModal() {
-            console.log("Abriendo modal de reporte de proveedores...");
-            $('#modalReporteContentProveedor').load('/proveedores/reporte/modal', function(response, status, xhr) {
-                if (status === "error") {
-                    console.error("Error al cargar el formulario de reporte de proveedores:", xhr.status, xhr.statusText, response);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar reporte',
-                        text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
-                        footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                    });
-                } else {
-                    console.log("Formulario de reporte de proveedores cargado exitosamente.");
-                    // *** AQUÍ ES DONDE DEBEMOS APLICAR LA LÓGICA DE LA FECHA MÁXIMA ***
-                    setReportDateMaxAttributes();
-                    $('#reporteProveedoresModal').modal('show');
-                }
-            });
+            fechaDesdeInput.attr('max', today);
+            fechaHastaInput.attr('max', today);
+
+            // Ajustar el "max" de la fecha de inicio basado en la fecha de fin
+            if (fechaHastaInput.val()) {
+                fechaDesdeInput.attr('max', fechaHastaInput.val());
+            }
+
+            // Ajustar el "min" de la fecha de fin basado en la fecha de inicio
+            if (fechaDesdeInput.val()) {
+                fechaHastaInput.attr('min', fechaDesdeInput.val());
+            } else {
+                fechaHastaInput.removeAttr('min'); // Si no hay fecha de inicio, no hay min
+            }
         }
-
-        // Nueva función para establecer el atributo 'max' en los inputs de fecha
-        function setReportDateMaxAttributes() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0'); // Meses son 0-11
-            const day = String(today.getDate()).padStart(2, '0');
-            const maxDate = `${year}-${month}-${day}`;
-
-            // Asegúrate de que los IDs sean correctos
-            $('#fechaRegistroDesde').attr('max', maxDate);
-            $('#fechaRegistroHasta').attr('max', maxDate);
-            console.log("Fechas máximas establecidas a:", maxDate);
-        }
-
-        // Cierra el modal de reporte
-        function cerrarReporteProveedoresModal() {
-            $('#reporteProveedoresModal').modal('hide');
-            setTimeout(() => {
-                $('#modalReporteContentProveedor').empty();
-                // Opcional: limpiar fondos si no se gestionan automáticamente al cerrar el modal
-                // $('.modal-backdrop').remove();
-                // $('body').removeClass('modal-open');
-            }, 300);
-        }
-
-        // Limpia los filtros del modal de reporte
-        function limpiarFiltrosReporteProveedores() {
-    $('#formReporteProveedores')[0].reset(); // Resetea todos los campos del formulario
-    $('.estado-checkbox-proveedor').prop('checked', false); // Desmarca los checkboxes de estado
-    // Los inputs de tipo 'date' se resetean con form.reset() si no tienen valor por defecto
-    // Pero puedes ser explícito si lo prefieres:
-    $('#fechaRegistroDesde').val('');
-    $('#fechaRegistroHasta').val('');
-}
 
         // Ejecuta la generación del reporte PDF
         function ejecutarGenerarReporteProveedores() {
@@ -671,30 +686,59 @@
                 }
             });
 
-            // Recopilar los datos del formulario de reporte
-            const form = $('#formReporteProveedores');
-            const formData = form.serialize(); // Serializa todos los campos del formulario en una cadena de consulta
+            // Recopilar los datos del formulario de filtro principal
+            const filterDTO = {
+                nombreRucRazonSocialCorreo: $('#filtroGeneralProveedorMain').val(),
+                estados: [],
+                fechaRegistroDesde: $('#fechaRegistroDesdeMain').val(),
+                fechaRegistroHasta: $('#fechaRegistroHastaMain').val()
+            };
 
-            // Construir la URL con los parámetros de los filtros
-            const url = '/proveedores/reporte/pdf?' + formData;
+            // Recoger los estados seleccionados para el reporte
+            $('.estado-checkbox-proveedor:checked').each(function() {
+                filterDTO.estados.push(parseInt($(this).val()));
+            });
 
-            // Abrir una nueva ventana o pestaña para la descarga del PDF
+            // ELIMINAR ESTE BLOQUE: Si ningún estado está seleccionado, enviar vacío para que el backend maneje "todos no eliminados"
+            // if (filterDTO.estados.length === 0) {
+            //     // Si ninguno está chequeado, no incluir el parámetro 'estados' en la query string
+            //     delete filterDTO.estados;
+            // }
+
+            const queryString = $.param(filterDTO, true); // `true` para array params
+            const url = '/proveedores/reporte/pdf?' + queryString;
+
             setTimeout(() => {
                 const newWindow = window.open(url, '_blank');
                 if (newWindow) {
                     Swal.close();
-                    mostrarNotificacion("success", "El reporte PDF se está generando y debería descargarse pronto.");
-                    cerrarReporteProveedoresModal(); // Cierra el modal después de iniciar la descarga
+                    mostrarNotificacion("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
                 } else {
                     Swal.close();
-                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+                    mostrarNotificacion("error", "Error: Tu navegador bloqueó la apertura del PDF. Por favor, permite los pop-ups para este sitio.");
                 }
             }, 300);
         }
 
+        // Función para mostrar notificaciones usando AdminLTE Toasts
+        function mostrarNotificacion(type, message) {
+            $(document).Toasts('create', {
+                class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
+                title: type === 'success' ? 'Éxito' : (type === 'info' ? 'Información' : 'Error'),
+                body: message,
+                autohide: true,
+                delay: 3000
+            });
+        }
+
+
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            recargarListaProveedoresCompleta(); // Cargar y renderizar la tabla al iniciar
+            setProveedorMainDateConstraints(); // Asegurarse de que las fechas tengan límites correctos al cargar la página
+            // YA NO SE MARCA 'Activo' por defecto si no lo deseas
+            // $('#estadoActivoMain').prop('checked', true); // <-- REMOVIDA/COMENTADA
+            $('#estadoInactivoMain').prop('checked', false); // Mantenla si quieres Inactivo sin marcar al cargar
+            aplicarFiltrosProveedores(); // Carga inicial de datos con los filtros (vacíos o por defecto)
         });
 
         /*]]>*/
