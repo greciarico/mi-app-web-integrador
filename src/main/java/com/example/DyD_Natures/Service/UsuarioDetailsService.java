@@ -27,19 +27,15 @@ public class UsuarioDetailsService implements UserDetailsService {
 
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
-        // 1) El rol, con prefijo ROLE_
         String tipoRol = usuario.getRolUsuario().getTipoRol().toUpperCase();
         authorities.add(new SimpleGrantedAuthority("ROLE_" + tipoRol));
 
-        // 2) Cada permiso como autoridad plana
         usuario.getRolUsuario().getPermisos().forEach(p ->
                 authorities.add(new SimpleGrantedAuthority(p.getNombre()))
         );
 
-        // **3) Loguea las authorities para verificar en consola**
         log.info("Cargando usuario {} con authorities: {}", usuario.getDni(), authorities);
 
-        // 4) Devuelve el UserDetails con todos los authorities
         return org.springframework.security.core.userdetails.User.builder()
                 .username(usuario.getDni())
                 .password(usuario.getContrasena())
