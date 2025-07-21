@@ -20,7 +20,7 @@ public interface DocumentoCompraRepository extends JpaRepository<DocumentoCompra
      * @return Una lista de Object[] donde cada Object[] contiene [mes (Integer), totalCompras (BigDecimal)].
      */
     @Query("SELECT MONTH(dc.fechaRegistro) as month, SUM(dc.total) as total " +
-            "FROM DocumentoCompra dc " + // Usamos 'dc' para tu entidad DocumentoCompra
+            "FROM DocumentoCompra dc " + 
             "WHERE YEAR(dc.fechaRegistro) = :year " +
             "GROUP BY MONTH(dc.fechaRegistro) " +
             "ORDER BY month")
