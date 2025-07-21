@@ -9,13 +9,12 @@ public class ClienteFilterDTO {
     private LocalDate fechaRegistroEnd;
     private String direccion;
     private String telefono;
-    private Byte estado; // NUEVO: Campo para filtrar por estado (1=Activo, 2=Inactivo)
+    private Byte estado; 
 
-    // Constructor vacío
+   
     public ClienteFilterDTO() {
     }
 
-    // Getters y Setters (Asegúrate de tener los nuevos getters y setters para 'estado')
     public String getNombreCompletoODoc() {
         return nombreCompletoODoc;
     }
@@ -64,7 +63,6 @@ public class ClienteFilterDTO {
         this.telefono = telefono;
     }
 
-    // NUEVO: Getter y Setter para 'estado'
     public Byte getEstado() {
         return estado;
     }
