@@ -12,7 +12,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.domain.Specification; // Importar Specification
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -49,28 +49,25 @@ public class VentaService {
     private IgvRepository igvRepository;
 
     @Autowired
-    private TurnoCajaService turnoCajaService; // INYECTAR TurnoCajaService
+    private TurnoCajaService turnoCajaService; 
 
-    // --- Métodos de Lectura ---
 
     @Transactional(readOnly = true)
     public List<Venta> listarVentas() {
-        // 1) Recuperar DNI del usuario logueado
+
         String dni = SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getName();
 
-        // 2) Traer la entidad Usuario excluyendo los eliminados
+
         Usuario currentUser = usuarioRepository
                 .findByDniAndEstadoNot(dni, (byte) 2)
                 .orElseThrow(() ->
                         new UsernameNotFoundException("Usuario no encontrado con DNI activo: " + dni));
 
-        // 3) Comprobar rol
         String tipoRol = currentUser.getRolUsuario().getTipoRol();
         boolean isAdmin = "Administrador".equalsIgnoreCase(tipoRol);
 
-        // 4) Filtrar según rol
         if (isAdmin) {
             return ventaRepository.findAll();
         } else {
@@ -86,9 +83,8 @@ public class VentaService {
     @Transactional
     public Venta guardarVenta(Venta ventaForm) {
         Venta ventaToManage;
-        TurnoCaja turnoAsociado = null; // Variable para guardar el turno de caja
+        TurnoCaja turnoAsociado = null; 
 
-        // 1) Obtener/Crear la entidad Venta gestionada
         if (ventaForm.getIdVenta() == null) {
             ventaToManage = new Venta();
             ventaToManage.setFechaRegistro(LocalDate.now());
@@ -100,21 +96,18 @@ public class VentaService {
                     .orElseThrow(() -> new IllegalArgumentException("Usuario vendedor no encontrado con ID: " + ventaForm.getUsuario().getIdUsuario()));
             ventaToManage.setUsuario(usuarioVendedor);
 
-            // --- LÓGICA: ASOCIAR VENTA AL TURNO DE CAJA ACTIVO ---
             Optional<TurnoCaja> turnoAbierto = turnoCajaService.getTurnoCajaAbierto(ventaToManage.getUsuario());
             if (turnoAbierto.isPresent()) {
-                turnoAsociado = turnoAbierto.get(); // Guarda el turno encontrado
-                ventaToManage.setTurnoCaja(turnoAsociado); // Asigna el turno a la venta
+                turnoAsociado = turnoAbierto.get(); 
+                ventaToManage.setTurnoCaja(turnoAsociado);
             } else {
                 throw new IllegalStateException("No hay un turno de caja abierto para el usuario " + ventaToManage.getUsuario().getNombre() + ". La venta no puede ser guardada.");
             }
         } else {
             ventaToManage = ventaRepository.findById(ventaForm.getIdVenta())
                     .orElseThrow(() -> new RuntimeException("Venta con ID " + ventaForm.getIdVenta() + " no encontrada para editar."));
-            // Si es edición, se podría necesitar revertir los montos del TurnoCaja antes de recalcular
-            // y luego aplicar los nuevos montos. Por simplicidad, este ejemplo asume nuevas ventas.
-            // Para edición compleja de ventas que afectan el cuadre, se necesita una lógica más robusta.
-            turnoAsociado = ventaToManage.getTurnoCaja(); // Recupera el turno asociado si es una edición
+
+            turnoAsociado = ventaToManage.getTurnoCaja(); 
         }
 
         ventaToManage.setTipoDocumento(ventaForm.getTipoDocumento());
@@ -140,12 +133,10 @@ public class VentaService {
 
         BigDecimal currentSubtotal = BigDecimal.ZERO;
         List<DetalleVenta> detallesToSave = new ArrayList<>();
-
-        // Revertir stock de detalles existentes antes de actualizar (solo en caso de edición)
-        if (ventaToManage.getIdVenta() != null) { // Si es una venta existente
+        if (ventaToManage.getIdVenta() != null) { 
             ventaToManage.getDetalleVentas().forEach(detalleExistente -> {
                 if (detalleExistente.getProducto() != null) {
-                    updateProductStock(detalleExistente.getProducto().getIdProducto(), detalleExistente.getCantidad()); // Revertir stock
+                    updateProductStock(detalleExistente.getProducto().getIdProducto(), detalleExistente.getCantidad()); 
                 }
             });
         }
@@ -158,19 +149,17 @@ public class VentaService {
             BigDecimal price = Optional.ofNullable(dForm.getPrecioUnitario()).orElse(prod.getPrecio1());
             BigDecimal totalDetalle = price.multiply(BigDecimal.valueOf(qty));
 
-            // Validar stock y actualizarlo
             if (prod.getStock() < qty) {
                 throw new RuntimeException("Stock insuficiente para el producto: " + prod.getNombre());
             }
-            updateProductStock(prod.getIdProducto(), -qty); // Restar stock
+            updateProductStock(prod.getIdProducto(), -qty); 
 
-            // montar detalle
             DetalleVenta detalle = new DetalleVenta();
             detalle.setProducto(prod);
             detalle.setCantidad(qty);
             detalle.setPrecioUnitario(price);
             detalle.setTotal(totalDetalle);
-            detalle.setVenta(ventaToManage); // Asocia el detalle a la venta que se está gestionando
+            detalle.setVenta(ventaToManage); 
 
             detallesToSave.add(detalle);
             currentSubtotal = currentSubtotal.add(totalDetalle);
@@ -184,7 +173,6 @@ public class VentaService {
         ventaToManage.setIgv(montoIgv);
         ventaToManage.setTotal(currentSubtotal.add(montoIgv));
 
-        // ** LÓGICA PARA LOS MONTOS DE PAGO **
         if ("EFECTIVO".equalsIgnoreCase(ventaForm.getTipoPago())) {
             ventaToManage.setMontoEfectivo(ventaForm.getTotal());
             ventaToManage.setMontoMonederoElectronico(BigDecimal.ZERO);
@@ -206,11 +194,8 @@ public class VentaService {
             ventaToManage.setMontoMonederoElectronico(BigDecimal.ZERO);
         }
 
-        // 6) Guarda la venta
         Venta savedVenta = ventaRepository.save(ventaToManage);
 
-        // --- ¡AQUÍ ESTÁ LA INTEGRACIÓN CLAVE! ---
-        // Actualiza los montos en el TurnoCaja asociado, usando el TurnoCajaService
         if (turnoAsociado != null) {
             turnoCajaService.registrarMontoVentaEnCaja(
                     turnoAsociado,
@@ -225,15 +210,13 @@ public class VentaService {
     }
 
     @Transactional
-    public void cancelarVenta(Integer idVenta, Usuario usuarioAnulacion) { // Añadir Usuario como parámetro
+    public void cancelarVenta(Integer idVenta, Usuario usuarioAnulacion) { 
         Venta venta = ventaRepository.findById(idVenta)
                 .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada con ID: " + idVenta));
 
-        // --- Nueva validación de fecha ---
         if (!venta.getFechaRegistro().isEqual(LocalDate.now())) {
             throw new IllegalArgumentException("Solo se pueden anular ventas realizadas el mismo día.");
         }
-        // --- Fin nueva validación ---
 
         if (venta.getEstado() != null && venta.getEstado() == 0) {
             throw new IllegalArgumentException("La Venta con ID " + idVenta + " ya está cancelada.");
@@ -242,27 +225,24 @@ public class VentaService {
         if (venta.getDetalleVentas() != null && !venta.getDetalleVentas().isEmpty()) {
             venta.getDetalleVentas().forEach(detalle -> {
                 if (detalle.getProducto() != null) {
-                    // Revertir el stock: sumar la cantidad vendida
                     updateProductStock(detalle.getProducto().getIdProducto(), detalle.getCantidad());
                 }
             });
         }
 
-        venta.setEstado((byte) 0); // Cambia el estado a 0 (cancelada)
-        venta.setFechaAnulacion(LocalDateTime.now()); // Establece la fecha y hora de anulación
-        venta.setUsuarioAnulacion(usuarioAnulacion); // Establece el usuario que anuló
-        ventaRepository.save(venta); // Persiste el cambio
+        venta.setEstado((byte) 0); 
+        venta.setFechaAnulacion(LocalDateTime.now()); 
+        venta.setUsuarioAnulacion(usuarioAnulacion); 
+        ventaRepository.save(venta); 
     }
 
-    // Método auxiliar para actualizar stock (usado en cancelarVenta)
     @Transactional
     private void updateProductStock(Integer idProducto, Integer quantityChange) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado para actualizar stock: ID " + idProducto));
 
-        int newStock = producto.getStock() + quantityChange; // quantityChange es positivo (se suma)
+        int newStock = producto.getStock() + quantityChange; 
         if (newStock < 0) {
-            // Esto no debería ocurrir si la cantidad original era positiva, pero es una buena salvaguarda
             throw new RuntimeException("Error: El stock resultante para el producto '" + producto.getNombre() + "' sería negativo.");
         }
         producto.setStock(newStock);
@@ -270,19 +250,18 @@ public class VentaService {
     }
 
 
-    // Métodos de utilidad que ya tenías
+
     public List<Cliente> listarClientesActivos() { return clienteRepository.findAll(); }
     public List<Producto> listarProductosActivos() { return productoRepository.findAll(); }
     public List<Igv> listarIgvActivos() { return igvRepository.findAll(); }
     public Optional<Usuario> obtenerUsuarioPorId(Integer id) { return usuarioRepository.findById(id); }
-// --- Nuevos métodos para Reportes ---
+
 @Transactional(readOnly = true)
 public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
     return ventaRepository.findAll((root, query, criteriaBuilder) -> {
         List<Predicate> predicates = new ArrayList<>();
 
-        // APLICAR LÓGICA DE ROL PRIMERO PARA ESTE MÉTODO TAMBIÉN
-        // Esto asegura que, incluso con filtros, los vendedores solo vean sus ventas.
+
         String dni = SecurityContextHolder.getContext().getAuthentication().getName();
         Usuario currentUser = usuarioRepository
                 .findByDniAndEstadoNot(dni, (byte) 2)
@@ -294,15 +273,12 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         if (!isAdmin) {
             predicates.add(criteriaBuilder.equal(root.get("usuario").get("idUsuario"), currentUser.getIdUsuario()));
         }
-        // FIN DE LÓGICA DE ROL
 
-        // Si se busca por nombre de cliente (RazonSocial o Nombre + Apellidos)
         if (filterDTO.getNombreCliente() != null && !filterDTO.getNombreCliente().isEmpty()) {
             String searchTerm = "%" + filterDTO.getNombreCliente().toLowerCase() + "%";
             Join<Venta, Cliente> clienteJoin = root.join("cliente");
             Predicate byRazonSocial = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("razonSocial")), searchTerm);
             Predicate byNombreCompleto = criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.concat(criteriaBuilder.concat(clienteJoin.get("nombre"), " "), criteriaBuilder.concat(clienteJoin.get("apPaterno"), " "))), searchTerm);
-            // Si quieres que tambien busque solo por nombre o nombre+ap_paterno
             Predicate byNombreOnly = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("nombre")), searchTerm);
             Predicate byApPaternoOnly = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("apPaterno")), searchTerm);
             Predicate byApMaternoOnly = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("apMaterno")), searchTerm);
@@ -310,49 +286,39 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
             predicates.add(criteriaBuilder.or(byRazonSocial, byNombreCompleto, byNombreOnly, byApPaternoOnly, byApMaternoOnly));
         }
 
-        // Filtrar por ID de Cliente
         if (filterDTO.getIdCliente() != null) {
             predicates.add(criteriaBuilder.equal(root.get("cliente").get("idCliente"), filterDTO.getIdCliente()));
         }
 
-        // Filtrar por ID de Usuario (vendedor) - OJO: esto solo se aplicaría si el usuario es admin
-        // Si el admin puede buscar por cualquier vendedor, esta parte está bien.
-        // Si un vendedor normal NO debería poder usar este filtro, podrías añadir un `if (isAdmin)` aquí.
         if (filterDTO.getIdUsuario() != null) {
             predicates.add(criteriaBuilder.equal(root.get("usuario").get("idUsuario"), filterDTO.getIdUsuario()));
         }
 
-        // Filtrar por Tipo de Documento
+
         if (filterDTO.getTipoDocumento() != null && !filterDTO.getTipoDocumento().isEmpty()) {
-            // Usar equal para ENUMs directamente es más preciso que like si el valor es exacto del ENUM.
-            // Si TipoDocumento es un String en tu BD, like está bien. Si es un ENUM, mejor equal.
-            // predicates.add(criteriaBuilder.equal(root.get("tipoDocumento"), TipoDocumentoVenta.valueOf(filterDTO.getTipoDocumento())));
+ 
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tipoDocumento")), "%" + filterDTO.getTipoDocumento().toLowerCase() + "%"));
         }
 
-        // Filtrar por Número de Documento
+
         if (filterDTO.getNumDocumento() != null && !filterDTO.getNumDocumento().isEmpty()) {
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("numDocumento")), "%" + filterDTO.getNumDocumento().toLowerCase() + "%"));
         }
 
-        // Filtrar por Tipo de Pago
+
         if (filterDTO.getTipoPago() != null && !filterDTO.getTipoPago().isEmpty()) {
-            // Similar al Tipo Documento, si es ENUM, usar equal.
-            // predicates.add(criteriaBuilder.equal(root.get("tipoPago"), TipoPago.valueOf(filterDTO.getTipoPago())));
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tipoPago")), "%" + filterDTO.getTipoPago().toLowerCase() + "%"));
         }
 
-        // Filtrar por Rango de Fechas
         if (filterDTO.getFechaRegistroStart() != null) {
             predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
         }
         if (filterDTO.getFechaRegistroEnd() != null) {
-            // Para incluir el final del día, si fechaRegistro es LocalDate, está bien.
-            // Si es LocalDateTime y quieres hasta el final del día, necesitarías ajustar la fecha.
+
             predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
         }
 
-        // Filtrar por Rango de Total
+
         if (filterDTO.getTotalMin() != null) {
             predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("total"), filterDTO.getTotalMin()));
         }
@@ -360,9 +326,9 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
             predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("total"), filterDTO.getTotalMax()));
         }
 
-        // Filtrar por Estados (0=Cancelada, 1=Activa)
+
         if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
-            // Convertir String a Byte para el estado
+
             List<Byte> estadosBytes = filterDTO.getEstados().stream()
                     .map(Byte::valueOf)
                     .collect(Collectors.toList());
@@ -373,7 +339,7 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
     });
 }
     public void generarReportePdf(VentaFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, java.io.IOException {
-        Document document = new Document(PageSize.A4.rotate()); // Tamaño A4 en horizontal
+        Document document = new Document(PageSize.A4.rotate()); 
 
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition", "attachment; filename=\"reporte_ventas.pdf\"");
@@ -381,22 +347,22 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         PdfWriter.getInstance(document, response.getOutputStream());
         document.open();
 
-        // Fuentes
+
         Font fontTitle = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, BaseColor.BLACK);
         Font fontSubtitle = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.DARK_GRAY);
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
         Font fontFooter = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
-        Font fontContentCancelled = FontFactory.getFont(FontFactory.HELVETICA, 9, new BaseColor(114, 28, 36)); // Rojo oscuro para canceladas
+        Font fontContentCancelled = FontFactory.getFont(FontFactory.HELVETICA, 9, new BaseColor(114, 28, 36)); 
 
 
-        // Título del Documento
+
         Paragraph title = new Paragraph("REPORTE DE VENTAS", fontTitle);
         title.setAlignment(Element.ALIGN_CENTER);
         title.setSpacingAfter(10);
         document.add(title);
 
-        // Subtítulo de Filtros Aplicados
+
         Paragraph filtersSubtitle = new Paragraph("Filtros Aplicados:", fontSubtitle);
         filtersSubtitle.setSpacingAfter(5);
         document.add(filtersSubtitle);
@@ -405,7 +371,7 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         filterDetails.setSpacingAfter(10);
         document.add(filterDetails);
 
-        // Obtener ventas filtradas
+
         List<Venta> ventas = buscarVentasPorFiltros(filterDTO);
 
         if (ventas.isEmpty()) {
@@ -414,29 +380,29 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
             return;
         }
 
-        // Tabla de Ventas
-        PdfPTable table = new PdfPTable(8); // 8 columnas
-        table.setWidthPercentage(100); // Ancho de la tabla
+
+        PdfPTable table = new PdfPTable(8); 
+        table.setWidthPercentage(100); 
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
-        table.setWidths(new float[]{0.8f, 1.2f, 2f, 1.5f, 1.2f, 1.5f, 1f, 1f}); // Anchos relativos de las columnas
+        table.setWidths(new float[]{0.8f, 1.2f, 2f, 1.5f, 1.2f, 1.5f, 1f, 1f}); 
 
-        // Encabezados de la tabla
+
         String[] headers = {"ID Venta", "Fecha", "Cliente", "Usuario", "Tipo Doc.", "N° Documento", "Total Venta", "Estado"};
         for (String header : headers) {
             PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
-            cell.setBackgroundColor(new BaseColor(24, 61, 0)); // Color de fondo oscuro (mismo de productos)
+            cell.setBackgroundColor(new BaseColor(24, 61, 0)); 
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             cell.setPadding(5);
             table.addCell(cell);
         }
 
-        // Filas de datos
+
         BigDecimal totalGeneralReporte = BigDecimal.ZERO;
         for (Venta venta : ventas) {
             Font currentFont = fontContent;
-            String estadoText = "Activa"; // Por defecto
+            String estadoText = "Activa"; 
             if (venta.getEstado() != null && venta.getEstado() == 0) {
                 estadoText = "Cancelada";
                 currentFont = fontContentCancelled;
@@ -445,17 +411,17 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
                 currentFont = fontContent;
             }
 
-            // ID Venta
+
             PdfPCell cellId = new PdfPCell(new Phrase(String.valueOf(venta.getIdVenta()), currentFont));
             cellId.setHorizontalAlignment(Element.ALIGN_CENTER);
             table.addCell(cellId);
 
-            // Fecha
+
             PdfPCell cellFecha = new PdfPCell(new Phrase(venta.getFechaRegistro().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), currentFont));
             cellFecha.setHorizontalAlignment(Element.ALIGN_CENTER);
             table.addCell(cellFecha);
 
-            // Cliente
+
             String clienteDisplayName = "";
             if (venta.getCliente() != null) {
                 if (venta.getCliente().getRazonSocial() != null && !venta.getCliente().getRazonSocial().trim().isEmpty()) {
@@ -469,38 +435,38 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
             PdfPCell cellCliente = new PdfPCell(new Phrase(clienteDisplayName, currentFont));
             table.addCell(cellCliente);
 
-            // Usuario (Vendedor)
+
             String usuarioNombre = (venta.getUsuario() != null && venta.getUsuario().getNombre() != null) ? venta.getUsuario().getNombre() : "N/A";
             PdfPCell cellUsuario = new PdfPCell(new Phrase(usuarioNombre, currentFont));
             table.addCell(cellUsuario);
 
-            // Tipo Documento
+
             PdfPCell cellTipoDoc = new PdfPCell(new Phrase(venta.getTipoDocumento(), currentFont));
             cellTipoDoc.setHorizontalAlignment(Element.ALIGN_CENTER);
             table.addCell(cellTipoDoc);
 
-            // N° Documento
+
             PdfPCell cellNumDoc = new PdfPCell(new Phrase(venta.getNumDocumento(), currentFont));
             cellNumDoc.setHorizontalAlignment(Element.ALIGN_CENTER);
             table.addCell(cellNumDoc);
 
-            // Total Venta
+
             PdfPCell cellTotal = new PdfPCell(new Phrase("S/ " + venta.getTotal().setScale(2, BigDecimal.ROUND_HALF_UP).toString(), currentFont));
             cellTotal.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(cellTotal);
-            if (venta.getEstado() != null && venta.getEstado() == 1) { // Solo sumar si la venta está activa
+            if (venta.getEstado() != null && venta.getEstado() == 1) { 
                 totalGeneralReporte = totalGeneralReporte.add(venta.getTotal());
             }
 
 
-            // Estado
+
             PdfPCell cellEstado = new PdfPCell(new Phrase(estadoText, currentFont));
             cellEstado.setHorizontalAlignment(Element.ALIGN_CENTER);
             table.addCell(cellEstado);
         }
         document.add(table);
 
-        // Resumen del reporte
+
         Paragraph summary = new Paragraph();
         summary.setAlignment(Element.ALIGN_RIGHT);
         summary.setSpacingBefore(10);
@@ -508,7 +474,7 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         summary.add(new Phrase("S/ " + totalGeneralReporte.setScale(2, BigDecimal.ROUND_HALF_UP).toString(), fontTitle));
         document.add(summary);
 
-        // Pie de página
+
         Paragraph footer = new Paragraph("Reporte generado el " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), fontFooter);
         footer.setAlignment(Element.ALIGN_RIGHT);
         footer.setSpacingBefore(20);
@@ -535,7 +501,6 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         PdfWriter.getInstance(document, baos);
         document.open();
 
-        // --- FUENTES ---
         Font fontHeaderEmpresa = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
         Font fontAddress = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.GRAY);
         Font fontTitle = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
@@ -544,7 +509,7 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         Font fontTableHeaders = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
         Font fontTotal = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, BaseColor.BLACK);
 
-        // --- ENCABEZADO DE EMPRESA (TÍTULO) ---
+
         Paragraph companyName = new Paragraph("DYD NATURE´S S.A.C.", fontHeaderEmpresa);
         companyName.setAlignment(Element.ALIGN_CENTER);
         document.add(companyName);
@@ -554,7 +519,7 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         companyAddress.setSpacingAfter(15);
         document.add(companyAddress);
 
-        // --- TIPO Y NÚMERO DE DOCUMENTO DE VENTA ---
+
         String tipoDocVenta = venta.getTipoDocumento().toUpperCase();
         String numDocVenta = venta.getNumDocumento();
         Paragraph receiptTitle = new Paragraph(tipoDocVenta + " ELECTRÓNICA\n" + numDocVenta, fontTitle);
@@ -562,30 +527,27 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         receiptTitle.setSpacingAfter(20);
         document.add(receiptTitle);
 
-        // --- DATOS DEL CLIENTE Y VENTA ---
-        PdfPTable infoTable = new PdfPTable(2); // Dos columnas para cliente y venta
+
+        PdfPTable infoTable = new PdfPTable(2);
         infoTable.setWidthPercentage(100);
         infoTable.setSpacingAfter(15);
         infoTable.setWidths(new float[]{1, 1});
 
-        // Columna de Cliente
+
         PdfPCell clientCell = new PdfPCell();
         clientCell.setBorder(Rectangle.NO_BORDER);
         clientCell.addElement(new Paragraph("CLIENTE:", fontSubtitle));
         clientCell.addElement(new Paragraph("Razón Social/Nombres: " + getClientDisplayName(venta.getCliente()), fontContent));
 
-        // *********************************************************************************
-        // CAMBIO AQUÍ: Adaptar la obtención del tipo y número de documento de identidad del cliente
-        // *********************************************************************************
         Cliente cliente = venta.getCliente();
         String tipoDocIdentidadCliente = "N/A";
         String numDocIdentidadCliente = "N/A";
 
         if (cliente != null && cliente.getTipoCliente() != null) {
-            if (cliente.getTipoCliente().getIdRolCliente().equals(1)) { // Asumiendo ID 1 para Persona Natural
+            if (cliente.getTipoCliente().getIdRolCliente().equals(1)) { 
                 tipoDocIdentidadCliente = "DNI";
                 numDocIdentidadCliente = cliente.getDni() != null ? cliente.getDni() : "N/A";
-            } else if (cliente.getTipoCliente().getIdRolCliente().equals(2)) { // Asumiendo ID 2 para Persona Jurídica
+            } else if (cliente.getTipoCliente().getIdRolCliente().equals(2)) { 
                 tipoDocIdentidadCliente = "RUC";
                 numDocIdentidadCliente = cliente.getRuc() != null ? cliente.getRuc() : "N/A";
             }
@@ -593,14 +555,10 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
 
         clientCell.addElement(new Paragraph("Tipo Doc. Identidad: " + tipoDocIdentidadCliente, fontContent));
         clientCell.addElement(new Paragraph("N° Doc. Identidad: " + numDocIdentidadCliente, fontContent));
-        // *********************************************************************************
-        // FIN CAMBIO
-        // *********************************************************************************
 
         clientCell.addElement(new Paragraph("Dirección: " + (venta.getCliente().getDireccion() != null ? venta.getCliente().getDireccion() : "N/A"), fontContent));
         infoTable.addCell(clientCell);
 
-        // Columna de Datos de Venta
         PdfPCell saleDataCell = new PdfPCell();
         saleDataCell.setBorder(Rectangle.NO_BORDER);
         saleDataCell.addElement(new Paragraph("DATOS DE VENTA:", fontSubtitle));
@@ -612,13 +570,11 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
 
         document.add(infoTable);
 
-        // --- DETALLE DE PRODUCTOS ---
-        PdfPTable detailTable = new PdfPTable(5); // Cantidad, Descripción, P. Unitario, Importe, Dcto (si aplica)
+        PdfPTable detailTable = new PdfPTable(5); 
         detailTable.setWidthPercentage(100);
         detailTable.setSpacingAfter(15);
-        detailTable.setWidths(new float[]{0.8f, 3f, 1f, 1f, 1f}); // Anchos relativos
+        detailTable.setWidths(new float[]{0.8f, 3f, 1f, 1f, 1f}); 
 
-        // Encabezados de la tabla de detalles
         String[] detailHeaders = {"Cant.", "Descripción", "P. Unit.", "Importe", "Descuento"};
         for (String header : detailHeaders) {
             PdfPCell cell = new PdfPCell(new Phrase(header, fontTableHeaders));
@@ -641,7 +597,6 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
         }
         document.add(detailTable);
 
-        // --- TOTALES ---
         PdfPTable totalsTable = new PdfPTable(2);
         totalsTable.setWidthPercentage(40);
         totalsTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
@@ -659,14 +614,12 @@ public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
 
         document.add(totalsTable);
 
-        // --- NOTA FINAL ---
         Paragraph finalNote = new Paragraph("Gracias por su compra. Todos los precios incluyen IGV.", fontContent);
         finalNote.setAlignment(Element.ALIGN_CENTER);
         document.add(finalNote);
 
         document.close();
 
-        // Configurar la respuesta HTTP
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition", "inline; filename=\"comprobante_venta_" + venta.getNumDocumento() + ".pdf\"");
         response.setContentLength(baos.size());
