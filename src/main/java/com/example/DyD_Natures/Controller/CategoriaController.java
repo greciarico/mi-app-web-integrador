@@ -1,7 +1,7 @@
 package com.example.DyD_Natures.Controller;
 
 import com.example.DyD_Natures.Model.Categoria;
-import com.example.DyD_Natures.Dto.CategoriaFilterDTO; // Importar
+import com.example.DyD_Natures.Dto.CategoriaFilterDTO;
 import com.example.DyD_Natures.Service.CategoriaService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
