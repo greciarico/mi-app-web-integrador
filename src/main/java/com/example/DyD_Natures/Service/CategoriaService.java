@@ -17,12 +17,9 @@ public class CategoriaService {
     @Autowired
     private CategoriaRepository categoriaRepository;
 
-    /**
-     * Lista todas las categorías que no tienen el estado '2' (eliminado lógicamente).
-     * @return Lista de categorías activas/inactivas (no eliminadas).
-     */
+
     public List<Categoria> listarCategoriasActivas() {
-        // CAMBIO CLAVE AQUÍ: Llama al nuevo método y pasa un Byte
+
         return categoriaRepository.findByEstadoExcluding((byte) 2);
     }
 
@@ -56,7 +53,7 @@ public class CategoriaService {
         Optional<Categoria> categoriaOpt = categoriaRepository.findById(id);
         if (categoriaOpt.isPresent()) {
             Categoria categoria = categoriaOpt.get();
-            categoria.setEstado((byte) 2); // CAMBIO CLAVE: Establece el estado a 2 (eliminado lógicamente)
+            categoria.setEstado((byte) 2);
             categoriaRepository.save(categoria);
         }
     }
@@ -82,21 +79,18 @@ public class CategoriaService {
         return categoriaRepository.findAll((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Filtro por nombre de categoría
             if (filterDTO.getNombreCategoria() != null && !filterDTO.getNombreCategoria().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getNombreCategoria().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("nombreCategoria")), searchTerm));
             }
 
-            // Filtro por Estado - Ahora maneja múltiples selecciones
             if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
-                // Si eligen ambos (activo y inactivo), no se añade este filtro (ya que se listan todos excepto eliminados)
+
                 if (!(filterDTO.getEstados().contains((byte) 0) && filterDTO.getEstados().contains((byte) 1))) {
                     predicates.add(root.get("estado").in(filterDTO.getEstados()));
                 }
             }
 
-            // Excluir categorías con estado = 2 (eliminado) por defecto en los reportes
             predicates.add(criteriaBuilder.notEqual(root.get("estado"), (byte) 2));
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
