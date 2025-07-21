@@ -121,9 +121,6 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
 
-        // Variable global para almacenar todos los proveedores (esto se carga inicialmente desde el modelo de Thymeleaf)
-        // allProveedores = /*[[${proveedores}]]*/ []; // Esta línea ya no es tan necesaria si siempre cargas con aplicarFiltrosProveedores()
-
         // Función para renderizar la tabla con una lista de proveedores
         function renderizarTablaProveedores(proveedoresToDisplay) {
             const tableBody = $('#proveedoresTableBody');
@@ -230,12 +227,11 @@
             $('#ruc').off('keydown').on('keydown', function(event) {
                 preventInvalidAndLimit(event, /^\d$/, 11, 'rucError', 'El RUC');
             }).off('input').on('input', function() {
-                // Para manejar el pegado de texto que excede la longitud o no es numérico
-                let value = $(this).val().replace(/\D/g, ''); // Elimina no dígitos al pegar
+                let value = $(this).val().replace(/\D/g, ''); 
                 if (value.length > 11) {
                     value = value.substring(0, 11);
                 }
-                $(this).val(value); // Actualiza el valor del input
+                $(this).val(value); 
 
                 if (value.length > 0 && value.length < 11) {
                     displayError('rucError', "El RUC debe tener 11 dígitos.");
@@ -525,20 +521,19 @@
                 estado: parseInt($('#estado').val(), 10)
             };
 
-            const url = '/proveedores/guardar'; // Endpoint para guardar/actualizar proveedores
+            const url = '/proveedores/guardar'; 
 
             $.ajax({
                 type: "POST",
                 url: url,
-                contentType: 'application/json', // Importante para enviar JSON
-                data: JSON.stringify(dataToSend), // Enviar datos como JSON
+                contentType: 'application/json', 
+                data: JSON.stringify(dataToSend), 
                 success: function(response) {
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
                         cerrarFormularioProveedor();
-                        aplicarFiltrosProveedores(); // CAMBIO: Usar aplicarFiltrosProveedores
+                        aplicarFiltrosProveedores(); 
                     } else {
-                        // Si el backend devuelve errores de validación por campo
                         if (response.errors) {
                             response.errors.forEach(err => {
                                 displayError(err.field + 'Error', err.defaultMessage);
@@ -549,7 +544,6 @@
                 },
                 error: function(xhr, status, error) {
                     let errorMessage = "Error al procesar la solicitud.";
-                    // Intenta obtener un mensaje de error más específico del servidor
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage += ": " + xhr.responseJSON.message;
                     } else if (xhr.responseText) {
@@ -575,12 +569,12 @@
                 if (result.isConfirmed) {
                     console.log("Inactivando proveedor con ID:", id);
                     $.ajax({
-                        type: "POST", // Cambiado a POST para ser RESTful para una acción de estado
-                        url: '/proveedores/inactivar/' + id, // Nuevo endpoint para inactivar
+                        type: "POST",
+                        url: '/proveedores/inactivar/' + id, 
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                aplicarFiltrosProveedores(); // CAMBIO: Usar aplicarFiltrosProveedores
+                                aplicarFiltrosProveedores(); 
                             } else {
                                 mostrarNotificacion("error", "Error: " + response.message);
                             }
@@ -618,13 +612,7 @@
                 filterDTO.estados.push(parseInt($(this).val()));
             });
 
-            // ELIMINAR ESTE BLOQUE: Si ningún estado está seleccionado, enviar vacío para que el backend maneje "todos no eliminados"
-            // if (filterDTO.estados.length === 0) {
-            //     // Si ninguno está chequeado, no incluir el parámetro 'estados' en la query string
-            //     delete filterDTO.estados;
-            // }
-
-            const queryString = $.param(filterDTO, true); // `true` para array params
+            const queryString = $.param(filterDTO, true); 
             const url = '/proveedores/buscar?' + queryString; // Usar un nuevo endpoint para la búsqueda de tabla
 
             $.ajax({
@@ -640,14 +628,9 @@
                 }
             });
         }
-
-
-        // NUEVAS FUNCIONES PARA EL REPORTE PDF DE PROVEEDORES (AHORA USAN LOS FILTROS PRINCIPALES)
-
         // Limpia los filtros del formulario principal de Proveedores
         function limpiarFiltrosMainProveedor() {
             $('#mainProveedorFilterForm')[0].reset(); // Resetea todos los campos del formulario
-            //$('#estadoActivoMain').prop('checked', true); // Marca 'Activo' por defecto
             $('#estadoInactivoMain').prop('checked', false); // Desmarca 'Inactivo'
             setProveedorMainDateConstraints(); // Restablece los límites de fecha
             aplicarFiltrosProveedores(); // Vuelve a cargar la tabla sin filtros (solo Activos)
@@ -699,12 +682,6 @@
                 filterDTO.estados.push(parseInt($(this).val()));
             });
 
-            // ELIMINAR ESTE BLOQUE: Si ningún estado está seleccionado, enviar vacío para que el backend maneje "todos no eliminados"
-            // if (filterDTO.estados.length === 0) {
-            //     // Si ninguno está chequeado, no incluir el parámetro 'estados' en la query string
-            //     delete filterDTO.estados;
-            // }
-
             const queryString = $.param(filterDTO, true); // `true` para array params
             const url = '/proveedores/reporte/pdf?' + queryString;
 
@@ -734,11 +711,9 @@
 
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            setProveedorMainDateConstraints(); // Asegurarse de que las fechas tengan límites correctos al cargar la página
-            // YA NO SE MARCA 'Activo' por defecto si no lo deseas
-            // $('#estadoActivoMain').prop('checked', true); // <-- REMOVIDA/COMENTADA
-            $('#estadoInactivoMain').prop('checked', false); // Mantenla si quieres Inactivo sin marcar al cargar
-            aplicarFiltrosProveedores(); // Carga inicial de datos con los filtros (vacíos o por defecto)
+            setProveedorMainDateConstraints(); 
+            $('#estadoInactivoMain').prop('checked', false); 
+            aplicarFiltrosProveedores(); 
         });
 
         /*]]>*/
