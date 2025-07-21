@@ -44,9 +44,9 @@ public class IgvService {
      */
     public Igv guardarIgv(Igv igv) {
         if (igv.getIdIgv() == null) {
-            igv.setFechaRegistro(LocalDate.now()); // Establecer fecha de registro para nuevos
-            igv.setEstado((byte) 1); // Nuevo IGV por defecto es Activo (Byte)
-        } else { // Si es una edición, mantener la fecha de registro existente
+            igv.setFechaRegistro(LocalDate.now()); 
+            igv.setEstado((byte) 1); 
+        } else { 
             Optional<Igv> existingIgvOpt = igvRepository.findById(igv.getIdIgv());
             existingIgvOpt.ifPresent(existingIgv -> igv.setFechaRegistro(existingIgv.getFechaRegistro()));
         }
@@ -61,10 +61,9 @@ public class IgvService {
         Optional<Igv> igvOpt = igvRepository.findById(id);
         if (igvOpt.isPresent()) {
             Igv igv = igvOpt.get();
-            igv.setEstado((byte) 2); // Cambiar estado a 2 = eliminado lógicamente (Byte)
+            igv.setEstado((byte) 2); 
             igvRepository.save(igv);
         }
     }
-    // No hay métodos de unicidad como DNI/RUC para IGV, a menos que tu lógica de negocio lo requiera (ej. un IGV activo por fecha)
-    // Si necesitas validar que solo haya un IGV "activo" o por fecha, añadirías lógica aquí.
+
 }
