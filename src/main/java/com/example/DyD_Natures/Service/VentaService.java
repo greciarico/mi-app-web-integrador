@@ -276,82 +276,102 @@ public class VentaService {
     public List<Igv> listarIgvActivos() { return igvRepository.findAll(); }
     public Optional<Usuario> obtenerUsuarioPorId(Integer id) { return usuarioRepository.findById(id); }
 // --- Nuevos métodos para Reportes ---
+@Transactional(readOnly = true)
+public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
+    return ventaRepository.findAll((root, query, criteriaBuilder) -> {
+        List<Predicate> predicates = new ArrayList<>();
 
-    @Transactional(readOnly = true)
-    public List<Venta> buscarVentasPorFiltros(VentaFilterDTO filterDTO) {
-        return ventaRepository.findAll((root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
+        // APLICAR LÓGICA DE ROL PRIMERO PARA ESTE MÉTODO TAMBIÉN
+        // Esto asegura que, incluso con filtros, los vendedores solo vean sus ventas.
+        String dni = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario currentUser = usuarioRepository
+                .findByDniAndEstadoNot(dni, (byte) 2)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("Usuario no encontrado con DNI activo: " + dni));
+        String tipoRol = currentUser.getRolUsuario().getTipoRol();
+        boolean isAdmin = "Administrador".equalsIgnoreCase(tipoRol);
 
-            // Si se busca por nombre de cliente (RazonSocial o Nombre + Apellidos)
-            if (filterDTO.getNombreCliente() != null && !filterDTO.getNombreCliente().isEmpty()) {
-                String searchTerm = "%" + filterDTO.getNombreCliente().toLowerCase() + "%";
-                Join<Venta, Cliente> clienteJoin = root.join("cliente");
-                Predicate byRazonSocial = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("razonSocial")), searchTerm);
-                Predicate byNombreCompleto = criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.concat(criteriaBuilder.concat(clienteJoin.get("nombre"), " "), criteriaBuilder.concat(clienteJoin.get("apPaterno"), " "))), searchTerm);
-                Predicate byNombreApPaterno = criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.concat(clienteJoin.get("nombre"), " ")), searchTerm); // Para buscar por nombre + apellido paterno
-                // Combina las condiciones OR para el nombre del cliente
-                predicates.add(criteriaBuilder.or(byRazonSocial, byNombreCompleto, byNombreApPaterno));
-            }
+        if (!isAdmin) {
+            predicates.add(criteriaBuilder.equal(root.get("usuario").get("idUsuario"), currentUser.getIdUsuario()));
+        }
+        // FIN DE LÓGICA DE ROL
 
-            // Filtrar por ID de Cliente
-            if (filterDTO.getIdCliente() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("cliente").get("idCliente"), filterDTO.getIdCliente()));
-            }
+        // Si se busca por nombre de cliente (RazonSocial o Nombre + Apellidos)
+        if (filterDTO.getNombreCliente() != null && !filterDTO.getNombreCliente().isEmpty()) {
+            String searchTerm = "%" + filterDTO.getNombreCliente().toLowerCase() + "%";
+            Join<Venta, Cliente> clienteJoin = root.join("cliente");
+            Predicate byRazonSocial = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("razonSocial")), searchTerm);
+            Predicate byNombreCompleto = criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.concat(criteriaBuilder.concat(clienteJoin.get("nombre"), " "), criteriaBuilder.concat(clienteJoin.get("apPaterno"), " "))), searchTerm);
+            // Si quieres que tambien busque solo por nombre o nombre+ap_paterno
+            Predicate byNombreOnly = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("nombre")), searchTerm);
+            Predicate byApPaternoOnly = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("apPaterno")), searchTerm);
+            Predicate byApMaternoOnly = criteriaBuilder.like(criteriaBuilder.lower(clienteJoin.get("apMaterno")), searchTerm);
 
-            // Filtrar por ID de Usuario (vendedor)
-            if (filterDTO.getIdUsuario() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("usuario").get("idUsuario"), filterDTO.getIdUsuario()));
-            }
+            predicates.add(criteriaBuilder.or(byRazonSocial, byNombreCompleto, byNombreOnly, byApPaternoOnly, byApMaternoOnly));
+        }
 
-            // Filtrar por Tipo de Documento
-            if (filterDTO.getTipoDocumento() != null && !filterDTO.getTipoDocumento().isEmpty()) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tipoDocumento")), "%" + filterDTO.getTipoDocumento().toLowerCase() + "%"));
-            }
+        // Filtrar por ID de Cliente
+        if (filterDTO.getIdCliente() != null) {
+            predicates.add(criteriaBuilder.equal(root.get("cliente").get("idCliente"), filterDTO.getIdCliente()));
+        }
 
-            // Filtrar por Número de Documento
-            if (filterDTO.getNumDocumento() != null && !filterDTO.getNumDocumento().isEmpty()) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("numDocumento")), "%" + filterDTO.getNumDocumento().toLowerCase() + "%"));
-            }
+        // Filtrar por ID de Usuario (vendedor) - OJO: esto solo se aplicaría si el usuario es admin
+        // Si el admin puede buscar por cualquier vendedor, esta parte está bien.
+        // Si un vendedor normal NO debería poder usar este filtro, podrías añadir un `if (isAdmin)` aquí.
+        if (filterDTO.getIdUsuario() != null) {
+            predicates.add(criteriaBuilder.equal(root.get("usuario").get("idUsuario"), filterDTO.getIdUsuario()));
+        }
 
-            // Filtrar por Tipo de Pago
-            if (filterDTO.getTipoPago() != null && !filterDTO.getTipoPago().isEmpty()) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tipoPago")), "%" + filterDTO.getTipoPago().toLowerCase() + "%"));
-            }
+        // Filtrar por Tipo de Documento
+        if (filterDTO.getTipoDocumento() != null && !filterDTO.getTipoDocumento().isEmpty()) {
+            // Usar equal para ENUMs directamente es más preciso que like si el valor es exacto del ENUM.
+            // Si TipoDocumento es un String en tu BD, like está bien. Si es un ENUM, mejor equal.
+            // predicates.add(criteriaBuilder.equal(root.get("tipoDocumento"), TipoDocumentoVenta.valueOf(filterDTO.getTipoDocumento())));
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tipoDocumento")), "%" + filterDTO.getTipoDocumento().toLowerCase() + "%"));
+        }
 
-            // Filtrar por Rango de Fechas
-            if (filterDTO.getFechaRegistroStart() != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
-            }
-            if (filterDTO.getFechaRegistroEnd() != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
-            }
+        // Filtrar por Número de Documento
+        if (filterDTO.getNumDocumento() != null && !filterDTO.getNumDocumento().isEmpty()) {
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("numDocumento")), "%" + filterDTO.getNumDocumento().toLowerCase() + "%"));
+        }
 
-            // Filtrar por Rango de Total
-            if (filterDTO.getTotalMin() != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("total"), filterDTO.getTotalMin()));
-            }
-            if (filterDTO.getTotalMax() != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("total"), filterDTO.getTotalMax()));
-            }
+        // Filtrar por Tipo de Pago
+        if (filterDTO.getTipoPago() != null && !filterDTO.getTipoPago().isEmpty()) {
+            // Similar al Tipo Documento, si es ENUM, usar equal.
+            // predicates.add(criteriaBuilder.equal(root.get("tipoPago"), TipoPago.valueOf(filterDTO.getTipoPago())));
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tipoPago")), "%" + filterDTO.getTipoPago().toLowerCase() + "%"));
+        }
 
-            // Filtrar por Estados (0=Cancelada, 1=Activa)
-            if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
-                predicates.add(root.get("estado").in(filterDTO.getEstados()));
-            } else {
-                // Por defecto, excluimos las ventas eliminadas lógicamente si no se especifica el estado 0
-                // Asumo que '2' no se usa para ventas. Si sí, ajustar esta lógica.
-                // Aquí, el estado 0 es "cancelada", 1 es "activa".
-                // Si el usuario no selecciona ningún estado, muestra solo las "activas" (estado 1)
-                // Si selecciona "cancelada" o "activa", usa lo que seleccionó.
-                if (filterDTO.getEstados() == null || filterDTO.getEstados().isEmpty()) {
-                    predicates.add(criteriaBuilder.equal(root.get("estado"), (byte) 1)); // Solo activas por defecto
-                }
-            }
+        // Filtrar por Rango de Fechas
+        if (filterDTO.getFechaRegistroStart() != null) {
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
+        }
+        if (filterDTO.getFechaRegistroEnd() != null) {
+            // Para incluir el final del día, si fechaRegistro es LocalDate, está bien.
+            // Si es LocalDateTime y quieres hasta el final del día, necesitarías ajustar la fecha.
+            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
+        }
 
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        });
-    }
+        // Filtrar por Rango de Total
+        if (filterDTO.getTotalMin() != null) {
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("total"), filterDTO.getTotalMin()));
+        }
+        if (filterDTO.getTotalMax() != null) {
+            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("total"), filterDTO.getTotalMax()));
+        }
 
+        // Filtrar por Estados (0=Cancelada, 1=Activa)
+        if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
+            // Convertir String a Byte para el estado
+            List<Byte> estadosBytes = filterDTO.getEstados().stream()
+                    .map(Byte::valueOf)
+                    .collect(Collectors.toList());
+            predicates.add(root.get("estado").in(estadosBytes));
+        }
+
+        return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+    });
+}
     public void generarReportePdf(VentaFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, java.io.IOException {
         Document document = new Document(PageSize.A4.rotate()); // Tamaño A4 en horizontal
 
