@@ -31,10 +31,6 @@ public class ProductoController {
 
     @Autowired
     private ProductoService productoService;
-
-    // @Autowired
-    // private CategoriaService categoriaService; // Descomentar si usas un servicio separado para Categoría
-
     /**
      * Muestra la vista principal de productos.
      * Carga los productos activos/inactivos (no eliminados) para que el JavaScript los filtre.
@@ -86,7 +82,6 @@ public class ProductoController {
     public ResponseEntity<Map<String, String>> guardarProducto(@ModelAttribute Producto producto) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones básicas, por ejemplo, que el nombre o código no estén vacíos
             if (producto.getNombre() == null || producto.getNombre().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "El nombre del producto es obligatorio.");
@@ -118,10 +113,8 @@ public class ProductoController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-
-            // Cargar la entidad Categoria completa si solo viene el ID del formulario
             if (producto.getCategoria() != null && producto.getCategoria().getIdCategoria() != null) {
-                Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(producto.getCategoria().getIdCategoria()); // O categoriaService.obtenerCategoriaPorId
+                Optional<Categoria> categoriaOpt = productoService.obtenerCategoriaPorId(producto.getCategoria().getIdCategoria());
                 if (categoriaOpt.isPresent()) {
                     producto.setCategoria(categoriaOpt.get());
                 } else {
@@ -130,8 +123,7 @@ public class ProductoController {
                     return ResponseEntity.badRequest().body(response);
                 }
             }
-
-            // Si es un nuevo producto, establece el estado por defecto a 1 (Activo) como Byte
+            
             if (producto.getIdProducto() == null) {
                 producto.setEstado((byte) 1);
             }
@@ -162,18 +154,12 @@ public class ProductoController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
-    // ProductoController.java
-
+    
     @GetMapping("/activos")
     @ResponseBody
     public List<Producto> getActiveProductsJson() {
         return productoService.listarSoloProductosActivos();
     }
-
-    // ===============================================
-    // NUEVO/MODIFICADO ENDPOINT PARA FILTRADO Y REPORTE
-    // ===============================================
 
     /**
      * Nuevo endpoint para buscar/filtrar productos en la tabla principal vía AJAX.
@@ -204,7 +190,7 @@ public class ProductoController {
 
         List<Producto> productos = productoService.buscarProductosPorFiltros(filterDTO);
 
-        Document document = new Document(PageSize.A4.rotate()); // Tamaño A4 horizontal para más columnas
+        Document document = new Document(PageSize.A4.rotate());
         PdfWriter.getInstance(document, response.getOutputStream());
         document.open();
 
@@ -214,7 +200,6 @@ public class ProductoController {
         title.setSpacingAfter(20);
         document.add(title);
 
-        // Mostrar filtros aplicados
         Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
         StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
 
@@ -274,20 +259,19 @@ public class ProductoController {
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
 
-        // Crear la tabla PDF
-        PdfPTable table = new PdfPTable(9); // 9 columnas: ID, Nombre, Descripción, Categoría, Precio1, Precio2, Stock, Estado, Fecha Registro
+        PdfPTable table = new PdfPTable(9);
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
 
-        float[] columnWidths = {0.5f, 1.5f, 2f, 1f, 0.8f, 0.8f, 0.6f, 0.7f, 1.2f}; // Ajusta anchos según necesidad
+        float[] columnWidths = {0.5f, 1.5f, 2f, 1f, 0.8f, 0.8f, 0.6f, 0.7f, 1.2f};
         table.setWidths(columnWidths);
 
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, BaseColor.WHITE);
-        Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 7, BaseColor.BLACK); // Fuente más pequeña para contenido
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
+        Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 7, BaseColor.BLACK);
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0));
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0));
 
         String[] headers = {"ID", "Nombre", "Presentación", "Categoría", "Precio 1", "Precio 2", "Stock", "Estado", "F. Registro"};
         for (String header : headers) {
@@ -301,7 +285,7 @@ public class ProductoController {
 
         if (productos.isEmpty()) {
             cell = new PdfPCell(new Phrase("No se encontraron productos con los filtros aplicados.", fontContent));
-            cell.setColspan(9); // Abarca todas las columnas
+            cell.setColspan(9);
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(10);
             table.addCell(cell);
@@ -326,7 +310,7 @@ public class ProductoController {
                     estadoFont = fontContentInactive;
                 } else {
                     estadoText = "Desconocido";
-                    estadoFont = fontContent; // Default to black if unknown
+                    estadoFont = fontContent;
                 }
                 table.addCell(new Phrase(estadoText, estadoFont));
                 table.addCell(new Phrase(producto.getFechaRegistro() != null ? producto.getFechaRegistro().format(formatter) : "N/A", fontContent));
