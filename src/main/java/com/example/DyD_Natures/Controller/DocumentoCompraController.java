@@ -406,22 +406,20 @@ public class DocumentoCompraController {
      * @param filterDTO DTO con los criterios de filtro (incluyendo estados, proveedor, etc.).
      * @return Una lista de documentos de compra que coinciden con los filtros en formato JSON.
      */
-    @GetMapping("/buscar") // NUEVO ENDPOINT
-    @ResponseBody // Indica que el retorno es el cuerpo de la respuesta, no una vista
+    @GetMapping("/buscar")
+    @ResponseBody
     public ResponseEntity<List<DocumentoCompra>> buscarDocumentosCompra(DocumentoCompraFilterDTO filterDTO) {
         try {
-            // Opcional: Log para depuración, puedes eliminarlo después
             System.out.println("DEBUG - DocumentoCompraController - Filtros recibidos:");
             System.out.println("  Tipo Documento: " + filterDTO.getTipoDocumento());
             System.out.println("  Num Documento: " + filterDTO.getNumDocumento());
             System.out.println("  ID Proveedor: " + filterDTO.getIdProveedor());
-            System.out.println("  Estados: " + filterDTO.getEstados()); // MUY IMPORTANTE PARA VER SI LLEGA NULL/VACIO
+            System.out.println("  Estados: " + filterDTO.getEstados());
 
             List<DocumentoCompra> documentos = documentoCompraService.buscarDocumentosCompraPorFiltros(filterDTO);
             return ResponseEntity.ok(documentos);
         } catch (Exception e) {
             System.err.println("Error al buscar documentos de compra: " + e.getMessage());
-            // Retorna un error 500 con una lista vacía
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
     }
