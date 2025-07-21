@@ -33,9 +33,9 @@
                             <p><strong>ID Turno:</strong> <span th:text="${currentTurno.idTurnoCaja}"></span></p>
                             <p><strong>Vendedor:</strong> <span th:text="${currentTurno.vendedor.nombre + ' ' + currentTurno.vendedor.apPaterno}"></span></p>
                             <p><strong>Fecha Apertura:</strong> <span th:text="${#temporals.format(currentTurno.fechaApertura, 'dd/MM/yyyy HH:mm')}"></span></p>
-                            <p><strong>Fondo Inicial Efectivo:</strong> S/ <span id="fondoInicialDisplay" th:text="${#numbers.formatDecimal(currentTurno.fondoInicialEfectivo, 1, 2)}"></span></p>
-                            <p><strong>Ventas Efectivo (Sistema):</strong> S/ <span id="ventasEfectivoSistemaDisplay" th:text="${#numbers.formatDecimal(currentTurno.totalVentasEfectivoSistema, 1, 2)}"></span></p>
-                            <p><strong>Ventas Monedero Electrónico (Sistema):</strong> S/ <span id="ventasMonederoSistemaDisplay" th:text="${#numbers.formatDecimal(currentTurno.totalVentasMonederoElectronicoSistema, 1, 2)}"></span></p>
+                            <p><strong>Fondo Inicial Efectivo:</strong> S/ <span id="fondoInicialDisplay" th:text="${#numbers.formatDecimal(currentTurno.fondoInicialEfectivo, 1, 2)}" th:attr="data-value=${currentTurno.fondoInicialEfectivo}"></span></p>
+                            <p><strong>Ventas Efectivo (Sistema):</strong> S/ <span id="ventasEfectivoSistemaDisplay" th:text="${#numbers.formatDecimal(currentTurno.totalVentasEfectivoSistema, 1, 2)}" th:attr="data-value=${currentTurno.totalVentasEfectivoSistema}"></span></p>
+                            <p><strong>Ventas Monedero Electrónico (Sistema):</strong> S/ <span id="ventasMonederoSistemaDisplay" th:text="${#numbers.formatDecimal(currentTurno.totalVentasMonederoElectronicoSistema, 1, 2)}"th:attr="data-value=${currentTurno.totalVentasMonederoElectronicoSistema}"></span></p>
                             <p><strong>Estado:</strong> <span th:text="${currentTurno.estadoCuadre}"></span></p>
 
                             <hr>
@@ -88,9 +88,9 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function() {
-            const fondoInicial = parseFloat($('#fondoInicialDisplay').text().replace('S/ ', '')) || 0;
-            const ventasEfectivoSistema = parseFloat($('#ventasEfectivoSistemaDisplay').text().replace('S/ ', '')) || 0;
-            const ventasMonederoSistema = parseFloat($('#ventasMonederoSistemaDisplay').text().replace('S/ ', '')) || 0;
+            const fondoInicial = parseFloat($('#fondoInicialDisplay').data('value')) || 0;
+            const ventasEfectivoSistema = parseFloat($('#ventasEfectivoSistemaDisplay').data('value')) || 0;
+            const ventasMonederoSistema = parseFloat($('#ventasMonederoSistemaDisplay').data('value')) || 0;
 
             const conteoFinalEfectivoInput = $('#conteoFinalEfectivo');
             const conteoFinalMonederoInput = $('#conteoFinalMonedero');
