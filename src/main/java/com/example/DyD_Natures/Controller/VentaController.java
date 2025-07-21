@@ -51,6 +51,10 @@ public class VentaController {
         try {
             model.addAttribute("currentUri", request.getRequestURI());
             model.addAttribute("ventas", ventaService.listarVentas());
+            // Añadir clientes y usuarios al modelo para el Select2 del filtro
+            model.addAttribute("clientes", clienteService.listarTodosLosClientesActivos());
+            model.addAttribute("usuarios", usuarioService.listarUsuariosActivos()); // Asegúrate de tener este método en UsuarioService
+
             return "venta";
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Error al cargar la página de Ventas: " + e.getMessage());
@@ -260,13 +264,6 @@ public class VentaController {
         }
     }
 
-    @GetMapping("/reporte/modal")
-    public String mostrarReporteVentasModal(Model model) {
-        model.addAttribute("clientes", clienteService.listarTodosLosClientesActivos());
-        model.addAttribute("usuarios", usuarioService.listarUsuariosActivos());
-        return "fragments/venta_reporte_modal :: reporteModalContent";
-    }
-
     @GetMapping("/reporte/pdf")
     public void generarReportePdf(@ModelAttribute VentaFilterDTO filterDTO, HttpServletResponse response) throws DocumentException, IOException {
         ventaService.generarReportePdf(filterDTO, response);
@@ -276,5 +273,12 @@ public class VentaController {
     public void generarComprobanteVentaPdf(@PathVariable Integer id, HttpServletResponse response) throws DocumentException, IOException {
         ventaService.generarComprobanteVentaPdf(id, response);
     }
-
+    // Nuevo endpoint para buscar ventas con filtros para la tabla
+    @GetMapping("/buscar")
+    @ResponseBody
+    public List<Venta> buscarVentas(@ModelAttribute VentaFilterDTO filterDTO) {
+        // La lógica para determinar si es admin o usuario ya está en VentaService
+        // y se aplicará automáticamente a la Specification si es necesario filtrar por usuario.
+        return ventaService.buscarVentasPorFiltros(filterDTO);
+    }
 }
