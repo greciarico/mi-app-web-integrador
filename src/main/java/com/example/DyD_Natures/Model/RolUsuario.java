@@ -26,7 +26,6 @@ public class RolUsuario {
     )
     private Set<Permiso> permisos = new HashSet<>();
 
-    // Getters / setters
     public Set<Permiso> getPermisos() {return permisos;}
 
     public void setPermisos(Set<Permiso> permisos) {this.permisos = permisos;}
