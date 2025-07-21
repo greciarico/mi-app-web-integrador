@@ -1,4 +1,4 @@
-// src/main/java/com/example/DyD_Natures/Dto/VentaFilterDTO.java
+
 package com.example.DyD_Natures.Dto;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -14,9 +14,9 @@ public class VentaFilterDTO {
     private String tipoDocumento;
     private String numDocumento;
     private String tipoPago;
-    private Integer idCliente; // Para filtrar por un cliente específico
-    private Integer idUsuario; // Para filtrar por un usuario específico (vendedor)
-    private List<Byte> estados; // 0=Cancelada, 1=Activa
+    private Integer idCliente;
+    private Integer idUsuario; 
+    private List<Byte> estados; 
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate fechaRegistroStart;
@@ -116,7 +116,7 @@ public class VentaFilterDTO {
         this.totalMax = totalMax;
     }
 
-    // Método toString para depuración y para mostrar los filtros en el reporte
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -158,7 +158,7 @@ public class VentaFilterDTO {
         }
 
         if (sb.length() > 0) {
-            sb.setLength(sb.length() - 2); // Eliminar la última ', '
+            sb.setLength(sb.length() - 2); 
             return sb.toString();
         } else {
             return "Ninguno";
