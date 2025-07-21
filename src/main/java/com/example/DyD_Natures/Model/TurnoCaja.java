@@ -37,7 +37,6 @@ public class TurnoCaja {
     @Column(name = "conteo_final_efectivo", precision = 10, scale = 2)
     private BigDecimal conteoFinalEfectivo;
 
-    // --- ¡ASEGÚRATE DE QUE ESTOS DOS CAMPOS Y SUS GETTERS/SETTERS ESTÉN PRESENTES! ---
     @Column(name = "conteo_final_monedero", precision = 10, scale = 2)
     private BigDecimal conteoFinalMonedero;
 
@@ -49,7 +48,7 @@ public class TurnoCaja {
 
     @Column(nullable = false)
     private Boolean estado;
-    // ---------------------------------------------------------------------------------
+
 
     @Column(name = "estado_cuadre", nullable = false, length = 50)
     private String estadoCuadre;
@@ -59,9 +58,9 @@ public class TurnoCaja {
         this.totalVentasEfectivoSistema = BigDecimal.ZERO;
         this.totalVentasMonederoElectronicoSistema = BigDecimal.ZERO;
         this.conteoFinalEfectivo = BigDecimal.ZERO;
-        this.conteoFinalMonedero = BigDecimal.ZERO; // <-- Importante inicializar
+        this.conteoFinalMonedero = BigDecimal.ZERO; 
         this.diferenciaEfectivo = BigDecimal.ZERO;
-        this.diferenciaMonedero = BigDecimal.ZERO; // <-- Importante inicializar
+        this.diferenciaMonedero = BigDecimal.ZERO; 
         this.estadoCuadre = "Abierto";
     }
 
@@ -72,7 +71,6 @@ public class TurnoCaja {
         this.fondoInicialEfectivo = fondoInicialEfectivo;
     }
 
-    // --- Getters y Setters ---
 
     public Integer getIdTurnoCaja() {
         return idTurnoCaja;
@@ -138,7 +136,7 @@ public class TurnoCaja {
         this.conteoFinalEfectivo = conteoFinalEfectivo;
     }
 
-    // --- ¡ASEGÚRATE DE QUE ESTOS DOS MÉTODOS ESTÉN PRESENTES! ---
+
     public BigDecimal getConteoFinalMonedero() {
         return conteoFinalMonedero;
     }
@@ -146,7 +144,7 @@ public class TurnoCaja {
     public void setConteoFinalMonedero(BigDecimal conteoFinalMonedero) {
         this.conteoFinalMonedero = conteoFinalMonedero;
     }
-    // ---------------------------------------------------------
+
 
     public BigDecimal getDiferenciaEfectivo() {
         return diferenciaEfectivo;
@@ -156,7 +154,7 @@ public class TurnoCaja {
         this.diferenciaEfectivo = diferenciaEfectivo;
     }
 
-    // --- ¡ASEGÚRATE DE QUE ESTOS DOS MÉTODOS ESTÉN PRESENTES! ---
+
     public BigDecimal getDiferenciaMonedero() {
         return diferenciaMonedero;
     }
@@ -164,7 +162,6 @@ public class TurnoCaja {
     public void setDiferenciaMonedero(BigDecimal diferenciaMonedero) {
         this.diferenciaMonedero = diferenciaMonedero;
     }
-    // ---------------------------------------------------------
 
     public String getEstadoCuadre() {
         return estadoCuadre;
@@ -207,9 +204,9 @@ public class TurnoCaja {
                 ", totalVentasEfectivoSistema=" + totalVentasEfectivoSistema +
                 ", totalVentasMonederoElectronicoSistema=" + totalVentasMonederoElectronicoSistema +
                 ", conteoFinalEfectivo=" + conteoFinalEfectivo +
-                ", conteoFinalMonedero=" + conteoFinalMonedero + // Incluir en toString
+                ", conteoFinalMonedero=" + conteoFinalMonedero + 
                 ", diferenciaEfectivo=" + diferenciaEfectivo +
-                ", diferenciaMonedero=" + diferenciaMonedero + // Incluir en toString
+                ", diferenciaMonedero=" + diferenciaMonedero + 
                 ", estadoCuadre='" + estadoCuadre + '\'' +
                 '}';
     }
