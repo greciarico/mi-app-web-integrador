@@ -11,15 +11,15 @@ public class SunatDataDTO {
     @JsonProperty("razonSocial")
     private String razonSocial;
     @JsonProperty("nombreComercial")
-    private String nombreComercial; // Puede ser null
+    private String nombreComercial; 
     @JsonProperty("direccion")
     private String direccion;
-    @JsonProperty("estado") // ACTIVO, BAJA PROVISIONAL, BAJA DEFINITIVA, etc.
+    @JsonProperty("estado") 
     private String estado;
-    @JsonProperty("condicion") // HABIDO, NO HABIDO
+    @JsonProperty("condicion") 
     private String condicion;
 
-    // Getters y Setters
+    
     public String getRuc() {
         return ruc;
     }
