@@ -28,9 +28,6 @@ public class RolUsuarioController {
         this.permisoService = permisoService;
     }
 
-    /**
-     * Vista principal: carga Thymeleaf para /roles
-     */
     @GetMapping
     public String listarRoles(HttpServletRequest request, Model model) {
         model.addAttribute("currentUri", request.getRequestURI());
@@ -38,45 +35,27 @@ public class RolUsuarioController {
         return "roles";
     }
 
-    /**
-     * Devuelve todos los roles en JSON
-     */
     @GetMapping("/all")
     @ResponseBody
     public List<RolUsuario> getAllRoles() {
         return rolService.listarRoles();
     }
 
-    /**
-     * Fragmento de formulario para “Nuevo Rol”
-     */
     @GetMapping("/nuevo")
     public String formNuevo(Model model) {
-        // 1) objeto vacío para el form
         model.addAttribute("rolUsuario", new RolUsuario());
-        // 2) cargamos **todos** los permisos existentes
         model.addAttribute("todosPermisos", permisoService.listarPermisos());
-        // devolvemos solo el fragmento Thymeleaf
         return "fragments/roles_form_modal :: formContent";
     }
 
-    /**
-     * Fragmento de formulario para “Editar Rol”
-     */
     @GetMapping("/editar/{id}")
     public String formEditar(@PathVariable Integer id, Model model) {
-        // 1) cargamos el rol si existe
         rolService.obtenerRolPorId(id)
                 .ifPresent(r -> model.addAttribute("rolUsuario", r));
-        // 2) cargamos la **misma** lista completa de permisos
         model.addAttribute("todosPermisos", permisoService.listarPermisos());
-        // devolvemos el mismo fragmento
         return "fragments/roles_form_modal :: formContent";
     }
 
-    /**
-     * Guarda o actualiza un rol; responde con {status: "success"}
-     */
     @PostMapping("/guardar")
     @ResponseBody
     public ResponseEntity<Map<String, String>> guardar(
@@ -101,10 +80,6 @@ public class RolUsuarioController {
         }
     }
 
-
-    /**
-     * Elimina un rol por su ID; responde con {status: "success"}
-     */
     @GetMapping("/eliminar/{id}")
     @ResponseBody
     public ResponseEntity<Map<String,String>> eliminar(@PathVariable Integer id) {
