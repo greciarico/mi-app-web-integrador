@@ -2,7 +2,7 @@
 package com.example.DyD_Natures.Repository;
 
 import com.example.DyD_Natures.Model.Venta;
-import com.example.DyD_Natures.Model.TurnoCaja; // Importar TurnoCaja
+import com.example.DyD_Natures.Model.TurnoCaja;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
