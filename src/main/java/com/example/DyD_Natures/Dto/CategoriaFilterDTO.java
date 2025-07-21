@@ -3,14 +3,14 @@ package com.example.DyD_Natures.Dto;
 import java.util.List;
 
 public class CategoriaFilterDTO {
-    private String nombreCategoria; // Para buscar por nombre
-    private List<Byte> estados;    // Para filtrar por estados (Activo, Inactivo)
+    private String nombreCategoria; 
+    private List<Byte> estados;    
 
-    // Constructor vacío
+   
     public CategoriaFilterDTO() {
     }
 
-    // Getters y Setters
+   
     public String getNombreCategoria() {
         return nombreCategoria;
     }
