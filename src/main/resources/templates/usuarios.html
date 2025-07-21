@@ -132,8 +132,6 @@
 
             usersToDisplay.forEach(usuario => {
                 const estadoText = usuario.estado === 1 ? 'Activo' : 'Inactivo';
-                // Puedes usar estadoClass si lo deseas para el botón de estado, pero lo haré directo en el HTML del botón.
-                // const estadoClass = usuario.estado === 1 ? 'badge badge-success badge-pill' : 'badge badge-danger badge-pill';
 
                 const rolNombre = usuario.rolUsuario ? usuario.rolUsuario.tipoRol : 'N/A';
 
@@ -172,18 +170,17 @@
         // Función para limpiar todos los mensajes de error
         function clearErrors() {
             $('.text-danger').text('');
-            $('.form-control, .form-control-plaintext, .is-invalid').removeClass('is-invalid'); // Quitar is-invalid de todos
+            $('.form-control, .form-control-plaintext, .is-invalid').removeClass('is-invalid'); 
         }
 
         // Función para mostrar un mensaje de error específico
         function displayError(elementId, message) {
             $('#' + elementId).text(message);
-            // Busca el input/select asociado y añade la clase is-invalid
             $('#' + elementId).closest('.form-group').find('.form-control, .form-control-plaintext, .selectpicker').first().addClass('is-invalid');
         }
 
         // ===========================================
-        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS (AHORA UNIFICADAS PARA REAL-TIME Y SUBMIT)
+        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS 
         // ===========================================
 
         function validateNombreApellido(inputElementId, errorElementId, fieldName, isSubmit = false) {
@@ -326,7 +323,6 @@
             const value = dni.val().trim();
 
             if (value.length !== 8) {
-                // If not 8 digits, let the DNI format validation handle it
                 return true;
             }
 
@@ -436,7 +432,6 @@
                         validateContrasena('contrasena', 'contrasenaError', isNewUser);
                     });
 
-                    // Validar unicidad de DNI en tiempo real (con un debounce para no saturar el servidor)
                     let dniCheckTimeout;
                     $('#dni').on('input', function() {
                         clearTimeout(dniCheckTimeout);
@@ -492,8 +487,6 @@
                              mostrarNotificacion("error", "Error desconocido al guardar el usuario.");
                         }
 
-                        // Puedes intentar mostrar errores específicos si el backend los envía en un formato esperado
-                        // Por ejemplo, si el backend devuelve { "errors": { "dni": "DNI ya existe" } }
                         if (xhr.responseJSON && xhr.responseJSON.errors) {
                             for (const field in xhr.responseJSON.errors) {
                                 displayError(field + 'Error', xhr.responseJSON.errors[field]);
@@ -558,7 +551,7 @@
         // FUNCIONES DE FILTRADO Y REPORTE (SERVER-SIDE)
         // ===========================================
 
-        // NUEVA FUNCIÓN: Aplica los filtros y recarga la tabla de usuarios via AJAX
+        // Aplica los filtros y recarga la tabla de usuarios via AJAX
         function aplicarFiltrosUsuarios() {
             const filterDTO = {
                 nombreApellidoDniCorreo: $('#filtroNombreApellidoDniCorreo').val(),
@@ -570,7 +563,7 @@
 
             // Llenar idRoles para un select simple
             const selectedRolId = $('#filtroIdRoles').val();
-            if (selectedRolId !== "" && selectedRolId !== null) { // Si hay un rol seleccionado (no la opción "Todos los Roles")
+            if (selectedRolId !== "" && selectedRolId !== null) { 
                 filterDTO.idRoles.push(parseInt(selectedRolId));
             }
 
@@ -596,7 +589,7 @@
             });
         }
 
-        // NUEVA FUNCIÓN: Ejecuta la generación del reporte PDF con los filtros
+        //Ejecuta la generación del reporte PDF con los filtros
         function ejecutarGenerarReporteUsuarios() {
             Swal.fire({
                 title: 'Generando Reporte...',
@@ -639,7 +632,7 @@
             }, 300);
         }
 
-        // NUEVA FUNCIÓN: Limpia todos los filtros principales de usuario
+        //  Limpia todos los filtros principales de usuario
         function limpiarFiltrosMainUsuario() {
             $('#mainUserFilterForm')[0].reset();
             // Desmarcar todos los checkboxes de estados
@@ -658,12 +651,12 @@
         function cargarRolesEnFiltro() {
             $.ajax({
                 type: "GET",
-                url: '/roles/all', // Este endpoint DEBE existir y devolver los roles
+                url: '/roles/all', 
                 dataType: "json",
                 success: function(roles) {
                     const select = $('#filtroIdRoles');
                     select.empty();
-                    select.append('<option value="">Seleccione Rol(es)</option>'); // No es necesario si es multiple y tiene placeholder
+                    select.append('<option value="">Seleccione Rol(es)</option>'); 
                     roles.forEach(rol => {
                         select.append(`<option value="${rol.idRol}">${rol.tipoRol}</option>`);
                     });
@@ -746,7 +739,6 @@
         }
         // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            // Importante: Cargar roles primero, y luego aplicar filtros para que la tabla se llene.
             cargarRolesEnFiltro();
             setMainDateMaxAttributesUser();
             setMainDateMinAttributesUser();
