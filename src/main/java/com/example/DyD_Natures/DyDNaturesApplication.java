@@ -9,7 +9,7 @@ import jakarta.annotation.PostConstruct;
 public class DyDNaturesApplication {
 	@PostConstruct
 	public void init(){
-	// Fija el timezone de toda la JVM a America/Lima
+
 	TimeZone.setDefault(TimeZone.getTimeZone("America/Lima"));
 	}
 	
