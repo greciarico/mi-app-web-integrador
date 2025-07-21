@@ -16,9 +16,8 @@ public class DocumentoCompraFilterDTO {
     private LocalDate fechaRegistroEnd;
     private BigDecimal totalMin;
     private BigDecimal totalMax;
-    private List<Byte> estados; // Para filtrar por estado (Activo=1, Inactivo=0)
+    private List<Byte> estados; 
 
-    // Getters y Setters
     public String getTipoDocumento() {
         return tipoDocumento;
     }
