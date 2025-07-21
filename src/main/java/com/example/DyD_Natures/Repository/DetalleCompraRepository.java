@@ -9,7 +9,6 @@ import java.util.List;
 
 @Repository
 public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, Integer> {
-    // Buscar detalles de compra por documento de compra
     List<DetalleCompra> findByDocumentoCompra(DocumentoCompra documentoCompra);
 
 }
