@@ -3,19 +3,17 @@ package com.example.DyD_Natures.Dto;
 import java.time.LocalDate;
 
 public class MermaFilterDTO {
-    private String nombreProducto; // Para buscar por nombre de producto
-    private String descripcionMerma; // Para buscar por descripción de la merma
-    private Integer idProducto;     // Para filtrar por un producto específico
+    private String nombreProducto; 
+    private String descripcionMerma;
+    private Integer idProducto;     
     private LocalDate fechaRegistroStart;
     private LocalDate fechaRegistroEnd;
     private Integer cantidadMin;
     private Integer cantidadMax;
 
-    // Constructor vacío
     public MermaFilterDTO() {
     }
 
-    // Getters y Setters
     public String getNombreProducto() {
         return nombreProducto;
     }
