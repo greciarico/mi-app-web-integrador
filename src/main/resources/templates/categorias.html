@@ -96,16 +96,15 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
 
-        allCategorias = /*[[${categorias}]]*/ []; // Esto solo carga las iniciales, se actualizará al buscar.
+        allCategorias = /*[[${categorias}]]*/ []; 
 
 
-        // Función para renderizar la tabla con una lista de categorías
         function renderizarTablaCategorias(categoriasToDisplay) {
             const tableBody = $('#categoriasTableBody');
             tableBody.empty();
 
             if (categoriasToDisplay.length === 0) {
-                // El colspan se mantiene en 4 para Categorías
+
                 tableBody.append('<tr><td colspan="4" class="text-center">No se encontraron categorías.</td></tr>');
                 return;
             }
@@ -152,14 +151,8 @@
         // Función para mostrar un mensaje de error específico (genérica)
         function displayError(elementId, message) {
             $('#' + elementId).text(message);
-            // Asegúrate de que el ID que pasas aquí corresponda al span de error,
-            // y que el input esté justo antes del span o se pueda seleccionar correctamente.
             $('#' + elementId).prevAll('.form-control').first().addClass('is-invalid');
         }
-
-        // ===========================================
-        // FUNCIONES DE VALIDACIÓN ESPECÍFICAS (PARA CATEGORÍAS)
-        // ===========================================
 
         function validateNombreCategoria(inputElementId, errorElementId) {
             const input = $('#' + inputElementId);
@@ -175,7 +168,7 @@
         async function checkNombreCategoriaUnico(nombreCategoriaInputId, nombreCategoriaErrorId, categoriaId) {
             const nombreCategoria = $('#' + nombreCategoriaInputId).val();
             if (nombreCategoria.trim() === "") {
-                return true; // La validación de campo obligatorio ya lo manejará
+                return true; 
             }
 
             let url = '/categorias/checkNombreCategoria?nombreCategoria=' + encodeURIComponent(nombreCategoria);
@@ -201,9 +194,9 @@
             }
         }
 
-        // Función principal de validación del formulario de Categoría
+
         async function validarFormularioCategoria() {
-            clearErrors('#formCategoria'); // Asumo que el ID del formulario en el modal sigue siendo 'formCategoria'
+            clearErrors('#formCategoria'); 
             let isValid = true;
 
             if (!validateNombreCategoria('nombreCategoria', 'nombreCategoriaError')) isValid = false;
@@ -216,10 +209,6 @@
 
             return isValid;
         }
-
-        // ===========================================
-        // MANEJADORES DE EVENTOS DEL MODAL Y FORMULARIO DE CATEGORÍA
-        // ===========================================
 
          function abrirFormularioCategoria(url) {
             console.log("Intentando abrir formulario de categoria desde URL:", url);
@@ -237,28 +226,21 @@
 
               console.log("Formulario de categoria cargado exitosamente.");
 
-              // 1) Limpia errores previos SOLO de este form
-              clearErrors('#formCategoria'); // Asumo que el ID del formulario en el modal sigue siendo 'formCategoria'
+              clearErrors('#formCategoria'); 
 
-              // 2) (Opcional) Adjunta validaciones en tiempo real
-              // p.ej. $('#nombreCategoria').on('input', () => validarNombreProducto());
-
-              // 3) Captura el submit
               $('#formCategoria')
                 .off('submit')
                 .on('submit', async function(e) {
                   e.preventDefault();
-                  // IMPORTANTE: Cambiado a validarFormularioCategoria, no Producto
                   const formIsValid = await validarFormularioCategoria();
                   if (formIsValid) {
-                    guardarCategoriaAjax($(this)); // Cambiado a guardarCategoriaAjax
+                    guardarCategoriaAjax($(this)); 
                   } else {
                     console.log("Formulario de categoria inválido. No se envía.");
                     mostrarNotificacion("error", "Por favor, corrige los errores en el formulario.");
                   }
                 });
 
-              // 4) Mostrar modal
               $('#categoriaModal').modal('show');
               console.log("Modal de categoria intentando mostrarse.");
             });
@@ -284,13 +266,10 @@
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
                         cerrarFormularioCategoria();
-                        // Al guardar, recarga la lista usando los filtros actuales del mainFilterForm
                         aplicarFiltrosCategorias();
                     } else {
-                        // Si hay un error de validación del backend (ej. nombre duplicado)
-                        // Aquí deberías mapear los errores a los campos del formulario
+
                         if (response.errors) {
-                             // Asumimos que response.errors es un objeto directamente, no un JSON string
                             for (const [key, value] of Object.entries(response.errors)) {
                                 displayError(key + 'Error', value);
                             }
@@ -330,7 +309,6 @@
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                // Después de eliminar, recarga la lista con los filtros actuales
                                 aplicarFiltrosCategorias();
                             } else {
                                 mostrarNotificacion("error", "Error: " + response.message);
@@ -350,12 +328,7 @@
                 }
             });
         }
-
-        // ===========================================
-        // FUNCIONES DE FILTRADO Y REPORTE DE CATEGORÍAS (SERVER-SIDE)
-        // ===========================================
-
-        // Esta función ahora enviará los filtros al servidor y recargará la tabla
+ 
         function aplicarFiltrosCategorias() {
             const nombreCategoria = $('#filtroNombreCategoriaMain').val();
             const estados = [];
@@ -363,15 +336,12 @@
                 estados.push($(this).val());
             });
 
-            // Construir el objeto CategoriaFilterDTO
             const filterDTO = {
                 nombreCategoria: nombreCategoria,
                 estados: estados
             };
-
-            // Convertir el DTO a query string para el GET request
             const queryString = $.param(filterDTO);
-            const url = '/categorias/buscar?' + queryString; // Nuevo endpoint para buscar/filtrar
+            const url = '/categorias/buscar?' + queryString; 
 
             $.ajax({
                 type: "GET",
@@ -386,8 +356,6 @@
                 }
             });
         }
-
-        // Ya no es necesario abrir un modal, se genera el PDF directamente
         function ejecutarGenerarReporteCategorias() {
             Swal.fire({
                 title: 'Generando Reporte...',
@@ -404,17 +372,15 @@
                 estados.push($(this).val());
             });
 
-            // Construir el objeto CategoriaFilterDTO
             const filterDTO = {
                 nombreCategoria: nombreCategoria,
                 estados: estados
             };
 
-            // Convertir el DTO a query string para el GET request
             const queryString = $.param(filterDTO);
             const url = '/categorias/reporte/pdf?' + queryString;
 
-            setTimeout(() => { // Pequeño delay para asegurar que el Swal.showLoading() se vea
+            setTimeout(() => { 
                 const newWindow = window.open(url, '_blank');
                 if (newWindow) {
                     Swal.close();
@@ -426,15 +392,13 @@
             }, 300);
         }
 
-        // Función para limpiar los filtros del formulario principal
         function limpiarFiltrosMain() {
             $('#filtroNombreCategoriaMain').val('');
             $('.estado-checkbox-categoria-main').prop('checked', false);
-            aplicarFiltrosCategorias(); // Vuelve a cargar la tabla sin filtros
+            aplicarFiltrosCategorias(); 
         }
 
 
-        // Función para mostrar notificaciones usando AdminLTE Toasts
         function mostrarNotificacion(type, message) {
             $(document).Toasts('create', {
                 class: type === 'success' ? 'bg-success' : (type === 'info' ? 'bg-info' : 'bg-danger'),
@@ -445,9 +409,8 @@
             });
         }
 
-        // Ejecutar al cargar la página por primera vez
         $(document).ready(function() {
-            aplicarFiltrosCategorias(); // Carga inicial de datos con los filtros (vacíos al inicio)
+            aplicarFiltrosCategorias(); 
         });
 
         /*]]>*/
