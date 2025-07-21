@@ -29,7 +29,7 @@ public class ClienteService {
     private TipoClienteRepository tipoClienteRepository;
 
     @Autowired
-    private PeruDataApiClient peruDataApiClient; // INYECTAR EL CLIENTE API
+    private PeruDataApiClient peruDataApiClient;
 
     private static final Integer TIPO_NATURAL_ID = 1;
     private static final Integer TIPO_JURIDICA_ID = 2;
@@ -132,7 +132,7 @@ public class ClienteService {
         }
     }
 
-    // NUEVO: Métodos para verificar unicidad de DNI y RUC expuestos por el servicio
+   
     public boolean existsByDniExcludingCurrent(String dni, Integer idCliente) {
         return clienteRepository.existsByDniAndIdClienteIsNot(dni, idCliente);
     }
@@ -141,7 +141,7 @@ public class ClienteService {
         return clienteRepository.existsByRucAndIdClienteIsNot(ruc, idCliente);
     }
 
-    // Si también necesitas verificar para nuevos registros sin exclusión de ID
+   
     public boolean existsByDni(String dni) {
         return clienteRepository.existsByDni(dni);
     }
@@ -188,27 +188,18 @@ public class ClienteService {
         return clienteRepository.findAll((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Lógica de FILTRO POR ESTADO para el reporte:
-            // SI filterDTO.getEstado() es NULL, incluimos ACTIVO (1) e INACTIVO (0).
-            // SI filterDTO.getEstado() es 1, incluimos solo ACTIVO (1).
-            // SI filterDTO.getEstado() es 0, incluimos solo INACTIVO (0).
-            // NUNCA incluimos estado 2 (Eliminado) en este reporte.
             if (filterDTO.getEstado() != null) {
-                // Si se especificó un estado (1 o 0), usar ese estado.
+
                 if (filterDTO.getEstado() == 1 || filterDTO.getEstado() == 0) {
                     predicates.add(criteriaBuilder.equal(root.get("estado"), filterDTO.getEstado()));
                 }
-                // Si el usuario por alguna razón selecciona '2' en el filtro, simplemente no lo incluimos.
-                // Podrías lanzar una excepción si quieres evitar que seleccionen '2' en el modal.
             } else {
-                // Si no se especificó un estado, incluir solo Activos (1) e Inactivos (0)
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.equal(root.get("estado"), (byte) 1),
                         criteriaBuilder.equal(root.get("estado"), (byte) 0)
                 ));
             }
 
-            // Filtro por nombre completo o documento (DNI/RUC)
             if (filterDTO.getNombreCompletoODoc() != null && !filterDTO.getNombreCompletoODoc().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getNombreCompletoODoc().toLowerCase() + "%";
                 Predicate nombrePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), searchTerm);
@@ -230,13 +221,11 @@ public class ClienteService {
                 ));
             }
 
-            // Filtro por tipo de cliente
             if (filterDTO.getIdTipoCliente() != null) {
                 Join<Cliente, TipoCliente> tipoClienteJoin = root.join("tipoCliente");
                 predicates.add(criteriaBuilder.equal(tipoClienteJoin.get("idRolCliente"), filterDTO.getIdTipoCliente()));
             }
 
-            // Filtro por rango de fecha de registro
             if (filterDTO.getFechaRegistroStart() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
             }
@@ -244,13 +233,11 @@ public class ClienteService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
             }
 
-            // Filtro por dirección
             if (filterDTO.getDireccion() != null && !filterDTO.getDireccion().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getDireccion().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("direccion")), searchTerm));
             }
 
-            // Filtro por teléfono
             if (filterDTO.getTelefono() != null && !filterDTO.getTelefono().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getTelefono().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("telefono")), searchTerm));
