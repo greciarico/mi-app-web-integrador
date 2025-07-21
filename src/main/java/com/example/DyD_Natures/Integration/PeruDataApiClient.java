@@ -41,8 +41,6 @@ public class PeruDataApiClient {
             ResponseEntity<ReniecDataDTO> response = restTemplate.getForEntity(url, ReniecDataDTO.class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                // Mantener esta validación para DNI, ya que el comportamiento de la API puede variar
-                // entre retornar 200 con un DTO vacío o un mensaje de error.
                 if (response.getBody().getNumeroDocumento() == null || response.getBody().getNumeroDocumento().isEmpty()) {
                     logger.warn("DNI {} no encontrado en RENIEC (APIS.NET.PE) o respuesta vacía.", dni);
                     return Optional.empty();
@@ -68,27 +66,8 @@ public class PeruDataApiClient {
             ResponseEntity<SunatDataDTO> response = restTemplate.getForEntity(url, SunatDataDTO.class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                // ***** CAMBIO AQUÍ *****
-                // Dado que el JSON directo tiene el campo "ruc" y lo estás recibiendo,
-                // significa que response.getBody().getRuc() NO DEBERÍA SER NULL O VACÍO aquí.
-                // Esta línea de validación puede estar causando el problema si por alguna razón
-                // el mapeo de Jackson falla internamente o el campo 'ruc' es el último en poblarse
-                // y se verifica antes.
-                // Si la API devuelve un 200 OK y un cuerpo no nulo, asumimos que los datos están ahí.
-                // Si el RUC no fuera encontrado, esperaríamos un status diferente a 200 OK (ej. 404, 422)
-                // o un JSON con un mensaje de error explícito (ej. {"error": "ruc no encontrado"}).
-                // Si la API siempre devuelve el RUC incluso si el cuerpo es vacío, puedes dejarla
-                // pero si el problema es que el DTO está bien pero esta línea falla, quítala.
 
-                // Para depurar, si no quieres quitarla, déjala y añade los logs de depuración
-                // que te mencioné en el paso 3 de la respuesta anterior, y verifica qué valor
-                // tiene response.getBody().getRuc() justo antes de este if.
-                // Si ese log muestra el RUC, entonces esta condición es redundante o mal aplicada.
-
-                // Si confías en que la API te devuelve 200 OK SOLO cuando hay datos de RUC,
-                // puedes simplificarlo a solo retornar el DTO:
                 return Optional.of(response.getBody());
-                // **********************
             } else {
                 logger.warn("Sunat API (APIS.NET.PE) devolvió estado {} para RUC {}: {}", response.getStatusCode(), ruc, response.getBody());
                 return Optional.empty();
