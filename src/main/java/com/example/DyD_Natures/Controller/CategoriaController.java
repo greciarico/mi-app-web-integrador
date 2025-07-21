@@ -10,13 +10,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import com.itextpdf.text.*; // Importar iText
-import com.itextpdf.text.pdf.PdfPCell; // Importar iText
-import com.itextpdf.text.pdf.PdfPTable; // Importar iText
-import com.itextpdf.text.pdf.PdfWriter; // Importar iText
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 
-import jakarta.servlet.http.HttpServletResponse; // Importar
-import java.io.IOException; // Importar
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,21 +75,18 @@ public class CategoriaController {
     public ResponseEntity<Map<String, String>> guardarCategoria(@ModelAttribute Categoria categoria) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Validaciones básicas
             if (categoria.getNombreCategoria() == null || categoria.getNombreCategoria().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "El nombre de la categoría es obligatorio.");
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Validación de nombre único
             if (categoriaService.existsByNombreCategoriaExcludingId(categoria.getNombreCategoria(), categoria.getIdCategoria())) {
                 response.put("status", "error");
                 response.put("message", "Ya existe una categoría con este nombre.");
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Si es nueva, establece el estado por defecto a 1 (Activo)
             if (categoria.getIdCategoria() == null) {
                 categoria.setEstado((byte) 1);
             }
@@ -121,7 +118,6 @@ public class CategoriaController {
         }
     }
 
-    // Endpoint para verificar la unicidad del nombre de categoría
     @GetMapping("/checkNombreCategoria")
     @ResponseBody
     public ResponseEntity<Map<String, Boolean>> checkNombreCategoria(@RequestParam String nombreCategoria,
@@ -131,9 +127,6 @@ public class CategoriaController {
         response.put("exists", exists);
         return ResponseEntity.ok(response);
     }
-    // ===============================================
-    // NUEVOS/MODIFICADOS ENDPOINTS PARA FILTRADO Y REPORTE
-    // ===============================================
 
     /**
      * Nuevo endpoint para buscar/filtrar categorías en la tabla principal vía AJAX.
@@ -174,7 +167,6 @@ public class CategoriaController {
         title.setSpacingAfter(20);
         document.add(title);
 
-        // Mostrar filtros aplicados
         Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
         StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
 
@@ -202,19 +194,19 @@ public class CategoriaController {
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
 
-        PdfPTable table = new PdfPTable(3); // 3 columnas: ID, Nombre Categoría, Estado
+        PdfPTable table = new PdfPTable(3);
         table.setWidthPercentage(100);
         table.setSpacingBefore(10f);
         table.setSpacingAfter(10f);
 
-        float[] columnWidths = {0.5f, 3f, 1f}; // Ajusta anchos según necesidad
+        float[] columnWidths = {0.5f, 3f, 1f};
         table.setWidths(columnWidths);
 
         PdfPCell cell;
         Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
         Font fontContent = FontFactory.getFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
-        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0)); // Verde
-        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0)); // Rojo
+        Font fontContentActive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(0, 128, 0));
+        Font fontContentInactive = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new BaseColor(255, 0, 0));
 
         String[] headers = {"ID", "Nombre Categoría", "Estado"};
         for (String header : headers) {
@@ -228,7 +220,7 @@ public class CategoriaController {
 
         if (categorias.isEmpty()) {
             cell = new PdfPCell(new Phrase("No se encontraron categorías con los filtros aplicados.", fontContent));
-            cell.setColspan(3); // Abarca todas las columnas
+            cell.setColspan(3);
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setPadding(10);
             table.addCell(cell);
@@ -247,7 +239,7 @@ public class CategoriaController {
                     estadoFont = fontContentInactive;
                 } else {
                     estadoText = "Desconocido";
-                    estadoFont = fontContent; // Default to black if unknown
+                    estadoFont = fontContent;
                 }
                 table.addCell(new Phrase(estadoText, estadoFont));              }
         }
