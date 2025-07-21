@@ -90,23 +90,51 @@ public class ProveedorController {
      */
     @PostMapping("/guardar")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) {
-        Map<String, String> resp = new HashMap<>();
+    public ResponseEntity<Map<String, String>> guardarProveedor(@RequestBody Proveedor proveedor) { // <--- ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
+        Map<String, String> response = new HashMap<>();
         try {
-            // validaciones ligeras de DTO…
-            Proveedor saved = proveedorService.guardarProveedor(proveedor);
-            resp.put("status",  "success");
-            resp.put("message", "Proveedor guardado exitosamente!");
-            return ResponseEntity.ok(resp);
+            // Validaciones básicas (estas validaciones ahora deberían recibir los datos correctos del JSON)
+            if (proveedor.getRuc() == null || proveedor.getRuc().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "El RUC es obligatorio.");
+                // Puedes añadir un HttpStatus.BAD_REQUEST para indicar un error de cliente
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (proveedor.getNombreComercial() == null || proveedor.getNombreComercial().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "El Nombre Comercial es obligatorio.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (proveedor.getRazonSocial() == null || proveedor.getRazonSocial().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "La Razón Social es obligatoria.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (proveedor.getDireccion() == null || proveedor.getDireccion().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "La Dirección es obligatoria.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            // Puedes añadir más validaciones para teléfono y correo si son obligatorios en tu negocio
 
-        } catch (IllegalArgumentException ex) {
-            resp.put("status", "error");
-            resp.put("message", ex.getMessage());
-            return ResponseEntity.badRequest().body(resp);
-        } catch (Exception ex) {
-            resp.put("status", "error");
-            resp.put("message", "Error interno al guardar el proveedor: " + ex.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+            // Validación de RUC único
+            Optional<Proveedor> existingProveedorByRuc = proveedorService.obtenerProveedorPorRuc(proveedor.getRuc());
+            if (existingProveedorByRuc.isPresent() && (proveedor.getIdProveedor() == null || !existingProveedorByRuc.get().getIdProveedor().equals(proveedor.getIdProveedor()))) {
+                response.put("status", "error");
+                response.put("message", "El RUC ya está registrado.");
+                return ResponseEntity.badRequest().body(response); // O HttpStatus.CONFLICT (409) para indicar duplicado
+            }
+
+            // Si las validaciones pasan, procede a guardar
+            proveedorService.guardarProveedor(proveedor);
+            response.put("status", "success");
+            response.put("message", "Proveedor guardado exitosamente!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // Captura cualquier otra excepción inesperada
+            response.put("status", "error");
+            response.put("message", "Error al guardar el proveedor: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
@@ -139,24 +167,20 @@ public class ProveedorController {
      */
     @GetMapping("/checkRuc")
     @ResponseBody
-    public ResponseEntity<Map<String, Boolean>> checkRuc(
-            @RequestParam String ruc,
-            @RequestParam(required = false) Integer idProveedor) {
+    public ResponseEntity<Map<String, Boolean>> checkRuc(@RequestParam String ruc,
+                                                         @RequestParam(required = false) Integer idProveedor) {
+        Map<String, Boolean> response = new HashMap<>();
         boolean exists = proveedorService.existsByRucExcludingId(ruc, idProveedor);
-        return ResponseEntity.ok(Map.of("exists",exists));
+        response.put("exists", exists);
+        return ResponseEntity.ok(response);
     }
-    // --- NUEVOS ENDPOINTS PARA REPORTES ---
 
-    /**
-     * Muestra el fragmento del modal con opciones para generar el reporte de proveedores.
-     * @param model El modelo para pasar datos a la vista.
-     * @return El fragmento HTML del modal de reporte.
-     */
-    @GetMapping("/reporte/modal")
-    public String mostrarReporteModal(Model model) {
-        // No hay roles ni otros datos complejos para proveedores como en usuarios,
-        // pero si tuvieras otros filtros (ej. por categoría de proveedor), los añadirías aquí.
-        return "fragments/reporte_proveedores_modal :: reporteModalContent";
+    @GetMapping("/buscar") // <--- ¡AÑADE ESTE MÉTODO!
+    @ResponseBody // Indica que la respuesta del método debe serializarse directamente en el cuerpo de la respuesta HTTP
+    public ResponseEntity<List<Proveedor>> buscarProveedores(@ModelAttribute ProveedorFilterDTO filterDTO) {
+        // En tu service, tienes un método buscarProveedoresPorFiltros que ya usa el DTO.
+        List<Proveedor> proveedores = proveedorService.buscarProveedoresPorFiltros(filterDTO);
+        return ResponseEntity.ok(proveedores);
     }
 
     /**
@@ -173,7 +197,7 @@ public class ProveedorController {
         String headerValue = "inline; filename=reporte_proveedores.pdf";
         response.setHeader(headerKey, headerValue);
 
-        List<Proveedor> proveedores = proveedorService.buscarProveedoresPorFiltros(filterDTO);
+        List<Proveedor> proveedores = proveedorService.buscarProveedoresPorFiltros(filterDTO); // Reutiliza el método de filtrado
 
         Document document = new Document(PageSize.A4.rotate());
         PdfWriter.getInstance(document, response.getOutputStream());
@@ -185,7 +209,7 @@ public class ProveedorController {
         title.setSpacingAfter(20);
         document.add(title);
 
-        // Mostrar filtros aplicados (similar a usuarios)
+        // Mostrar filtros aplicados
         Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
         StringBuilder filtrosAplicados = new StringBuilder("Filtros Aplicados:\n");
 
@@ -203,7 +227,6 @@ public class ProveedorController {
             }
             filtrosAplicados.append("\n");
         }
-        // NUEVO: Mostrar filtros de fecha en el PDF
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filterDTO.getFechaRegistroDesde() != null) {
             filtrosAplicados.append("- Fecha Registro Desde: ").append(filterDTO.getFechaRegistroDesde().format(formatter)).append("\n");
@@ -211,7 +234,6 @@ public class ProveedorController {
         if (filterDTO.getFechaRegistroHasta() != null) {
             filtrosAplicados.append("- Fecha Registro Hasta: ").append(filterDTO.getFechaRegistroHasta().format(formatter)).append("\n");
         }
-
 
         if (filtrosAplicados.toString().equals("Filtros Aplicados:\n")) {
             filtrosAplicados.append("- Ninguno (Reporte Completo)\n");
@@ -221,7 +243,6 @@ public class ProveedorController {
         pFiltros.setAlignment(Paragraph.ALIGN_LEFT);
         pFiltros.setSpacingAfter(10);
         document.add(pFiltros);
-
 
         PdfPTable table = new PdfPTable(9); // 9 columnas: ID, Fecha Reg, RUC, Nom Comercial, Razon Social, Telefono, Correo, Direccion, Estado
         table.setWidthPercentage(100);
@@ -254,8 +275,6 @@ public class ProveedorController {
             cell.setPadding(10);
             table.addCell(cell);
         } else {
-            // El formatter ya está definido arriba, asegúrate que se el mismo que usas aquí
-            // DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); // Esto debería estar solo una vez
             for (Proveedor proveedor : proveedores) {
                 table.addCell(new Phrase(String.valueOf(proveedor.getIdProveedor()), fontContent));
                 table.addCell(new Phrase(proveedor.getFechaRegistro() != null ? proveedor.getFechaRegistro().format(formatter) : "N/A", fontContent));
