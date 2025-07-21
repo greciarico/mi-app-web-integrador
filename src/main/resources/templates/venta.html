@@ -116,7 +116,7 @@
                                             <button type="button" class="btn btn-secondary ml-2" onclick="limpiarFiltrosVentas()">
                                                 <i class="fas fa-eraser"></i> Limpiar Filtros
                                             </button>
-                                            <button type="button" class="btn btn-primary ml-2" onclick="generarReportePdfVentas()"style="background-color:#b45f06 !important; border-color:#b45f06 !important;">
+                                            <button type="button" class="btn btn-primary ml-2" onclick="generarReportePdfVentas()" style="background-color:#b45f06 !important; border-color:#b45f06 !important;">
                                                 <i class="fas fa-file-pdf"></i> Generar Reporte PDF
                                             </button>
                                         </div>
@@ -207,10 +207,6 @@
                         width: '100%'
                     });
 
-                    // Cargar datos iniciales y aplicar filtros al cargar la página
-                    //recargarListaVentasCompleta();
-
-
             // Función para predecir el número de documento de venta
     function predictDocumentNumberVenta() {
         const tipoDocumentoSelect = $('#tipoDocumentoVentaSelect');
@@ -257,8 +253,6 @@
             }
         });
     });
-
-
             // ===============================================
             // FUNCIONES DE UTILIDAD (NOTIFICACIONES, ERRORES)
             // ===============================================
@@ -451,14 +445,6 @@
         const filterParams = getFilterParams();
         console.log("Aplicando filtros:", filterParams);
 
-        Swal.fire({
-            title: 'Cargando ventas...',
-            text: 'Por favor, espera.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
 
         // Este fetch siempre usa el endpoint /ventas/buscar
         fetch(`/ventas/buscar?${filterParams}`)
@@ -472,7 +458,7 @@
                 allVentas = data; // Actualiza la variable global con las ventas filtradas
                 renderMainTable(allVentas);
                 Swal.close();
-                showNotification('success', 'Ventas filtradas exitosamente.');
+                //showNotification('success', 'Ventas filtradas exitosamente.');
             })
             .catch(error => {
                 console.error('Error al aplicar filtros:', error);
@@ -1105,13 +1091,20 @@ window.calculatePaymentAndChange = function() {
     const totalPaid = cash + yape;
     totalPaidAmountInput.value = totalPaid.toFixed(2);
 
-    let change = 0;
-    if (totalPaid > totalSale) {
-        change = totalPaid - totalSale;
-    } else if (totalPaid < totalSale) {
-        change = 0; // O si prefieres mostrar un negativo: change = totalPaid - totalSale;
+    let balance = totalPaid - totalSale; // Calcula la diferencia: positivo para vuelto, negativo para faltante
+
+    // Actualiza el campo de cambio con el balance calculado
+    changeAmountInput.value = balance.toFixed(2);
+
+    // Opcional: Cambiar el color del campo "CAMBIO" si el pago es insuficiente
+    if (balance < 0) {
+        changeAmountInput.style.backgroundColor = '#f8d7da'; // Color de fondo para indicar "falta dinero" (rojo claro)
+        changeAmountInput.style.color = '#dc3545'; // Color de texto para el valor negativo (rojo oscuro)
+    } else {
+        // Restablece los estilos si el pago es suficiente o hay vuelto
+        changeAmountInput.style.backgroundColor = ''; // Fondo por defecto
+        changeAmountInput.style.color = ''; // Color de texto por defecto
     }
-    changeAmountInput.value = change.toFixed(2);
 };
 
 
@@ -1616,10 +1609,10 @@ window.saveVenta = async function(event) {
                     dataType: "json",
                     success: function(response) {
                         allVentas = response; // Actualizar la variable global con los nuevos datos
-                        aplicarFiltrosVenta(); // Aplicar el filtro actual a la nueva lista (mantener el término de búsqueda)
+                        aplicarFiltrosTablaVentas();// Aplicar el filtro actual a la nueva lista (mantener el término de búsqueda)
                     },
                     error: function(xhr, status, error) {
-                        console.error("Error al recargar la lista completa de centas:", error);
+                        console.error("Error al recargar la lista completa de ventas:", error);
                         mostrarNotificacion("error", "Error al recargar la lista de ventas. Verifica el endpoint /ventas/all en tu backend.");
                     }
                 });
