@@ -27,24 +27,103 @@
                     </div>
                     <!-- /.card-header -->
                     <div class="card-body">
-                        <!-- BUSCADOR SIMPLIFICADO -->
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <div class="input-group">
-                                    <input type="search" id="searchTermVenta" class="form-control" placeholder="Buscar por cliente, N° documento..."
-                                           onkeyup="aplicarFiltrosVenta()"/>
-                                    <div class="input-group-append">
-                                        <button class="btn btn-default" type="button" onclick="aplicarFiltrosVenta()">
-                                            <i class="fas fa-search"></i> Buscar
-                                        </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteVenta()">
-                                            <i class="fas fa-file-alt"></i> Generar Reporte
-                                        </button>
-                                    </div>
+                        <div class="card card-outline card-success collapsed-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Filtros de Búsqueda y Reportes</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
                             </div>
+                            <div class="card-body">
+                                <form id="ventaFilterForm">
+                                    <div class="row">
+                                        <div class="form-group col-md-4">
+                                            <label for="filtroNombreCliente">Nombre Cliente</label>
+                                            <input type="text" id="filtroNombreCliente" name="nombreCliente" class="form-control" placeholder="Nombre o Razón Social">
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="filtroIdCliente">Cliente Específico</label>
+                                            <select id="filtroIdCliente" name="idCliente" class="form-control select2bs4" style="width: 100%;">
+                                                <option value="">-- Seleccione un Cliente --</option>
+                                                <th:block th:each="cliente : ${clientes}">
+                                                    <option th:value="${cliente.idCliente}" th:text="${cliente.razonSocial != null and !cliente.razonSocial.isEmpty() ? cliente.razonSocial : (cliente.nombre + ' ' + cliente.apPaterno + ' ' + cliente.apMaterno)}"></option>
+                                                </th:block>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="filtroIdUsuario">Vendedor</label>
+                                            <select id="filtroIdUsuario" name="idUsuario" class="form-control select2bs4" style="width: 100%;">
+                                                <option value="">-- Seleccione un Vendedor --</option>
+                                                <th:block th:each="usuario : ${usuarios}">
+                                                    <option th:value="${usuario.idUsuario}" th:text="${usuario.nombre + ' ' + usuario.apPaterno}"></option>
+                                                </th:block>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="form-group col-md-3">
+                                            <label for="filtroTipoDocumento">Tipo Documento Venta</label>
+                                            <select id="filtroTipoDocumento" name="tipoDocumento" class="form-control">
+                                                <option value="">Todos</option>
+                                                <option value="BOLETA_VENTA">BOLETA_VENTA</option>
+                                                <option value="FACTURA_VENTA">FACTURA_VENTA</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="filtroNumDocumento">Número Documento Venta</label>
+                                            <input type="text" id="filtroNumDocumento" name="numDocumento" class="form-control" placeholder="Ej: F001-00000001">
+                                        </div>
+
+                                        <div class="form-group col-md-3">
+                                            <label>Estado</label>
+                                            <div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input estado-checkbox-venta" type="checkbox" id="estadoActiva" name="estados" value="1">
+                                                    <label class="form-check-label" for="estadoActiva">Activa</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input estado-checkbox-venta" type="checkbox" id="estadoCancelada" name="estados" value="0">
+                                                    <label class="form-check-label" for="estadoCancelada">Cancelada</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="form-group col-md-3">
+                                            <label for="fechaRegistroVentaStart">Fecha Inicio</label>
+                                            <input type="date" id="fechaRegistroVentaStart" name="fechaRegistroStart" class="form-control">
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="fechaRegistroVentaEnd">Fecha Fin</label>
+                                            <input type="date" id="fechaRegistroVentaEnd" name="fechaRegistroEnd" class="form-control">
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="totalMin">Total Mínimo</label>
+                                            <input type="number" id="totalMin" name="totalMin" class="form-control" step="0.01" min="0">
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="totalMax">Total Máximo</label>
+                                            <input type="number" id="totalMax" name="totalMax" class="form-control" step="0.01" min="0">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12 text-right">
+                                            <button type="button" class="btn btn-info" onclick="aplicarFiltrosTablaVentas()" >
+                                                <i class="fas fa-search"></i> Filtrar Tabla
+                                            </button>
+                                            <button type="button" class="btn btn-secondary ml-2" onclick="limpiarFiltrosVentas()">
+                                                <i class="fas fa-eraser"></i> Limpiar Filtros
+                                            </button>
+                                            <button type="button" class="btn btn-primary ml-2" onclick="generarReportePdfVentas()"style="background-color:#b45f06 !important; border-color:#b45f06 !important;">
+                                                <i class="fas fa-file-pdf"></i> Generar Reporte PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                        <!-- FIN BUSCADOR SIMPLIFICADO -->
 
                         <!-- Tabla de Ventas -->
                         <div id="tablaVentasContainer" class="table-responsive">
@@ -97,14 +176,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="reporteVentasModal" tabindex="-1" role="dialog" aria-labelledby="reporteVentasModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content">
-                <div id="modalReporteContentVenta">
-                </div>
-            </div>
-        </div>
-    </div>
 </section>
 <!-- SCRIPT PRINCIPAL CON TODA LA LÓGICA JAVASCRIPT -->
 <th:block layout:fragment="scripts">
@@ -117,11 +188,27 @@
                    let allProductosData = [];
                    let allClientesData = []; // Esta variable será actualizada por el callback
                    let allIgvData = [];
+                   let allUsuariosData = []; // Para llenar el filtro de vendedores
                    const ventaModalElement = $('#ventaModal');
                    const modalContentContainer = document.getElementById('modalContentContainer');
                    // Referencia al modal de cliente para adjuntar eventos de cierre
                    let detalleCount = 0;
                    let modalIsTransitioning = false;
+
+                   // Inicializar Select2 para los filtros avanzados cuando el documento esté listo
+                    $('#filtroIdCliente').select2({
+                        placeholder: "-- Seleccione un Cliente --",
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    $('#filtroIdUsuario').select2({
+                        placeholder: "-- Seleccione un Vendedor --",
+                        allowClear: true,
+                        width: '100%'
+                    });
+
+                    // Cargar datos iniciales y aplicar filtros al cargar la página
+                    //recargarListaVentasCompleta();
 
 
             // Función para predecir el número de documento de venta
@@ -336,191 +423,229 @@
                         tableBody.appendChild(row);
                     });
                 }
+/// Función para obtener los filtros del formulario
+    function getFilterParams() {
+    const form = document.getElementById('ventaFilterForm');
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
 
-            window.recargarListaVentasCompleta = function() {
-    console.log("recargarListaVentasCompleta: Iniciando carga de datos...");
-    Promise.all([
-        // ... (tus otras llamadas fetch para ventas, clientes, igv) ...
+    // Aquí manejamos los estados para que solo se envíen si están marcados
+    const checkedStates = Array.from(form.querySelectorAll('.estado-checkbox-venta:checked')).map(cb => cb.value);
+    if (checkedStates.length > 0) {
+        checkedStates.forEach(state => params.append('estados', state));
+    }
+    // Si checkedStates.length es 0, el parámetro 'estados' NO se añadirá a params.
+    // Tu backend manejará esto por defecto a "activas".
 
-        fetch('/productos/activos')
-            .then(r => {
-              if (!r.ok) throw new Error('Error al cargar productos activos');
-              return r.json();
+    // Añadir el resto de los parámetros
+    for (const [key, value] of formData.entries()) {
+        if (key !== 'estados' && value) { // Excluir 'estados' ya manejado y solo si tiene valor
+            params.append(key, value);
+        }
+    }
+    return params.toString();
+}
+
+    // Aplica los filtros para actualizar la tabla (AHORA SIEMPRE VIA AJAX)
+    window.aplicarFiltrosTablaVentas = function() {
+        const filterParams = getFilterParams();
+        console.log("Aplicando filtros:", filterParams);
+
+        Swal.fire({
+            title: 'Cargando ventas...',
+            text: 'Por favor, espera.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Este fetch siempre usa el endpoint /ventas/buscar
+        fetch(`/ventas/buscar?${filterParams}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
             })
             .then(data => {
-                allProductosData = data;
-                // *** ESTE console.log ES CRÍTICO ***
-                console.log("recargarListaVentasCompleta: Productos activos cargados.", allProductosData);
-            }),
-                    // Actualizamos allClientesData desde el backend
-                   fetch('/clientes/activos')
-                      .then(r => {
+                allVentas = data; // Actualiza la variable global con las ventas filtradas
+                renderMainTable(allVentas);
+                Swal.close();
+                showNotification('success', 'Ventas filtradas exitosamente.');
+            })
+            .catch(error => {
+                console.error('Error al aplicar filtros:', error);
+                showNotification('error', 'Error al cargar las ventas. Inténtalo de nuevo.');
+                Swal.close();
+            });
+    }
+
+    // Genera el reporte PDF usando los filtros actuales (GET)
+    window.generarReportePdfVentas = function() {
+        const filterParams = getFilterParams();
+        const url = `/ventas/reporte/pdf?${filterParams}`;
+
+        Swal.fire({
+            title: 'Generando Reporte...',
+            text: 'Por favor, espera mientras se genera el PDF.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Pequeño retardo para asegurar que el Swal.showLoading() se vea
+        setTimeout(() => {
+            const newWindow = window.open(url, '_blank');
+            if (newWindow) {
+                Swal.close();
+                showNotification("success", "El reporte PDF se está generando y debería descargarse pronto.");
+            } else {
+                Swal.close();
+                showNotification("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+            }
+        }, 300);
+    }
+
+    // Limpia todos los filtros del formulario
+    window.limpiarFiltrosVentas = function() {
+        document.getElementById('ventaFilterForm').reset();
+        $('#filtroIdCliente').val('').trigger('change'); // Limpiar Select2
+        $('#filtroIdUsuario').val('').trigger('change'); // Limpiar Select2
+        $('.estado-checkbox-venta').prop('checked', false); // Desmarcar todos
+        //$('#estadoActiva').prop('checked', false); // Marcar activa por defecto
+        setFilterDateRangeVenta(); // Restablecer límites de fecha
+        aplicarFiltrosTablaVentas(); // Volver a cargar la tabla con filtros limpios
+    }
+
+    // Función para ajustar el atributo 'max' y 'min' de las fechas en el formulario de filtro
+    function setFilterDateRangeVenta() {
+        const today = new Date().toISOString().split('T')[0];
+        const fechaInicioInput = document.getElementById('fechaRegistroVentaStart');
+        const fechaFinInput = document.getElementById('fechaRegistroVentaEnd');
+
+        if (fechaInicioInput) {
+            fechaInicioInput.setAttribute('max', today);
+            fechaInicioInput.value = ''; // Limpiar al reset
+            fechaInicioInput.onchange = function() {
+                if (fechaFinInput) fechaFinInput.min = this.value;
+            };
+        }
+        if (fechaFinInput) {
+            fechaFinInput.setAttribute('max', today);
+            fechaFinInput.value = ''; // Limpiar al reset
+            fechaFinInput.onchange = function() {
+                if (fechaInicioInput) fechaInicioInput.max = this.value;
+            };
+        }
+    }
+    setFilterDateRangeVenta(); // Llamar al inicio para configurar
+
+
+ // ===============================================
+            // Carga de datos iniciales para Select2 y la tabla
+            // ===============================================
+
+           window.loadSelectDataAndInitialTable = function() {
+            console.log("loadSelectDataAndInitialTable: Iniciando carga de datos...");
+
+            // Crea un array de promesas, cada una con su propio .catch
+            // Esto permite que una falla individual no detenga todo Promise.all
+            const promises = [
+                fetch('/productos/activos')
+                    .then(r => {
+                        if (!r.ok) throw new Error('Error al cargar productos activos');
+                        return r.json();
+                    })
+                    .then(data => {
+                        allProductosData = data;
+                        console.log("Productos activos cargados.");
+                    })
+                    .catch(err => {
+                        console.error("Error cargando productos activos:", err);
+                        showNotification('error', err.message || 'Error al cargar productos activos.');
+                        allProductosData = []; // Asegúrate de que no quede indefinido
+                    }),
+
+                fetch('/clientes/activos')
+                    .then(r => {
                         if (!r.ok) throw new Error('Error al cargar clientes activos');
                         return r.json();
-                      })
-                      .then(data =>  {
-                            allClientesData = data;
-                            // También actualizamos el Select2 si el modal de ventas está abierto
-                            const clienteSelectInModal = $('#modalContentContainer #clienteSelect');
-                            if (clienteSelectInModal.length && clienteSelectInModal.data('select2')) {
-                                clienteSelectInModal.empty(); // Limpiar opciones existentes
-                                clienteSelectInModal.append('<option value="">-- Seleccione un Cliente --</option>');
-                                allClientesData.forEach(cliente => {
-                                    const displayName = getClientDisplayName(cliente);
-                                    clienteSelectInModal.append(`<option value="${cliente.idCliente}">${displayName}</option>`);
-                                });
-                                // Mantiene la selección actual si es posible, o limpia
-                                clienteSelectInModal.trigger('change');
-                            }
-                        }),
+                    })
+                    .then(data => {
+                        allClientesData = data;
+                        const filtroClienteSelect = $('#filtroIdCliente');
+                        filtroClienteSelect.empty().append('<option value="">-- Seleccione un Cliente --</option>');
+                        allClientesData.forEach(cliente => {
+                            const displayName = getClientDisplayName(cliente);
+                            filtroClienteSelect.append(`<option value="${cliente.idCliente}">${displayName}</option>`);
+                        });
+                        filtroClienteSelect.trigger('change');
+                        console.log("Clientes activos cargados.");
+                    })
+                    .catch(err => {
+                        console.error("Error cargando clientes activos:", err);
+                        showNotification('error', err.message || 'Error al cargar clientes activos.');
+                        allClientesData = [];
+                    }),
 
-                    // dentro de recargarListaVentasCompleta():
+                fetch('/usuarios/all') // <--- EL PROBLEMA ESTÁ AQUÍ
+                    .then(r => {
+                        if (!r.ok) throw new Error('Error al cargar usuarios activos');
+                        return r.json();
+                    })
+                    .then(data => {
+                        allUsuariosData = data;
+                        const filtroUsuarioSelect = $('#filtroIdUsuario');
+                        filtroUsuarioSelect.empty().append('<option value="">-- Seleccione un Vendedor --</option>');
+                        allUsuariosData.forEach(usuario => {
+                            filtroUsuarioSelect.append(`<option value="${usuario.idUsuario}">${usuario.nombre + ' ' + usuario.apPaterno}</option>`);
+                        });
+                        filtroUsuarioSelect.trigger('change');
+                        console.log("Usuarios activos cargados.");
+                    })
+                    .catch(err => {
+                        console.error("Error cargando usuarios activos:", err);
+                        showNotification('error', err.message || 'Error al cargar usuarios activos.');
+                        allUsuariosData = []; // IMPORTANTE: Asegúrate de que siga siendo un array
+                    }),
+
                 fetch('/tasa/activos')
-                  .then(r => {
-                    if (!r.ok) throw new Error('Error al cargar tasas activas');
-                    return r.json();
-                  })
-                  .then(data => {
-                    console.log("IGV activos desde servidor: ", data );
-                    allIgvData = data;
-                  })
-                  .catch(err => showNotification('error', err.message)),
+                    .then(r => {
+                        if (!r.ok) throw new Error('Error al cargar tasas activas');
+                        return r.json();
+                    })
+                    .then(data => {
+                        console.log("IGV activos desde servidor: ", data );
+                        allIgvData = data;
+                    })
+                    .catch(err => {
+                        console.error("Error cargando tasas activas:", err);
+                        showNotification('error', err.message || 'Error al cargar tasas activas.');
+                        allIgvData = [];
+                    })
+            ];
 
-                ]).then(() => {
-        console.log("recargarListaVentasCompleta: Todas las cargas completadas.");
-        renderMainTable(allVentas); // O la función que renderiza tu tabla principal
-    }).catch(error => {
-        console.error("recargarListaVentasCompleta: Error general al cargar datos.", error);
-        showNotification('error', error.message || 'Error al recargar la lista.');
-    });
-}
-
-            function aplicarFiltrosVenta() {
-                const searchTermInput = document.getElementById('searchTermVenta');
-                if (!searchTermInput) return;
-                const searchTerm = searchTermInput.value.toLowerCase();
-                const filteredVentas = allVentas.filter(venta => {
-                    const clientName = getClientDisplayName(venta.cliente).toLowerCase(); // Usa la nueva función
-                    const numDocMatch = venta.numDocumento && venta.numDocumento.toLowerCase().includes(searchTerm);
-                    return clientName.includes(searchTerm) || numDocMatch;
+            // Promise.all espera que todas las promesas en 'promises' se resuelvan.
+            // Si una falla y tiene un .catch(), esa promesa se "resuelve" con un error manejado,
+            // permitiendo que las otras sigan adelante.
+            Promise.all(promises)
+                .then(() => {
+                    console.log("loadSelectDataAndInitialTable: Todas las cargas de datos para selects (o sus errores) han sido procesadas.");
+                    // *** ¡ESTO ES LO CLAVE! Renderizar la tabla con los datos iniciales del modelo ***
+                    renderMainTable(allVentas); // 'allVentas' ya contiene 'initialVentas'
+                })
+                .catch(error => {
+                    // Este catch solo se activará si alguna de las promesas no maneja su propio error,
+                    // lo cual es menos probable con la modificación de arriba.
+                    console.error("loadSelectDataAndInitialTable: Error general NO MANEJADO al cargar datos iniciales.", error);
+                    showNotification('error', error.message || 'Error fatal al cargar la página.');
                 });
-                renderMainTable(filteredVentas);
-            }
+        }            // *** LLAMAR A LA FUNCIÓN DE CARGA INICIAL AQUÍ ***
+            // Esto asegura que la tabla se renderice tan pronto como los datos de Select2 estén listos
+            loadSelectDataAndInitialTable();
 
-            // ===============================================
-// LÓGICA DE REPORTE DE VENTAS (CLIENT-SIDE)
-// ===============================================
-
-// Abre el modal de filtros del reporte de ventas
-window.generarReporteVenta = function() {
-    console.log("Abriendo modal de reporte de ventas...");
-    $('#modalReporteContentVenta').load('/ventas/reporte/modal', function(response, status, xhr) {
-        if (status === "error") {
-            console.error("Error al cargar el formulario de reporte de ventas:", xhr.status, xhr.statusText, response);
-            showNotification('error', 'Hubo un problema al cargar el formulario de reporte de ventas. Por favor, inténtalo de nuevo.');
-        } else {
-            console.log("Formulario de reporte de ventas cargado exitosamente.");
-            // Inicializar Select2 para los selects de cliente y usuario en el modal
-            $('#filtroIdCliente').select2({
-                placeholder: "-- Seleccione un Cliente --",
-                allowClear: true,
-                width: '100%',
-                dropdownParent: $('#reporteVentasModal')
-            });
-            $('#filtroIdUsuario').select2({
-                placeholder: "-- Seleccione un Vendedor --",
-                allowClear: true,
-                width: '100%',
-                dropdownParent: $('#reporteVentasModal')
-            });
-
-            // Establecer las fechas máximas/mínimas para los campos de fecha
-            setReportDateRangeVenta();
-            $('#reporteVentasModal').modal('show');
-        }
-    });
-}
-
-// Cierra el modal de reporte de ventas
-window.cerrarReporteVentasModal = function() {
-    $('#reporteVentasModal').modal('hide');
-    // Destruir Select2 para evitar duplicados en futuras aperturas
-    $('#filtroIdCliente').select2('destroy');
-    $('#filtroIdUsuario').select2('destroy');
-    setTimeout(() => {
-        $('#modalReporteContentVenta').empty();
-    }, 300); // Pequeño retraso para que la transición del modal se complete
-}
-
-// Limpia los filtros del modal de reporte de ventas
-window.limpiarFiltrosReporteVentas = function() {
-    $('#formReporteVentas')[0].reset();
-    $('.estado-checkbox-venta').prop('checked', false); // Desmarcar checkboxes
-    $('#filtroIdCliente').val('').trigger('change'); // Limpiar Select2
-    $('#filtroIdUsuario').val('').trigger('change'); // Limpiar Select2
-    setReportDateRangeVenta(); // Restablecer límites de fecha
-}
-
-// Función para ajustar el atributo 'max' y 'min' de las fechas en el modal de reporte de ventas
-window.setReportDateRangeVenta = function() {
-    const today = new Date().toISOString().split('T')[0];
-    const fechaInicioInput = document.getElementById('fechaRegistroVentaStart');
-    const fechaFinInput = document.getElementById('fechaRegistroVentaEnd');
-
-    if (fechaInicioInput) {
-        fechaInicioInput.setAttribute('max', today);
-        if (fechaFinInput && fechaFinInput.value) {
-            fechaInicioInput.setAttribute('max', fechaFinInput.value);
-        }
-    }
-    if (fechaFinInput) {
-        fechaFinInput.setAttribute('max', today);
-        if (fechaInicioInput && fechaInicioInput.value) {
-            fechaFinInput.setAttribute('min', fechaInicioInput.value);
-        } else {
-            fechaFinInput.removeAttribute('min'); // Si fecha de inicio está vacía, no hay mínimo
-        }
-    }
-}
-
-// Ejecuta la generación del reporte PDF de ventas
-window.ejecutarGenerarReporteVentas = function() {
-    Swal.fire({
-        title: 'Generando Reporte...',
-        text: 'Por favor, espera mientras se genera el PDF.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    const form = $('#formReporteVentas');
-    let formData = form.serialize();
-
-    // Manejar múltiples checkboxes para el campo 'estados'
-    const estadosChecked = [];
-    $('.estado-checkbox-venta:checked').each(function() {
-        estadosChecked.push('estados=' + $(this).val());
-    });
-    if (estadosChecked.length > 0) {
-        formData += '&' + estadosChecked.join('&');
-    }
-
-    const url = '/ventas/reporte/pdf?' + formData;
-
-    // Pequeño retardo para asegurar que el Swal.showLoading() se vea
-    setTimeout(() => {
-        const newWindow = window.open(url, '_blank');
-        if (newWindow) {
-            Swal.close();
-            showNotification("success", "El reporte PDF se está generando y debería descargarse pronto.");
-            cerrarReporteVentasModal();
-        } else {
-            Swal.close();
-            showNotification("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
-        }
-    }, 300);
-}
 // ===============================================
 // LÓGICA DEL FORMULARIO MODAL (CREAR VENTA SOLAMENTE)
 // ===============================================
@@ -684,6 +809,7 @@ window.closeViewModal = function() {
         $('body').removeClass('modal-open');
     });
 }
+
 
 // ===============================================
 // LÓGICA DE DETALLES DE VENTA EN EL FORMULARIO MODAL
