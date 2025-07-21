@@ -45,20 +45,65 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <div class="input-group">
-                                    <input type="search" id="searchTermDocumentoCompra" class="form-control" placeholder="Buscar por proveedor, N° documento..."
-                                           onkeyup="aplicarFiltrosDocumentoCompra()"/>
-                                    <div class="input-group-append">
-                                        <button class="btn btn-default" type="button" onclick="aplicarFiltrosDocumentoCompra()">
-                                            <i class="fas fa-search"></i> Buscar
+                        <div class="card card-primary card-outline collapsed-card"> <div class="card-header">
+                            <h3 class="card-title">
+                                <a href="#collapseFiltrosCompra" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="collapseFiltrosCompra" class="d-block text-dark">
+                                    <i class="fas fa-filter"></i> Mostrar/Ocultar Filtros
+                                </a>
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-plus"></i> </button>
+                            </div>
+                        </div>
+                            <div class="card-body" id="collapseFiltrosCompra"> <form id="documentoCompraFilterForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="filtroNumDocumentoCompra">N° Documento:</label>
+                                            <input type="text" class="form-control" id="filtroNumDocumentoCompra" name="numDocumento" placeholder="Número de documento">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="filtroProveedorCompra">Proveedor:</label>
+                                            <select class="form-control select2" id="filtroProveedorCompra" name="idProveedor" style="width: 100%;">
+                                                <option value="">Todos los Proveedores</option>
+                                                <option th:each="prov : ${proveedores}"
+                                                        th:value="${prov.idProveedor}"
+                                                        th:text="${prov.razonSocial}">
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Estados:</label><br>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input estado-checkbox-compra" type="checkbox" id="estadoCompraActiva" name="estados" value="1">
+                                                <label class="form-check-label" for="estadoCompraActiva">Activa</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input estado-checkbox-compra" type="checkbox" id="estadoCompraCancelada" name="estados" value="0">
+                                                <label class="form-check-label" for="estadoCompraCancelada">Anulada</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12 text-right">
+                                        <button type="button" class="btn btn-info" onclick="aplicarFiltrosTablaDocumentosCompra()">
+                                            <i class="fas fa-filter"></i> Filtrar Tabla
                                         </button>
-                                        <button class="btn btn-secondary ml-2" type="button" onclick="generarReporteDocumentoCompra()">
+                                        <button type="button" class="btn btn-secondary ml-2" onclick="limpiarFiltrosTablaDocumentoCompra()">
+                                            <i class="fas fa-redo"></i> Limpiar Filtros
+                                        </button>
+                                        <button type="button" class="btn btn-info ml-2" onclick="generarReportePDFDocumentoCompra()" style="background-color:#b45f06 !important; border-color:#b45f06 !important;">
                                             <i class="fas fa-file-alt"></i> Generar Reporte
                                         </button>
                                     </div>
                                 </div>
+                            </form>
                             </div>
                         </div>
                         <div id="tablaDocumentosCompraContainer" class="table-responsive">
@@ -122,14 +167,6 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="reporteDocumentosCompraModal" tabindex="-1" role="dialog" aria-labelledby="reporteDocumentosCompraModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-            <div class="modal-content">
-                <div id="modalReporteContentDocumentoCompra">
-                </div>
-            </div>
-        </div>
-    </div>
 </section>
 <th:block layout:fragment="scripts">
     <script src="/plugins/jquery/jquery.min.js"></script>
@@ -156,6 +193,7 @@
             // Obtener la fecha de hoy para comparaciones
             const today = new Date();
             today.setHours(0, 0, 0, 0); // Establecer a la medianoche para comparación de fechas
+
 
             // ===============================================
             // FUNCIONES DE UTILIDAD (NOTIFICACIONES, ERRORES)
@@ -214,7 +252,7 @@
             // ===============================================
 
             // (Esta función es principalmente para la carga inicial y recargas)
-            function renderMainTable(documentsToDisplay) {
+            function renderDocumentosCompraTable(documentsToDisplay) {
                 const tableBody = document.getElementById('documentosCompraTableBody');
                 if (!tableBody) { // Agrega esta validación por si acaso
                     console.error("Error: Elemento 'documentosCompraTableBody' no encontrado.");
@@ -324,7 +362,7 @@
                     })
                     .then(data => {
                         allDocumentosCompra = data; // Actualizar la variable global
-                        renderMainTable(allDocumentosCompra); // Volver a renderizar la tabla
+                        renderDocumentosCompraTable(allDocumentosCompra); // Volver a renderizar la tabla
                     })
                     .catch(error => {
                         console.error('Error al recargar la lista de documentos de compra:', error);
@@ -332,134 +370,126 @@
                     });
             }
 
-            // Función de filtro simplificada (puedes expandirla)
-            function aplicarFiltrosDocumentoCompra() {
-                const searchTermInput = document.getElementById('searchTermDocumentoCompra'); // Asegura que el input exista
-                if (!searchTermInput) return; // Validación
-                const searchTerm = searchTermInput.value.toLowerCase();
-                const filteredDocs = allDocumentosCompra.filter(doc => {
-                    const proveedorMatch = doc.proveedor && doc.proveedor.razonSocial && doc.proveedor.razonSocial.toLowerCase().includes(searchTerm);
-                    const numDocMatch = doc.numDocumento && doc.numDocumento.toLowerCase().includes(searchTerm);
-                    // Incluir filtro por estado si es necesario
-                    const estadoMatch = true; // Por ahora no filtramos por estado aquí, lo dejamos para el backend si se implementa un search avanzado.
-                    return (proveedorMatch || numDocMatch) && estadoMatch;
-                });
-                renderMainTable(filteredDocs);
-            }
+          // Referencia al formulario de filtros de DocumentoCompra
+const documentoCompraFilterForm = document.getElementById('documentoCompraFilterForm'); // ¡Asegúrate de que este ID exista en tu HTML!
 
-     // ===============================================
-    // FUNCIONES PARA EL REPORTE DE DOCUMENTOS DE COMPRA
-    // ===============================================
 
-    // Abre el modal de filtros del reporte de documentos de compra
-    function generarReporteDocumentoCompra() {
-        console.log("Abriendo modal de reporte de documentos de compra...");
-        $('#reporteDocumentosCompraModal').modal('show'); // Mostrar el modal primero
-        $('#modalReporteContentDocumentoCompra').load('/documento-compra/reporte/modal', function(response, status, xhr) {
-            if (status === "error") {
-                console.error("Error al cargar el formulario de reporte de documentos de compra:", xhr.status, xhr.statusText, response);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error al cargar reporte',
-                    text: 'Hubo un problema al cargar el formulario de reporte. Por favor, inténtalo de nuevo.',
-                    footer: `Detalles: ${xhr.status} ${xhr.statusText}`
-                });
-                $('#reporteDocumentosCompraModal').modal('hide'); // Ocultar si hay error
-            } else {
-                console.log("Formulario de reporte de documentos de compra cargado exitosamente.");
-                // Establecer las fechas máximas/mínimas para los campos de fecha
-                setReportDateCompraMaxAttributes();
-                setReportDateCompraMinAttributes();
+// 1. Función para recolectar los parámetros de filtro de DocumentoCompra
+function getDocumentoCompraFilterParams() {
+    const form = documentoCompraFilterForm;
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
 
-                // *** CAMBIO CLAVE AQUÍ: Desmarcar "Activo" y "Cancelado" por defecto ***
-                $('#estadoActivoCompra').prop('checked', false);
-                $('#estadoInactivoCompra').prop('checked', false);
-            }
-        });
+    // Especialmente importante para los checkboxes de estado
+    const checkedStates = Array.from(form.querySelectorAll('.estado-checkbox-compra:checked')).map(cb => cb.value);
+    if (checkedStates.length > 0) {
+        checkedStates.forEach(state => params.append('estados', state));
     }
+    // Si no hay checkboxes marcados, 'estados' NO se añadirá a 'params',
+    // lo que permite al backend mostrar todos los estados por defecto.
 
-    // Cierra el modal de reporte de documentos de compra
-    function cerrarReporteDocumentoCompraModal() {
-        $('#reporteDocumentosCompraModal').modal('hide');
-        setTimeout(() => {
-            $('#modalReporteContentDocumentoCompra').empty();
-        }, 300); // Pequeño delay para la animación del modal
-    }
-
-    // Limpia los filtros del modal de reporte de documentos de compra
-    function limpiarFiltrosReporteDocumentoCompra() {
-        $('#formReporteDocumentoCompra')[0].reset();
-        $('.estado-checkbox-compra').prop('checked', false); // Desmarcar ambos al limpiar
-        setReportDateCompraMaxAttributes();
-        setReportDateCompraMinAttributes();
-    }
-
-    // Función para ajustar el atributo 'max' de la fecha de inicio del reporte de compra
-    function setReportDateCompraMaxAttributes() {
-        const todayISO = new Date().toISOString().split('T')[0];
-        $('#fechaRegistroStartCompra').attr('max', todayISO);
-
-        const fechaFin = $('#fechaRegistroEndCompra').val();
-        if (fechaFin && $('#fechaRegistroStartCompra').val() && new Date(fechaFin) < new Date($('#fechaRegistroStartCompra').val())) {
-            $('#fechaRegistroEndCompra').val($('#fechaRegistroStartCompra').val());
+    // Recoger los demás campos del formulario
+    for (const [key, value] of formData.entries()) {
+        if (key === 'idProveedor' && value === '') {
+            // No añadir idProveedor si está vacío (para que el backend no filtre por null/0)
+            continue;
         }
-        $('#fechaRegistroEndCompra').attr('min', $('#fechaRegistroStartCompra').val());
-    }
-
-    // Función para ajustar el atributo 'min' de la fecha de fin del reporte de compra
-    function setReportDateCompraMinAttributes() {
-        const todayISO = new Date().toISOString().split('T')[0];
-        $('#fechaRegistroEndCompra').attr('max', todayISO);
-
-        const fechaInicio = $('#fechaRegistroStartCompra').val();
-        if (fechaInicio && $('#fechaRegistroEndCompra').val() && new Date(fechaInicio) > new Date($('#fechaRegistroEndCompra').val())) {
-            $('#fechaRegistroStartCompra').val($('#fechaRegistroEndCompra').val());
+        if (key === 'numDocumento' && !value.trim()) {
+            // No añadir numDocumento si está vacío o solo espacios
+            continue;
         }
-        $('#fechaRegistroStartCompra').attr('max', $('#fechaRegistroEndCompra').val() || todayISO);
-    }
-
-    // Ejecuta la generación del reporte PDF de documentos de compra
-    function ejecutarGenerarReporteDocumentoCompra() {
-        Swal.fire({
-            title: 'Generando Reporte...',
-            text: 'Por favor, espera mientras se genera el PDF de documentos de compra.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
+        // Excluir 'estados' ya que lo manejamos manualmente arriba
+        if (key !== 'estados') {
+             // Asegurarse de que no se envíen parámetros vacíos para campos de texto
+            if (typeof value === 'string' && value.trim() === '') {
+                continue;
             }
-        });
-
-        const form = $('#formReporteDocumentoCompra');
-        // Obtener los valores de los checkboxes de estado y crear un array
-        const estadosSeleccionados = [];
-        $('.estado-checkbox-compra:checked').each(function() {
-            estadosSeleccionados.push($(this).val());
-        });
-
-        // Serializar el formulario y añadir los estados como un parámetro de consulta si hay alguno
-        let formData = form.serialize();
-        if (estadosSeleccionados.length > 0) {
-            // Eliminar cualquier 'estados=' que haya generado el serialize() para manejarlo manualmente
-            formData = formData.replace(/&estados=\d+/g, '');
-            estadosSeleccionados.forEach(estado => {
-                formData += '&estados=' + estado;
-            });
+            params.append(key, value);
         }
-
-        const url = '/documento-compra/reporte/pdf?' + formData;
-
-        setTimeout(() => {
-            const newWindow = window.open(url, '_blank');
-            if (newWindow) {
-                Swal.close();
-                showNotification("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
-                cerrarReporteDocumentoCompraModal();
-            } else {
-                Swal.close();
-                showNotification("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
-            }
-        }, 300); // Pequeño delay para asegurar que el modal de carga de Swal se muestre
     }
+    return params.toString();
+}
+
+// 2. Función para aplicar los filtros de DocumentoCompra a la tabla
+window.aplicarFiltrosTablaDocumentosCompra = function() {
+    const filterParams = getDocumentoCompraFilterParams();
+    console.log("Aplicando filtros de Documento Compra:", filterParams); // DEBUG
+
+    Swal.fire({
+        title: 'Cargando Documentos de Compra...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    fetch(`/documento-compra/buscar?${filterParams}`) // Llama al nuevo endpoint
+        .then(response => {
+            if (!response.ok) {
+                // Si la respuesta no es OK (ej. 500 Internal Server Error), intenta leer el mensaje de error del cuerpo
+                return response.json().then(err => { throw new Error(err.message || 'Error desconocido al filtrar documentos de compra'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            allDocumentosCompra = data; // Actualizar la variable global
+            renderDocumentosCompraTable(allDocumentosCompra); // Renderizar la tabla con los datos filtrados
+
+            Swal.close();
+            showNotification('success', 'Documentos de Compra filtrados exitosamente.');
+        })
+        .catch(error => {
+            console.error("Error al filtrar documentos de compra:", error);
+            Swal.close();
+            showNotification('error', 'Error al filtrar documentos de compra: ' + error.message);
+        });
+}
+
+// 3. Función para limpiar los filtros de DocumentoCompra
+window.limpiarFiltrosTablaDocumentoCompra = function() {
+    documentoCompraFilterForm.reset(); // Reinicia el formulario HTML
+    // Si usas Select2, necesitas reiniciarlo manualmente
+    $('#filtroProveedorCompra').val('').trigger('change');
+
+    // Desmarcar los checkboxes de estado
+    $('.estado-checkbox-compra').prop('checked', false);
+
+    // Si tienes campos de fecha en el filtro, asegúrate de limpiarlos también
+    // Ejemplo: $('#fechaRegistroStartFilter').val('');
+
+    aplicarFiltrosTablaDocumentosCompra(); // Aplicar los filtros limpios para recargar la tabla
+}
+
+
+/**
+ * Genera el reporte PDF de documentos de compra utilizando los filtros actualmente aplicados en la tabla.
+ */
+window.generarReportePDFDocumentoCompra = function() {
+    const filterParams = getDocumentoCompraFilterParams(); // Reutiliza la función para obtener los filtros de la tabla
+
+    Swal.fire({
+        title: 'Generando Reporte...',
+        text: 'Por favor, espera mientras se genera el PDF de documentos de compra.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Construye la URL del PDF con los filtros de la tabla
+    const url = '/documento-compra/reporte/pdf?' + filterParams;
+
+    // Pequeño retardo para asegurar que el SweetAlert se muestre
+    setTimeout(() => {
+        const newWindow = window.open(url, '_blank');
+        if (newWindow) {
+            Swal.close();
+            showNotification("success", "El reporte PDF se está generando y debería abrirse en una nueva pestaña.");
+        } else {
+            Swal.close();
+            showNotification("error", "Error: Tu navegador bloqueó la descarga del PDF. Por favor, permite los pop-ups para este sitio.");
+        }
+    }, 300);
+}
+
 
             // ===============================================
             // LÓGICA DEL FORMULARIO MODAL (PARA DOCUMENTO DE COMPRA)
@@ -1003,7 +1033,6 @@
                     }
                 }
             });
-
 
             // ===============================================
             // INICIALIZACIÓN
