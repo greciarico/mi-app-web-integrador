@@ -49,13 +49,13 @@ public class UsuarioController {
         model.addAttribute("currentUri", request.getRequestURI());
         model.addAttribute("usuarios", usuarioService.listarUsuariosActivos());
         model.addAttribute("todosRoles", rolUsuarioService.listarRoles());
-        return "usuarios"; // Devuelve la vista principal usuarios.html
+        return "usuarios";
     }
 
     @GetMapping("/all")
     @ResponseBody
     public List<Usuario> getAllUsersJson() {
-        return usuarioService.listarUsuariosActivos(); // Asegúrate de llamar a este método
+        return usuarioService.listarUsuariosActivos();
     }
 
 
@@ -68,10 +68,9 @@ public class UsuarioController {
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
         Usuario usuario = new Usuario();
-        usuario.setRolUsuario(new RolUsuario()); // Inicializa rolUsuario para evitar NPE
+        usuario.setRolUsuario(new RolUsuario());
         model.addAttribute("usuario", usuario);
         model.addAttribute("todosRoles", rolUsuarioService.listarRoles());
-        // Devuelve el fragmento del formulario dentro del modal
         return "fragments/usuarios_form_modal :: formContent";
     }
 
@@ -91,8 +90,6 @@ public class UsuarioController {
             // Devuelve el fragmento del formulario dentro del modal
             return "fragments/usuarios_form_modal :: formContent";
         }
-        // Si el usuario no se encuentra, puedes devolver un fragmento de error o manejarlo en el JS del cliente
-        // Por ahora, devolvemos un formulario vacío con un mensaje de error (esto es una simplificación)
         model.addAttribute("usuario", new Usuario());
         model.addAttribute("todosRoles", rolUsuarioService.listarRoles());
         model.addAttribute("mensajeError", "Usuario no encontrado.");
@@ -110,9 +107,6 @@ public class UsuarioController {
     public ResponseEntity<Map<String, String>> guardarUsuario(@ModelAttribute Usuario usuario) {
         Map<String, String> response = new HashMap<>();
         try {
-            // ——————————————————————————————
-            // Validaciones de DNI
-            // ——————————————————————————————
             if (usuario.getDni() == null || usuario.getDni().isBlank()) {
                 response.put("status", "error");
                 response.put("message", "El DNI no puede estar vacío.");
@@ -125,28 +119,15 @@ public class UsuarioController {
                 response.put("message", "El DNI ya está registrado por otro usuario.");
                 return ResponseEntity.badRequest().body(response);
             }
-
-            // ——————————————————————————————
-            // Fecha de registro
-            // ——————————————————————————————
             if (usuario.getIdUsuario() == null && usuario.getFechaRegistro() == null) {
                 usuario.setFechaRegistro(LocalDate.now());
             }
-
-            // ——————————————————————————————
-            // Contraseña
-            // ——————————————————————————————
             if (usuario.getContrasena() != null && !usuario.getContrasena().isBlank()) {
                 usuario.setContrasena(passwordEncoder.encode(usuario.getContrasena()));
             } else if (usuario.getIdUsuario() != null) {
-                // Mantener la contraseña anterior si no se proporciona una nueva
                 usuarioService.obtenerUsuarioPorId(usuario.getIdUsuario())
                         .ifPresent(old -> usuario.setContrasena(old.getContrasena()));
             }
-
-            // ——————————————————————————————
-            // Carga y asignación del RolUsuario completo
-            // ——————————————————————————————
             Integer rolId = usuario.getRolUsuario() != null
                     ? usuario.getRolUsuario().getIdRol()
                     : null;
@@ -156,17 +137,9 @@ public class UsuarioController {
             RolUsuario rol = rolUsuarioService.obtenerRolPorId(rolId)
                     .orElseThrow(() -> new IllegalArgumentException("Rol inválido: " + rolId));
             usuario.setRolUsuario(rol);
-
-            // ——————————————————————————————
-            // Estado por defecto si es nulo
-            // ——————————————————————————————
             if (usuario.getEstado() == null) {
-                usuario.setEstado((byte) 1); // Activo por defecto
+                usuario.setEstado((byte) 1);
             }
-
-            // ——————————————————————————————
-            // Persistencia
-            // ——————————————————————————————
             usuarioService.guardarUsuario(usuario);
 
             response.put("status", "success");
@@ -191,7 +164,7 @@ public class UsuarioController {
      * @return ResponseEntity con un mensaje JSON.
      */
     @GetMapping("/eliminar/{id}")
-    @ResponseBody // Indica que el método devuelve directamente el cuerpo de la respuesta (JSON en este caso)
+    @ResponseBody
     public ResponseEntity<Map<String, String>> eliminarUsuario(@PathVariable("id") Integer id) {
         Map<String, String> response = new HashMap<>();
         try {
@@ -212,7 +185,7 @@ public class UsuarioController {
      * @param idUsuario ID del usuario actual (opcional, para exclusión en ediciones).
      * @return ResponseEntity con un JSON indicando si el DNI existe.
      */
-    @GetMapping("/checkDni") // Asegúrate de que esta anotación y el nombre del método sean correctos
+    @GetMapping("/checkDni")
     @ResponseBody
     public ResponseEntity<Map<String, Boolean>> checkDni(@RequestParam String dni,
                                                          @RequestParam(required = false) Integer idUsuario) {
@@ -221,10 +194,6 @@ public class UsuarioController {
         response.put("exists", exists);
         return ResponseEntity.ok(response);
     }
-// ============================================
-    // NUEVO ENDPOINT PARA BÚSQUEDA Y REPORTE
-    // ============================================
-
     /**
      * Busca usuarios aplicando filtros dinámicamente.
      * @param filterDTO DTO con los criterios de búsqueda.
@@ -233,49 +202,37 @@ public class UsuarioController {
     @GetMapping("/buscar")
     @ResponseBody
     public List<Usuario> buscarUsuarios(@ModelAttribute UsuarioFilterDTO filterDTO) {
-        System.out.println("Buscando usuarios con filtros: " + filterDTO); // Para depuración
+        System.out.println("Buscando usuarios con filtros: " + filterDTO);
         return usuarioService.buscarUsuariosPorFiltros(filterDTO);
     }
 
-
-    // Endpoint para generar el PDF de usuarios
     @GetMapping("/reporte/pdf")
     public void generarReportePdf(UsuarioFilterDTO filterDTO, HttpServletResponse response) throws IOException, DocumentException {
-        // Para depuración, puedes imprimir los filtros recibidos
         System.out.println("Filtros recibidos para el reporte: " + filterDTO);
 
         List<Usuario> usuarios = usuarioService.buscarUsuariosPorFiltros(filterDTO);
 
-        // 2. Configurar la respuesta HTTP para PDF
         response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "inline; filename=\"reporte_usuarios.pdf\""); // inline para abrir en navegador
-        // response.setHeader("Content-Disposition", "attachment; filename=\"reporte_usuarios.pdf\""); // attachment para descargar
+        response.setHeader("Content-Disposition", "inline; filename=\"reporte_usuarios.pdf\"");
 
-        // 3. Generar el PDF
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) { // Aquí se declara baos
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4.rotate());
             PdfWriter.getInstance(document, baos);
             document.open();
 
-            // Título del documento
             Font fontTitle = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.BLACK);
             Paragraph title = new Paragraph("Reporte de Usuarios - D&D Nature's", fontTitle);
             title.setAlignment(Element.ALIGN_CENTER);
             title.setSpacingAfter(20);
             document.add(title);
 
-            // ============================================
-            // INICIO: Mostrar los filtros aplicados
-            // ============================================
             Font fontFilters = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.ITALIC);
             Paragraph filterParagraph = new Paragraph("Filtros aplicados:\n", fontFilters);
 
-            // 1. Campo de búsqueda general
             if (filterDTO.getNombreApellidoDniCorreo() != null && !filterDTO.getNombreApellidoDniCorreo().trim().isEmpty()) {
                 filterParagraph.add(new Chunk("Búsqueda General: " + filterDTO.getNombreApellidoDniCorreo() + "\n", fontFilters));
             }
 
-            // 2. Roles
             if (filterDTO.getIdRoles() != null && !filterDTO.getIdRoles().isEmpty()) {
                 List<String> nombresRolesSeleccionados = new ArrayList<>();
                 List<RolUsuario> todosLosRoles = rolUsuarioService.listarRoles();
@@ -294,8 +251,6 @@ public class UsuarioController {
                 filterParagraph.add(new Chunk("Tipo(s) de Usuario: Todos\n", fontFilters));
             }
 
-
-            // 3. Estado
             if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
                 List<String> nombresEstadosSeleccionados = new ArrayList<>();
                 if (filterDTO.getEstados().contains(1)) {
@@ -313,7 +268,6 @@ public class UsuarioController {
                 filterParagraph.add(new Chunk("Estado(s): Todos\n", fontFilters));
             }
 
-            // Nuevos filtros añadidos al reporte PDF
             if (filterDTO.getFechaRegistroStart() != null) {
                 filterParagraph.add(new Chunk("Fecha Registro Desde: " + filterDTO.getFechaRegistroStart().toString() + "\n", fontFilters));
             }
@@ -322,26 +276,18 @@ public class UsuarioController {
             }
 
 
-            filterParagraph.setSpacingAfter(15); // Espacio después de los filtros
+            filterParagraph.setSpacingAfter(15);
             document.add(filterParagraph);
-            // ============================================
-            // FIN: Mostrar los filtros aplicados
-            // ============================================
 
-
-            // Crear tabla para los datos
             PdfPTable table = new PdfPTable(9);
             table.setWidthPercentage(100);
             table.setSpacingBefore(10f);
             table.setSpacingAfter(10f);
 
-            // Anchos de las columnas (puedes ajustarlos)
             float[] columnWidths = {0.5f, 1.5f, 1.5f, 1.5f, 1f, 1f, 2f, 1f, 0.8f};
             table.setWidths(columnWidths);
-
-            // Encabezados de la tabla
             Font fontHeader = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD, BaseColor.WHITE);
-            BaseColor headerBgColor = new BaseColor(24, 61, 0); // Color similar al del botón "Crear Nuevo Usuario"
+            BaseColor headerBgColor = new BaseColor(24, 61, 0);
 
             String[] headers = {"ID", "Nombre", "Ap. Paterno", "Ap. Materno", "DNI", "Rol", "Correo", "Celular", "Estado"};
             for (String header : headers) {
@@ -352,13 +298,11 @@ public class UsuarioController {
                 cell.setPadding(5);
                 table.addCell(cell);
             }
-
-            // Datos de los usuarios
             Font fontContent = new Font(Font.FontFamily.HELVETICA, 9, Font.NORMAL, BaseColor.BLACK);
 
             if (usuarios.isEmpty()) {
                 PdfPCell noDataCell = new PdfPCell(new Phrase("No se encontraron usuarios con los filtros aplicados.", FontFactory.getFont(FontFactory.HELVETICA, 10, Font.ITALIC)));
-                noDataCell.setColspan(9); // Abarca todas las columnas
+                noDataCell.setColspan(9);
                 noDataCell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 noDataCell.setPadding(10);
                 table.addCell(noDataCell);
@@ -378,11 +322,8 @@ public class UsuarioController {
 
             document.add(table);
             document.close();
-
-            // Escribir el PDF al OutputStream de la respuesta
             response.getOutputStream().write(baos.toByteArray());
         } catch (DocumentException e) {
-            // Manejo de errores de iText
             throw new IOException("Error al generar el PDF", e);
         }
     }
@@ -396,11 +337,10 @@ public class UsuarioController {
             if (optionalUsuario.isPresent()) {
                 Usuario usuario = optionalUsuario.get();
 
-                // Cambiar el estado: 1 -> 0 o 0 -> 1
                 byte nuevoEstado = (usuario.getEstado() == 1) ? (byte) 0 : (byte) 1;
                 usuario.setEstado(nuevoEstado);
 
-                usuarioService.guardarUsuario(usuario); // Reutiliza tu método existente
+                usuarioService.guardarUsuario(usuario);
 
                 response.put("status", "success");
                 response.put("message", "Estado del usuario actualizado correctamente.");
