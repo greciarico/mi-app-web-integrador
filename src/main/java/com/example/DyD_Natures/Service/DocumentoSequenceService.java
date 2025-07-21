@@ -14,32 +14,27 @@ public class DocumentoSequenceService {
 
     @Transactional
     public String getNextDocumentNumber(String tipoDocumento) {
-        // Bloqueo pesimista ya manejado por el repositorio
+
         DocumentoSequence sequence = documentoSequenceRepository.findByTipoDocumento(tipoDocumento)
                 .orElseGet(() -> {
-                    // Si no existe, crea una nueva secuencia con un número inicial
-                    // y un prefijo por defecto.
-                    // DEBES AJUSTAR ESTOS VALORES INICIALES SEGÚN TUS NECESIDADES
+
                     String prefix = "";
                     if ("FACTURA_VENTA".equals(tipoDocumento)) {
                         prefix = "FV01-";
                     } else if ("BOLETA_VENTA".equals(tipoDocumento)) {
                         prefix = "BV01-";
                     }
-                    // Puedes añadir más tipos según sea necesario
 
                     DocumentoSequence newSequence = new DocumentoSequence(tipoDocumento, 0, prefix);
                     return documentoSequenceRepository.save(newSequence);
                 });
 
         sequence.setLastNumber(sequence.getLastNumber() + 1);
-        documentoSequenceRepository.save(sequence); // Guarda el número incrementado
+        documentoSequenceRepository.save(sequence); 
 
-        // Formatear el número (ej. FV01-000001)
         return String.format("%s%06d", sequence.getPrefix(), sequence.getLastNumber());
     }
 
-    // Opcional: Método para inicializar secuencias si no existen
     @Transactional
     public void initializeSequence(String tipoDocumento, String prefix, Integer initialNumber) {
         documentoSequenceRepository.findByTipoDocumento(tipoDocumento)
