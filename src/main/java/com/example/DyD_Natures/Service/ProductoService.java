@@ -59,7 +59,7 @@ public class ProductoService {
      */
     @Transactional
     public Producto guardarProducto(Producto producto) {
-        // Si es creación
+
         if (producto.getIdProducto() == null) {
             if (productoRepository.existsByNombreAndIdProductoIsNotAndEstadoNot(
                     producto.getNombre(), 0, ESTADO_ELIMINADO)) {
@@ -73,7 +73,7 @@ public class ProductoService {
                     producto.getNombre(), producto.getIdProducto(), ESTADO_ELIMINADO)) {
                 throw new IllegalArgumentException("Ya existe otro producto con ese nombre.");
             }
-            // conservar fecha de registro original
+            
             productoRepository.findById(producto.getIdProducto())
                     .ifPresent(orig -> producto.setFechaRegistro(orig.getFechaRegistro()));
         }
@@ -89,7 +89,7 @@ public class ProductoService {
         Optional<Producto> productoOpt = productoRepository.findById(id);
         if (productoOpt.isPresent()) {
             Producto producto = productoOpt.get();
-            producto.setEstado((byte) 2); // Cambiar estado a 2 = eliminado lógicamente (Byte)
+            producto.setEstado((byte) 2); 
             productoRepository.save(producto);
         }
     }
@@ -99,7 +99,7 @@ public class ProductoService {
      * @return Lista de categorías activas.
      */
     public List<Categoria> listarCategorias() {
-        return categoriaRepository.findByEstado((byte) 1); // <-- CAMBIO AQUÍ
+        return categoriaRepository.findByEstado((byte) 1); 
     }
 
     /**
@@ -120,25 +120,21 @@ public class ProductoService {
         return productoRepository.findAll((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Filtro por nombre
             if (filterDTO.getNombre() != null && !filterDTO.getNombre().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getNombre().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), searchTerm));
             }
 
-            // Filtro por descripción
             if (filterDTO.getDescripcion() != null && !filterDTO.getDescripcion().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getDescripcion().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("descripcion")), searchTerm));
             }
 
-            // Filtro por categoría
             if (filterDTO.getIdCategoria() != null) {
                 Join<Producto, Categoria> categoriaJoin = root.join("categoria");
                 predicates.add(criteriaBuilder.equal(categoriaJoin.get("idCategoria"), filterDTO.getIdCategoria()));
             }
 
-            // Filtro por rango de Precio 1
             if (filterDTO.getPrecio1Min() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("precio1"), filterDTO.getPrecio1Min()));
             }
@@ -146,7 +142,6 @@ public class ProductoService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("precio1"), filterDTO.getPrecio1Max()));
             }
 
-            // Filtro por rango de Precio 2
             if (filterDTO.getPrecio2Min() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("precio2"), filterDTO.getPrecio2Min()));
             }
@@ -154,7 +149,6 @@ public class ProductoService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("precio2"), filterDTO.getPrecio2Max()));
             }
 
-            // Filtro por rango de Stock
             if (filterDTO.getStockMin() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("stock"), filterDTO.getStockMin()));
             }
@@ -162,15 +156,13 @@ public class ProductoService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("stock"), filterDTO.getStockMax()));
             }
 
-            // Filtro por Estado
+
             if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
-                // Si eligen ambos (activo y inactivo), no se añade este filtro (ya que se listan todos excepto eliminados)
                 if (!(filterDTO.getEstados().contains((byte) 0) && filterDTO.getEstados().contains((byte) 1))) {
                     predicates.add(root.get("estado").in(filterDTO.getEstados()));
                 }
             }
 
-            // Filtro por rango de Fecha de Registro
             if (filterDTO.getFechaRegistroStart() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
             }
@@ -178,7 +170,6 @@ public class ProductoService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
             }
 
-            // Excluir productos con estado = 2 (eliminado) por defecto en los reportes
             predicates.add(criteriaBuilder.notEqual(root.get("estado"), (byte) 2));
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
