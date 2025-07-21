@@ -145,7 +145,7 @@
   <script th:inline="javascript">
     /*<![CDATA[*/
 
-    allProducts = []; // Se inicializa vacío
+    allProducts = []; 
 
     function renderizarTablaProductos(productsToDisplay) {
         const tableBody = $('#productosTableBody');
@@ -262,12 +262,10 @@
                     cerrarFormularioProducto();
                     aplicarFiltrosProductos();
                 } else {
-                    // Si hay errores de validación desde el backend (ej. duplicidad de nombre/desc)
                     if (response.errors) {
                         // Parsea la cadena JSON de errores si viene como string
                         const errors = JSON.parse(response.errors);
                         for (const [key, value] of Object.entries(errors)) {
-                            // Asegúrate que los IDs de los elementos de error coincidan con el HTML del modal
                             displayError(key + 'Error', value);
                         }
                     }
