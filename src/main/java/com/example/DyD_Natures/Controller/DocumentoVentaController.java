@@ -17,7 +17,6 @@ public class DocumentoVentaController {
     @Autowired
     private DocumentoSequenceService documentoSequenceService;
 
-    // Endpoint para predecir el siguiente número de documento de venta
     @GetMapping("/next-num-documento")
     public ResponseEntity<Map<String, String>> getNextDocumentoVentaNumber(@RequestParam("tipoDocumento") String tipoDocumento) {
         Map<String, String> response = new HashMap<>();
