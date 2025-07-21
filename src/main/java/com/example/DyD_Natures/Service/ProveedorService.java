@@ -15,9 +15,6 @@ import java.util.Optional;
 
 @Service
 public class ProveedorService {
-    private static final byte ESTADO_ELIMINADO = 2;
-    private static final byte ESTADO_ACTIVO    = 1;
-
 
     @Autowired
     private ProveedorRepository proveedorRepository;
@@ -57,55 +54,21 @@ public class ProveedorService {
         return proveedorRepository.findByRuc(ruc);
     }
 
-
-    public Proveedor guardarProveedor(Proveedor dto) {
-        String ruc = dto.getRuc();
-
-        if (dto.getIdProveedor() == null) {
-            // 1) ¿Existe un proveedor eliminado con ese RUC?
-            Optional<Proveedor> eliminado = proveedorRepository.findByRucAndEstado(ruc, ESTADO_ELIMINADO);
-            if (eliminado.isPresent()) {
-                // “Resucitamos” ese registro
-                Proveedor existente = eliminado.get();
-                existente.setNombreComercial(dto.getNombreComercial());
-                existente.setRazonSocial(dto.getRazonSocial());
-                existente.setDireccion(dto.getDireccion());
-                existente.setCorreo(dto.getCorreo());
-                existente.setTelefono(dto.getTelefono());
-                existente.setEstado(ESTADO_ACTIVO);
-                // (opcional) no cambies la fechaRegistro, o la actualizas si así lo decides
-                return proveedorRepository.save(existente);
-            }
-
-            // 2) Validar que no exista un activo con ese RUC
-            if (proveedorRepository.existsByRucAndEstadoNot(ruc, ESTADO_ELIMINADO)) {
-                throw new IllegalArgumentException("El RUC ya está registrado para otro proveedor.");
-            }
-            dto.setEstado(ESTADO_ACTIVO);
-
-            dto.setFechaRegistro(LocalDate.now());
-            return proveedorRepository.save(dto);
-
-        } else {
-            // EDICIÓN
-            if (proveedorRepository.existsByRucAndIdProveedorIsNotAndEstadoNot(
-                    ruc, dto.getIdProveedor(), ESTADO_ELIMINADO)) {
-                throw new IllegalArgumentException("El RUC ya está registrado para otro proveedor.");
-            }
-            // conservar fechaRegistro original
-            proveedorRepository.findById(dto.getIdProveedor())
-                    .ifPresent(orig -> dto.setFechaRegistro(orig.getFechaRegistro()));
-            return proveedorRepository.save(dto);
+    /**
+     * Guarda un proveedor nuevo o actualiza uno existente.
+     * @param proveedor El objeto Proveedor a guardar.
+     * @return El Proveedor guardado.
+     */
+    public Proveedor guardarProveedor(Proveedor proveedor) {
+        if (proveedor.getIdProveedor() == null) {
+            proveedor.setFechaRegistro(LocalDate.now()); // Establecer fecha de registro para nuevos
+            proveedor.setEstado((byte) 1); // Nuevo proveedor por defecto es Activo (Byte)
+        } else { // Si es una edición, mantener la fecha de registro existente
+            Optional<Proveedor> existingProveedorOpt = proveedorRepository.findById(proveedor.getIdProveedor());
+            existingProveedorOpt.ifPresent(existingProveedor -> proveedor.setFechaRegistro(existingProveedor.getFechaRegistro()));
         }
+        return proveedorRepository.save(proveedor);
     }
-
-    public boolean existsByRucExcludingId(String ruc, Integer idProveedor) {
-        if (idProveedor == null) {
-            return proveedorRepository.existsByRucAndEstadoNot(ruc, ESTADO_ELIMINADO);
-        }
-        return proveedorRepository.existsByRucAndIdProveedorIsNotAndEstadoNot(ruc, idProveedor, ESTADO_ELIMINADO);
-    }
-
 
     /**
      * Realiza una eliminación lógica de un proveedor, cambiando su estado a '2'.
@@ -120,7 +83,18 @@ public class ProveedorService {
         }
     }
 
-
+    /**
+     * Verifica si un RUC ya existe en la base de datos, excluyendo un ID de proveedor específico.
+     * @param ruc El número de RUC a verificar.
+     * @param idProveedor El ID del proveedor a excluir de la búsqueda (null para nuevas creaciones).
+     * @return true si existe otro proveedor con ese RUC, false en caso contrario.
+     */
+    public boolean existsByRucExcludingId(String ruc, Integer idProveedor) {
+        if (idProveedor != null) {
+            return proveedorRepository.existsByRucAndIdProveedorIsNot(ruc, idProveedor);
+        }
+        return proveedorRepository.existsByRuc(ruc);
+    }
     // --- NUEVO MÉTODO PARA FILTRADO DE REPORTES ---
     /**
      * Busca proveedores aplicando filtros dinámicamente para la generación de reportes.
