@@ -26,19 +26,18 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String dni) throws UsernameNotFoundException {
-        // 1) Busca el usuario por DNI (username)
         Usuario usuario = usuarioService
                 .obtenerUsuarioPorDni(dni)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con DNI: " + dni));
 
-        // 2) Extrae los permisos del rol y los convierte en GrantedAuthority
+       
         Set<GrantedAuthority> authorities = usuario.getRolUsuario()
                 .getPermisos()
                 .stream()
                 .map(permiso -> new SimpleGrantedAuthority(permiso.getNombre()))
                 .collect(Collectors.toSet());
 
-        // 3) Crea y devuelve el UserDetails de Spring Security
+        
         return User.builder()
                 .username(usuario.getDni())
                 .password(usuario.getContrasena())
@@ -46,7 +45,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .accountExpired(false)
                 .accountLocked(false)
                 .credentialsExpired(false)
-                .disabled(usuario.getEstado() != 1)  // estado=1 → habilitado
+                .disabled(usuario.getEstado() != 1)  
                 .build();
     }
 }
