@@ -11,15 +11,14 @@ public class DocumentoSequence {
     private Integer id;
 
     @Column(name = "tipo_documento", unique = true, nullable = false)
-    private String tipoDocumento; // ej., "BOLETA", "FACTURA"
+    private String tipoDocumento;
 
     @Column(name = "last_number", nullable = false)
     private Integer lastNumber;
 
     @Column(name = "prefix")
-    private String prefix; // ej., "B001-", "F001-"
+    private String prefix; 
 
-    // Constructores
     public DocumentoSequence() {
     }
 
@@ -29,7 +28,6 @@ public class DocumentoSequence {
         this.prefix = prefix;
     }
 
-    // Getters y Setters
     public Integer getId() {
         return id;
     }
