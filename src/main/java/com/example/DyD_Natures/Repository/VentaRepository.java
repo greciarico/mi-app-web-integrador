@@ -15,26 +15,13 @@ import java.util.List;
 
 @Repository
 public interface VentaRepository extends JpaRepository<Venta, Integer>, JpaSpecificationExecutor<Venta> {
-    // Consultas personalizadas para ventas si se necesitan
-
-    /**
-     * Calcula el total de los montos de venta en un rango de fechas.
-     * @param startDate Fecha de inicio (inclusive).
-     * @param endDate Fecha de fin (inclusive).
-     * @return Suma de los totales de venta para el período, o 0.00 si no hay ventas.
-     */
     @Query("SELECT SUM(v.total) FROM Venta v WHERE v.fechaRegistro BETWEEN :startDate AND :endDate AND v.estado = 1")
     BigDecimal sumTotalByFechaRegistroBetweenAndEstado(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT COUNT(v) FROM Venta v WHERE v.fechaRegistro BETWEEN :startDate AND :endDate AND v.estado = 1")
     Long countByFechaRegistroBetweenAndEstado(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
-    /**
-     * Calcula la suma total de ventas por mes para un año específico.
-     * Los resultados se ordenan por el número de mes.
-     * @param year El año para el cual se calculan las ventas.
-     * @return Una lista de Object[] donde cada Object[] contiene [mes (Integer), totalVentas (BigDecimal)].
-     */
+    
     @Query("SELECT MONTH(v.fechaRegistro) as month, SUM(v.total) as total " +
             "FROM Venta v " +
             "WHERE YEAR(v.fechaRegistro) = :year " +
@@ -44,12 +31,7 @@ public interface VentaRepository extends JpaRepository<Venta, Integer>, JpaSpeci
 
     List<Venta> findAllByUsuario_IdUsuario(Integer idUsuario);
 
-    // --- NUEVO MÉTODO PARA EL CUADRE DE CAJA ---
-    /**
-     * Busca todas las ventas asociadas a un TurnoCaja específico.
-     * @param turnoCaja El objeto TurnoCaja al cual están asociadas las ventas.
-     * @return Una lista de ventas.
-     */
+    
     List<Venta> findByTurnoCaja(TurnoCaja turnoCaja);
-    // --- FIN NUEVO MÉTODO ---
+
 }
