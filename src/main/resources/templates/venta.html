@@ -18,14 +18,12 @@
                                 <i class="fas fa-plus"></i> Registrar Nueva Venta
                             </button>
                             <div class="input-group-append">
-                                <!-- AQUI CAMBIAMOS LA LLAMADA DIRECTA -->
                                 <button type="button" class="btn btn-outline-secondary" onclick="window.openClienteFormModal()">
                                     <i class="fas fa-plus"></i>Añadir Cliente
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <!-- /.card-header -->
                     <div class="card-body">
                         <div class="card card-outline card-success collapsed-card">
                             <div class="card-header">
@@ -125,8 +123,7 @@
                             </div>
                         </div>
 
-                        <!-- Tabla de Ventas -->
-                        <div id="tablaVentasContainer" class="table-responsive">
+                          <div id="tablaVentasContainer" class="table-responsive">
                             <table id="ventasTable" class="table table-bordered table-striped">
                                 <thead>
                                 <tr>
@@ -141,26 +138,19 @@
                                 </tr>
                                 </thead>
                                 <tbody id="ventasTableBody">
-                                <!-- Los datos se renderizarán aquí con JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    <!-- /.card-body -->
                 </div>
-                <!-- /.card -->
             </div>
-            <!-- /.col -->
         </div>
-        <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
 
     <!-- Modal para el formulario/visualización de Venta (Cargado con el fragmento) -->
     <div class="modal fade" id="ventaModal" tabindex="-1" role="dialog" aria-labelledby="ventaModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" id="modalContentContainer">
-                <!-- El contenido del formulario/visualización se carga aquí via AJAX -->
             </div>
         </div>
     </div>
@@ -171,7 +161,6 @@
     <div class="modal fade" id="clienteFormModal" tabindex="-1" role="dialog" aria-labelledby="clienteFormModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content" id="clienteFormModalContent">
-                <!-- El contenido del formulario de cliente se cargará aquí con JS -->
             </div>
         </div>
     </div>
@@ -208,22 +197,22 @@
                     });
 
             // Función para predecir el número de documento de venta
-    function predictDocumentNumberVenta() {
+      function predictDocumentNumberVenta() {
         const tipoDocumentoSelect = $('#tipoDocumentoVentaSelect');
         const numDocumentoInput = $('#numDocumentoVenta');
         const tipoDocumento = tipoDocumentoSelect.val();
 
         if (tipoDocumento === 'BOLETA_VENTA' || tipoDocumento === 'FACTURA_VENTA') {
             $.ajax({
-                url: '/documento-venta/next-num-documento', // El nuevo endpoint de ventas
+                url: '/documento-venta/next-num-documento', 
                 type: 'GET',
                 data: { tipoDocumento: tipoDocumento },
                 success: function(response) {
                     if (response.status === 'success') {
-                        numDocumentoInput.val(response.nextNumDocumento); // Rellena el campo
+                        numDocumentoInput.val(response.nextNumDocumento); 
                     } else {
                         showNotification('error', response.message || 'Error al predecir el número de documento de venta.');
-                        numDocumentoInput.val(''); // Limpiar si hay error
+                        numDocumentoInput.val(''); 
                     }
                 },
                 error: function(xhr, status, error) {
@@ -233,7 +222,7 @@
                 }
             });
         } else {
-            numDocumentoInput.val(''); // Limpiar si no es un tipo que genera secuencia
+            numDocumentoInput.val(''); 
         }
     }
 
@@ -244,12 +233,10 @@
         });
 
         // Listener para cuando el modal de registro/edición de venta se muestra (si aplicable)
-        // Asumiendo que tu modal de venta tiene un ID como 'modalDocumentoVenta'
         $('#modalDocumentoVenta').on('show.bs.modal', function () {
-            // Ejecutar predictDocumentNumberVenta solo si el formulario es de CREACIÓN (idVenta está vacío)
-            const idVentaField = $('#idVenta'); // Asume un campo oculto para el ID de venta
+            const idVentaField = $('#idVenta'); 
             if (!idVentaField.length || !idVentaField.val()) {
-                predictDocumentNumberVenta(); // Predice el número al abrir el modal (solo para nuevo)
+                predictDocumentNumberVenta();
             }
         });
     });
@@ -272,19 +259,16 @@
                     }
                 });
             }
-
             // Esta función limpia los errores en ambos formularios si están presentes
             function clearErrors() {
                 const ventaForm = document.getElementById('ventaForm');
-                const clienteForm = document.getElementById('clienteForm'); // ID del formulario de cliente
+                const clienteForm = document.getElementById('clienteForm'); 
 
                 if (ventaForm) {
                     ventaForm.querySelectorAll('.text-danger').forEach(el => el.textContent = '');
                     ventaForm.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
                 }
                 if (clienteForm) {
-                    // Si el formulario de cliente se carga dinámicamente, esta parte limpia sus errores.
-                    // Asegúrate de que el formulario cliente tenga el id="clienteForm"
                     clienteForm.querySelectorAll('.text-danger').forEach(el => el.textContent = '');
                     clienteForm.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
                 }
@@ -329,7 +313,7 @@
                 }
                 return 'Cliente Desconocido';
             }
-        //la cambie para anular venta
+        //para anular venta
           function renderMainTable(ventasToDisplay) {
                     const tableBody = document.getElementById('ventasTableBody');
                     if (!tableBody) {
@@ -342,7 +326,7 @@
                     }
 
                     const today = new Date();
-                    today.setHours(0, 0, 0, 0); // Establecer la hora a 00:00:00 para comparar solo la fecha
+                    today.setHours(0, 0, 0, 0); 
 
                     ventasToDisplay.forEach(venta => {
                         const rowClass = venta.estado === 0 ? 'cancelled-sale' : '';
@@ -351,15 +335,12 @@
                             row.classList.add(rowClass);
                         }
 
-                        // --- INICIO DE LA CORRECCIÓN DE FECHA ---
                         let fechaFormatted = 'N/A';
-                        let ventaDateForComparison; // Variable para la comparación de la fecha de anulación
+                        let ventaDateForComparison; 
 
                         if (venta.fechaRegistro) {
-                            // Divide la cadena "YYYY-MM-DD" en componentes
                             const dateParts = venta.fechaRegistro.split('-'); // ["YYYY", "MM", "DD"]
                             const year = parseInt(dateParts[0]);
-                            // Los meses en JavaScript son 0-indexados (0 para Enero, 11 para Diciembre)
                             const month = parseInt(dateParts[1]) - 1;
                             const day = parseInt(dateParts[2]);
 
@@ -367,14 +348,11 @@
                             const localDate = new Date(year, month, day);
                             fechaFormatted = localDate.toLocaleDateString('es-ES');
 
-                            // También para la comparación: asegúrate de que sea la fecha correcta
                             ventaDateForComparison = new Date(year, month, day);
                             ventaDateForComparison.setHours(0, 0, 0, 0); // Limpiar la hora para la comparación
                         } else {
-                            ventaDateForComparison = new Date(0); // Fecha por defecto si no hay fecha de registro (ej: 1970-01-01)
+                            ventaDateForComparison = new Date(0); 
                         }
-                        // --- FIN DE LA CORRECCIÓN DE FECHA ---
-
                         const totalFormatted = parseFloat(venta.total).toFixed(2);
                         const clientDisplayName = getClientDisplayName(venta.cliente);
 
@@ -428,12 +406,9 @@
     if (checkedStates.length > 0) {
         checkedStates.forEach(state => params.append('estados', state));
     }
-    // Si checkedStates.length es 0, el parámetro 'estados' NO se añadirá a params.
-    // Tu backend manejará esto por defecto a "activas".
 
-    // Añadir el resto de los parámetros
     for (const [key, value] of formData.entries()) {
-        if (key !== 'estados' && value) { // Excluir 'estados' ya manejado y solo si tiene valor
+        if (key !== 'estados' && value) { 
             params.append(key, value);
         }
     }
@@ -444,7 +419,6 @@
     window.aplicarFiltrosTablaVentas = function() {
         const filterParams = getFilterParams();
         console.log("Aplicando filtros:", filterParams);
-
 
         // Este fetch siempre usa el endpoint /ventas/buscar
         fetch(`/ventas/buscar?${filterParams}`)
@@ -458,7 +432,6 @@
                 allVentas = data; // Actualiza la variable global con las ventas filtradas
                 renderMainTable(allVentas);
                 Swal.close();
-                //showNotification('success', 'Ventas filtradas exitosamente.');
             })
             .catch(error => {
                 console.error('Error al aplicar filtros:', error);
@@ -500,7 +473,6 @@
         $('#filtroIdCliente').val('').trigger('change'); // Limpiar Select2
         $('#filtroIdUsuario').val('').trigger('change'); // Limpiar Select2
         $('.estado-checkbox-venta').prop('checked', false); // Desmarcar todos
-        //$('#estadoActiva').prop('checked', false); // Marcar activa por defecto
         setFilterDateRangeVenta(); // Restablecer límites de fecha
         aplicarFiltrosTablaVentas(); // Volver a cargar la tabla con filtros limpios
     }
@@ -529,7 +501,7 @@
     setFilterDateRangeVenta(); // Llamar al inicio para configurar
 
 
- // ===============================================
+             // ===============================================
             // Carga de datos iniciales para Select2 y la tabla
             // ===============================================
 
@@ -551,7 +523,7 @@
                     .catch(err => {
                         console.error("Error cargando productos activos:", err);
                         showNotification('error', err.message || 'Error al cargar productos activos.');
-                        allProductosData = []; // Asegúrate de que no quede indefinido
+                        allProductosData = []; 
                     }),
 
                 fetch('/clientes/activos')
@@ -576,7 +548,7 @@
                         allClientesData = [];
                     }),
 
-                fetch('/usuarios/all') // <--- EL PROBLEMA ESTÁ AQUÍ
+                fetch('/usuarios/all') 
                     .then(r => {
                         if (!r.ok) throw new Error('Error al cargar usuarios activos');
                         return r.json();
@@ -594,7 +566,7 @@
                     .catch(err => {
                         console.error("Error cargando usuarios activos:", err);
                         showNotification('error', err.message || 'Error al cargar usuarios activos.');
-                        allUsuariosData = []; // IMPORTANTE: Asegúrate de que siga siendo un array
+                        allUsuariosData = []; 
                     }),
 
                 fetch('/tasa/activos')
@@ -619,17 +591,13 @@
             Promise.all(promises)
                 .then(() => {
                     console.log("loadSelectDataAndInitialTable: Todas las cargas de datos para selects (o sus errores) han sido procesadas.");
-                    // *** ¡ESTO ES LO CLAVE! Renderizar la tabla con los datos iniciales del modelo ***
-                    renderMainTable(allVentas); // 'allVentas' ya contiene 'initialVentas'
+                    renderMainTable(allVentas); 
                 })
                 .catch(error => {
-                    // Este catch solo se activará si alguna de las promesas no maneja su propio error,
-                    // lo cual es menos probable con la modificación de arriba.
                     console.error("loadSelectDataAndInitialTable: Error general NO MANEJADO al cargar datos iniciales.", error);
                     showNotification('error', error.message || 'Error fatal al cargar la página.');
                 });
-        }            // *** LLAMAR A LA FUNCIÓN DE CARGA INICIAL AQUÍ ***
-            // Esto asegura que la tabla se renderice tan pronto como los datos de Select2 estén listos
+        }          
             loadSelectDataAndInitialTable();
 
 // ===============================================
@@ -657,7 +625,7 @@ function loadAndShowModalContent(idVenta, url) {
                                       placeholder: "-- Seleccione el IGV --",
                                       allowClear: true,
                                       width: '100%',
-                                      dropdownParent: $('#ventaModal .modal-content')  // véase punto 2 más abajo
+                                      dropdownParent: $('#ventaModal .modal-content')  
                                     })
                                     .on('change', calculateTotalGeneral);
 
@@ -685,11 +653,9 @@ function loadAndShowModalContent(idVenta, url) {
                     yapePaymentInput.addEventListener('input', calculatePaymentAndChange);
                 }
 
-                // Importante: También añadir un listener al select de IGV si no lo tenía ya
-                // para que los cambios en el IGV actualicen los totales
+            
                 const igvSelectElement = document.getElementById('igvSelect');
                 if (igvSelectElement) {
-                    // Asegúrate de que solo se añada una vez
                     if (!igvSelectElement.dataset.listenerAdded) {
                         igvSelectElement.addEventListener('change', calculateTotalGeneral);
                         igvSelectElement.dataset.listenerAdded = 'true';
@@ -699,8 +665,6 @@ function loadAndShowModalContent(idVenta, url) {
                 ventaModalElement.modal('show');
                 modalIsTransitioning = false;
 
-                // Asegúrate de calcular los totales y pagos iniciales después de cargar el modal
-                // Esto es crucial para la edición o si hay valores predeterminados.
                 calculateTotalGeneral();
             }, 150);
         },
@@ -738,11 +702,10 @@ window.closeFormModal = function() {
     modalIsTransitioning = true;
     ventaModalElement.modal('hide');
     ventaModalElement.one('hidden.bs.modal', function() {
-        // Al cerrar el modal, limpia los listeners de IGV para evitar duplicados si se reabre
         const igvSelectElement = document.getElementById('igvSelect');
         if (igvSelectElement && igvSelectElement.dataset.listenerAdded === 'true') {
             igvSelectElement.removeEventListener('change', calculateTotalGeneral);
-            delete igvSelectElement.dataset.listenerAdded; // Elimina la bandera
+            delete igvSelectElement.dataset.listenerAdded; 
         }
 
         $('#modalContentContainer').find('select.select2-hidden-accessible').each(function() {
@@ -811,7 +774,7 @@ let changeAmountInput;
 window.initializeModalDetails = function(modalProducts, modalSale, modalClients, modalIgvs) {
     allProductosData = modalProducts;
     allClientesData = modalClients;
-    allIgvData = modalIgvs; // Esto es crucial para que calculateTotalGeneral tenga los datos del IGV
+    allIgvData = modalIgvs; 
 
     const detalleVentasContainer = document.getElementById('detalleVentasContainer');
     if (!detalleVentasContainer) {
@@ -861,7 +824,6 @@ window.initializeModalDetails = function(modalProducts, modalSale, modalClients,
         }
 
     } else {
-        // Para una nueva venta, asegúrate de que los campos de pago estén en 0.00
         if (cashPaymentInput) cashPaymentInput.value = '0.00';
         if (yapePaymentInput) yapePaymentInput.value = '0.00';
         // Genera un nuevo número de documento para una nueva venta
@@ -1082,7 +1044,7 @@ window.calculateTotalGeneral = function() {
             }
 
 
-// ** NUEVA FUNCIÓN: Calcular Pagos y Cambio **
+// Calcular Pagos y Cambio 
 window.calculatePaymentAndChange = function() {
     const totalSale = parseFloat(document.getElementById('totalGeneralDisplay').value) || 0;
     const cash = parseFloat(cashPaymentInput.value) || 0;
@@ -1096,7 +1058,6 @@ window.calculatePaymentAndChange = function() {
     // Actualiza el campo de cambio con el balance calculado
     changeAmountInput.value = balance.toFixed(2);
 
-    // Opcional: Cambiar el color del campo "CAMBIO" si el pago es insuficiente
     if (balance < 0) {
         changeAmountInput.style.backgroundColor = '#f8d7da'; // Color de fondo para indicar "falta dinero" (rojo claro)
         changeAmountInput.style.color = '#dc3545'; // Color de texto para el valor negativo (rojo oscuro)
@@ -1244,7 +1205,7 @@ window.saveVenta = async function(event) {
         // Campos directos de la venta
         tipoDocumento: document.getElementById('tipoDocumentoVentaSelect').value,
         numDocumento: document.getElementById('numDocumentoVenta').value,
-        fechaRegistro: document.getElementById('fechaRegistro').value, // Asegúrate de que el formato sea 'YYYY-MM-DD'
+        fechaRegistro: document.getElementById('fechaRegistro').value, 
 
         cliente: {
             idCliente: document.getElementById('clienteSelect').value
@@ -1254,11 +1215,9 @@ window.saveVenta = async function(event) {
         },
         total: parseFloat(document.getElementById('totalGeneralDisplay').value), // Usar el total calculado
 
-        // Nuevos campos para el pago mixto
         montoEfectivo: parseFloat(document.getElementById('cashPayment').value) || 0,
         montoMonederoElectronico: parseFloat(document.getElementById('yapePayment').value) || 0,
-        // Agrega el campo tipoPago desde tu HTML o lógica si lo tienes
-        tipoPago: document.getElementById('tipoPagoSelect').value // Asegúrate de tener este select en tu HTML
+        tipoPago: document.getElementById('tipoPagoSelect').value 
     };
 
     // 3. Recopilar los detalles de la venta
@@ -1279,7 +1238,7 @@ window.saveVenta = async function(event) {
 
     try {
         const response = await fetch('/ventas/guardar', {
-            method: 'POST', // <--- ¡ESTO ES CLAVE!
+            method: 'POST', 
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
@@ -1289,20 +1248,16 @@ window.saveVenta = async function(event) {
 
         const data = await response.json();
 
-        if (response.ok) { // Si la respuesta HTTP es 2xx (éxito)
+        if (response.ok) { 
             Swal.close();
             showNotification('success', data.message || 'Venta guardada con éxito.');
-            closeFormModal(); // Cierra el modal de venta
+            closeFormModal(); 
             recargarListaVentasCompleta(); // Actualiza la tabla principal de ventas
-            if (data.idVenta) {
-                // Opcional: abrir comprobante en nueva pestaña si es necesario
-                // window.open(`/ventas/comprobante/${data.idVenta}`, '_blank');
+            if (data.idVenta) {         
             }
-        } else { // Si la respuesta HTTP es un error (4xx, 5xx)
+        } else { 
             Swal.close();
             showNotification('error', data.message || 'Error al guardar la venta.');
-
-            // Si hay errores de validación, intenta mostrarlos
             if (data.errors) {
                 for (const [field, errorMessage] of Object.entries(data.errors)) {
                     displayError(`${field}Error`, errorMessage);
@@ -1316,9 +1271,8 @@ window.saveVenta = async function(event) {
     }
 };
 
-// ... el resto de tu código JavaScript
-  // ===============================================
-            // NUEVAS FUNCIONES PARA CANCELAR VENTA (cambioo para anular)
+              // ===============================================
+            // CANCELAR VENTA 
             // ===============================================
 
             window.confirmCancelVenta = function(idVenta) {
@@ -1354,7 +1308,6 @@ window.saveVenta = async function(event) {
             }
 
             async function cancelarVenta(idVenta, adminPassword) {
-                // Muestra un loader mientras se procesa la solicitud
                 Swal.fire({
                     title: 'Anulando Venta...',
                     text: 'Por favor, espera.',
@@ -1373,7 +1326,7 @@ window.saveVenta = async function(event) {
                         body: JSON.stringify({ password: adminPassword }) // Enviar la contraseña en el cuerpo
                     });
 
-                    Swal.close(); // Cierra el loader
+                    Swal.close(); 
 
                     if (!response.ok) {
                         const errorData = await response.json();
@@ -1386,7 +1339,7 @@ window.saveVenta = async function(event) {
                     showNotification('success', result.message || 'Venta cancelada exitosamente.');
                     recargarListaVentasCompleta(); // Recarga la tabla para reflejar el cambio de estado y color
                 } catch (error) {
-                    Swal.close(); // Asegúrate de cerrar el loader incluso si hay un error de red
+                    Swal.close(); 
                     console.error('Error al cancelar la venta:', error);
                     showNotification('error', error.message || 'Ocurrió un error de red o interno al intentar cancelar la venta.');
                 }
@@ -1412,9 +1365,6 @@ window.saveVenta = async function(event) {
                         clienteFormModalContent.html(response); // Carga el HTML del formulario en el modal
                         clienteFormModalElement.modal('show'); // Muestra el modal
 
-                        // **** AQUI ES DONDE LLAMAMOS A LAS FUNCIONES DEL FORMULARIO DE CLIENTE ****
-                        // Adjuntar manejador de evento para el cambio en el select del tipo de cliente
-                        // Usamos .off() para evitar múltiples adjunciones si el modal se abre varias veces
                         $('#clienteFormModalContent #idTipoCliente').off('change').on('change', toggleClientFields);
 
                         // Inicializar el estado de los campos al abrir el modal (para edición o nuevo)
@@ -1440,15 +1390,9 @@ window.saveVenta = async function(event) {
                 clienteFormModalElement.one('hidden.bs.modal', function () {
                     clienteFormModalContent.empty(); // Limpiar el contenido al cerrar
                     clearErrors(); // Limpia errores del formulario de cliente al cerrar
-
-                    // IMPORTANTE: Recargar los datos de clientes en el modal de ventas
-                    // para asegurar que el select tenga el cliente recién añadido.
-                    recargarListaVentasCompleta(); // Esto actualizará allClientesData y el Select2 en el modal de ventas
+                    recargarListaVentasCompleta(); 
                 });
             };
-
-            // **** INICIO: FUNCIONES ESPECÍFICAS DEL FORMULARIO DE CLIENTE (MOVIDAS AQUÍ) ****
-
             // Función para alternar campos visibles según el tipo de cliente
             function toggleClientFields() {
                 const tipoClienteId = parseInt($('#clienteFormModalContent #idTipoCliente').val(), 10);
@@ -1472,7 +1416,7 @@ window.saveVenta = async function(event) {
                     $('#clienteFormModalContent #nombre').val('');
                     $('#clienteFormModalContent #apPaterno').val('');
                     $('#clienteFormModalContent #apMaterno').val('');
-                } else { // No se ha seleccionado ningún tipo (ej. al cargar el formulario para un nuevo cliente)
+                } else { 
                     // Limpiar todos los campos específicos de tipo
                     $('#clienteFormModalContent #dni').val('');
                     $('#clienteFormModalContent #nombre').val('');
@@ -1482,13 +1426,8 @@ window.saveVenta = async function(event) {
                     $('#clienteFormModalContent #razonSocial').val('');
                     $('#clienteFormModalContent #nombreComercial').val('');
                 }
-                // (Opcional): Re-adjunta los escuchadores de validación en tiempo real si son relevantes
-                // attachRealTimeValidationListeners(); // Solo si estas funciones están adaptadas para el modal
+                
             }
-
-            // Las funciones de validación (validateRequiredCliente, validateDniCliente, etc.)
-            // deben ser definidas aquí en venta.html y deben usar el prefijo
-            // '#clienteFormModalContent' para seleccionar los elementos del formulario dentro del modal.
 
             function validateRequiredCliente(inputElementId, errorElementId, fieldName) {
                 const input = $('#clienteFormModalContent #' + inputElementId);
@@ -1517,16 +1456,11 @@ window.saveVenta = async function(event) {
                 return true;
             }
 
-            // ... (Aquí irían todas las demás funciones de validación para el cliente,
-            // como validateRucCliente, validateNombreApellidosCliente, validateTelefonoCliente,
-            // checkDniUnicoCliente, checkRucUnicoCliente, etc., asegurándote de que todas
-            // usen '#clienteFormModalContent #' al seleccionar elementos del DOM.)
-
             async function checkDniUnicoCliente(dniInputId, dniErrorId, idCliente) {
                 const dni = $('#clienteFormModalContent #' + dniInputId).val();
                 if (dni.trim() === "") return true;
 
-                let url = '/ventas/checkDni?dni=' + encodeURIComponent(dni); // Usar el endpoint de VentaController si es este quien valida
+                let url = '/ventas/checkDni?dni=' + encodeURIComponent(dni); 
                 if (idCliente) {
                     url += '&idCliente=' + idCliente;
                 }
@@ -1543,9 +1477,6 @@ window.saveVenta = async function(event) {
                     return false;
                 }
             }
-            // ... (checkRucUnicoCliente similar) ...
-
-
 
             // Función para guardar el cliente
             window.saveCliente = async function(event) {
@@ -1572,7 +1503,7 @@ window.saveVenta = async function(event) {
                 };
 
                 try {
-                    const response = await fetch('/ventas/cliente/guardar', { // Asegúrate que esta URL coincida con tu @PostMapping en VentaController
+                    const response = await fetch('/ventas/cliente/guardar', { 
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1598,14 +1529,11 @@ window.saveVenta = async function(event) {
                     showNotification('error', 'Error al guardar el cliente: ' + error.message);
                 }
             };
-            // **** FIN: FUNCIONES ESPECÍFICAS DEL FORMULARIO DE CLIENTE ****
-
-            // ... (resto de la inicialización de $(document).ready y funciones para Ventas) ...
 
             function recargarListaVentasCompleta() {
                 $.ajax({
                     type: "GET",
-                    url: '/ventas/all', // Este endpoint DEBE existir en tu backend y devolver JSON
+                    url: '/ventas/all', 
                     dataType: "json",
                     success: function(response) {
                         allVentas = response; // Actualizar la variable global con los nuevos datos
@@ -1617,8 +1545,6 @@ window.saveVenta = async function(event) {
                     }
                 });
                 }
-
-            // Estas funciones son genéricas y deben estar en tu venta.html
             window.clearErrors = function() {
                 $('.text-danger').text('');
                 $('.form-control').removeClass('is-invalid');
