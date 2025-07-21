@@ -663,7 +663,7 @@
                 success: function(roles) {
                     const select = $('#filtroIdRoles');
                     select.empty();
-                    // select.append('<option value="">Seleccione Rol(es)</option>'); // No es necesario si es multiple y tiene placeholder
+                    select.append('<option value="">Seleccione Rol(es)</option>'); // No es necesario si es multiple y tiene placeholder
                     roles.forEach(rol => {
                         select.append(`<option value="${rol.idRol}">${rol.tipoRol}</option>`);
                     });
