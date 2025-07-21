@@ -24,10 +24,9 @@ public class ProveedorService {
      * @return Lista de proveedores activos/inactivos (no eliminados).
      */
     public List<Proveedor> listarProveedoresActivos() {
-        return proveedorRepository.findByEstadoExcluding((byte) 2); // Usa el método con @Query y pasa un Byte
+        return proveedorRepository.findByEstadoExcluding((byte) 2); 
     }
 
-    // --- NUEVO MÉTODO AQUÍ ---
     /**
      * Lista solo los proveedores que están en estado '1' (Activo).
      * @return Lista de proveedores activos.
@@ -61,9 +60,9 @@ public class ProveedorService {
      */
     public Proveedor guardarProveedor(Proveedor proveedor) {
         if (proveedor.getIdProveedor() == null) {
-            proveedor.setFechaRegistro(LocalDate.now()); // Establecer fecha de registro para nuevos
-            proveedor.setEstado((byte) 1); // Nuevo proveedor por defecto es Activo (Byte)
-        } else { // Si es una edición, mantener la fecha de registro existente
+            proveedor.setFechaRegistro(LocalDate.now()); 
+            proveedor.setEstado((byte) 1); 
+        } else { 
             Optional<Proveedor> existingProveedorOpt = proveedorRepository.findById(proveedor.getIdProveedor());
             existingProveedorOpt.ifPresent(existingProveedor -> proveedor.setFechaRegistro(existingProveedor.getFechaRegistro()));
         }
@@ -78,7 +77,7 @@ public class ProveedorService {
         Optional<Proveedor> proveedorOpt = proveedorRepository.findById(id);
         if (proveedorOpt.isPresent()) {
             Proveedor proveedor = proveedorOpt.get();
-            proveedor.setEstado((byte) 2); // Cambiar estado a 2 = eliminado lógicamente (Byte)
+            proveedor.setEstado((byte) 2); 
             proveedorRepository.save(proveedor);
         }
     }
@@ -95,7 +94,7 @@ public class ProveedorService {
         }
         return proveedorRepository.existsByRuc(ruc);
     }
-    // --- NUEVO MÉTODO PARA FILTRADO DE REPORTES ---
+
     /**
      * Busca proveedores aplicando filtros dinámicamente para la generación de reportes.
      * @param filterDTO DTO con los criterios de búsqueda (nombre, ruc, razon social, correo, estados).
@@ -105,7 +104,6 @@ public class ProveedorService {
         return proveedorRepository.findAll((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Filtro por nombre, ruc, razon social, correo (búsqueda general)
             if (filterDTO.getNombreRucRazonSocialCorreo() != null && !filterDTO.getNombreRucRazonSocialCorreo().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getNombreRucRazonSocialCorreo().toLowerCase() + "%";
                 Predicate generalSearchPredicate = criteriaBuilder.or(
@@ -117,25 +115,21 @@ public class ProveedorService {
                 predicates.add(generalSearchPredicate);
             }
 
-            // Filtro por Estado - Ahora maneja múltiples selecciones
             if (filterDTO.getEstados() != null && !filterDTO.getEstados().isEmpty()) {
-                // Si eligen ambos (activo y inactivo), no se añade este filtro
                 if (!(filterDTO.getEstados().contains((byte) 0) && filterDTO.getEstados().contains((byte) 1))) {
                     predicates.add(root.get("estado").in(filterDTO.getEstados()));
                 }
             }
-
-            // NUEVO: Filtro por Fecha de Registro "Desde"
             if (filterDTO.getFechaRegistroDesde() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroDesde()));
             }
 
-            // NUEVO: Filtro por Fecha de Registro "Hasta"
+
             if (filterDTO.getFechaRegistroHasta() != null) {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroHasta()));
             }
 
-            // Excluir proveedores con estado = 2 (eliminado) por defecto en los reportes
+
             predicates.add(criteriaBuilder.notEqual(root.get("estado"), (byte) 2));
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
