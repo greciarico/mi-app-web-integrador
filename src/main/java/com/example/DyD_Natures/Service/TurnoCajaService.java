@@ -127,7 +127,7 @@ public class TurnoCajaService {
     }
 
     @Transactional
-    // Método modificado para recibir ambos conteos directamente
+
     public TurnoCaja cerrarYCuadrarTurnoCaja(Integer idTurnoCaja, BigDecimal conteoFinalEfectivo, BigDecimal conteoFinalMonedero) {
         TurnoCaja turno = turnoCajaRepository.findById(idTurnoCaja)
                 .orElseThrow(() -> new EntityNotFoundException("Turno de caja no encontrado con ID: " + idTurnoCaja));
@@ -141,19 +141,19 @@ public class TurnoCajaService {
         BigDecimal totalEfectivoVentasSistema = turno.getTotalVentasEfectivoSistema();
         BigDecimal totalMonederoElectronicoVentasSistema = turno.getTotalVentasMonederoElectronicoSistema();
 
-        // LÓGICA DE CUADRE PARA EFECTIVO
+
         BigDecimal efectivoEsperadoSistema = turno.getFondoInicialEfectivo().add(totalEfectivoVentasSistema);
 
         turno.setConteoFinalEfectivo(conteoFinalEfectivo);
         BigDecimal diferenciaEfectivo = conteoFinalEfectivo.subtract(efectivoEsperadoSistema);
         turno.setDiferenciaEfectivo(diferenciaEfectivo);
 
-        // LÓGICA DE CUADRE PARA MONEDERO ELECTRÓNICO (YAPE)
+
         turno.setConteoFinalMonedero(conteoFinalMonedero);
         BigDecimal diferenciaMonedero = conteoFinalMonedero.subtract(totalMonederoElectronicoVentasSistema);
         turno.setDiferenciaMonedero(diferenciaMonedero);
 
-        // Determinar el estado general del cuadre
+
         if (diferenciaEfectivo.compareTo(BigDecimal.ZERO) == 0 && diferenciaMonedero.compareTo(BigDecimal.ZERO) == 0) {
             turno.setEstadoCuadre("Cuadrado");
         } else if (diferenciaEfectivo.compareTo(BigDecimal.ZERO) < 0 || diferenciaMonedero.compareTo(BigDecimal.ZERO) < 0) {
@@ -203,15 +203,13 @@ public class TurnoCajaService {
                 turno.setConteoFinalEfectivo(BigDecimal.ZERO);
                 turno.setDiferenciaEfectivo(BigDecimal.ZERO.subtract(efectivoEsperado));
 
-                // Para cierre automático de monedero, asumimos conteo 0 y el faltante es lo que el sistema esperaba
                 turno.setConteoFinalMonedero(BigDecimal.ZERO);
                 turno.setDiferenciaMonedero(BigDecimal.ZERO.subtract(totalMonederoElectronicoVentas));
 
-                // El estado general reflejará si hay faltantes en efectivo o monedero
                 if (turno.getDiferenciaEfectivo().compareTo(BigDecimal.ZERO) < 0 || turno.getDiferenciaMonedero().compareTo(BigDecimal.ZERO) < 0) {
                     turno.setEstadoCuadre("Cerrado Automatico - Faltante");
                 } else {
-                    turno.setEstadoCuadre("Cerrado Automatico - Cuadrado"); // Menos probable, pero posible si no hubo ventas
+                    turno.setEstadoCuadre("Cerrado Automatico - Cuadrado"); 
                 }
 
 
