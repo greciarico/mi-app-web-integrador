@@ -128,9 +128,6 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
 
-        // `allMermas` ya no será necesaria para el filtrado en cliente
-        // ya que el filtrado se moverá completamente al servidor.
-        // Se mantiene si aún la usas para otras funciones (ej. para un "exportar a CSV" en cliente)
         allMermas = [];
 
         // Función para renderizar la tabla con una lista de Merma
@@ -327,7 +324,7 @@
                     if (response.status === "success") {
                         mostrarNotificacion("success", response.message);
                         cerrarFormularioMerma();
-                        aplicarFiltrosMerma(); // Ahora llama a aplicarFiltrosMerma directamente
+                        aplicarFiltrosMerma(); 
                     } else {
                         mostrarNotificacion("error", "Error: " + response.message);
                     }
@@ -365,7 +362,7 @@
                         success: function(response) {
                             if (response.status === "success") {
                                 mostrarNotificacion("success", response.message);
-                                aplicarFiltrosMerma(); // Ahora llama a aplicarFiltrosMerma
+                                aplicarFiltrosMerma(); 
                             } else {
                                 mostrarNotificacion("error", "Error: " + response.message);
                             }
@@ -402,7 +399,7 @@
             };
 
             const queryString = $.param(filterDTO);
-            const url = '/merma/buscar?' + queryString; // Asegúrate de tener este endpoint en tu controlador
+            const url = '/merma/buscar?' + queryString; 
 
             $.ajax({
                 type: "GET",
@@ -457,7 +454,6 @@
         // Limpia los filtros del formulario principal de Merma
         function limpiarFiltrosMainMerma() {
             $('#mainMermaFilterForm')[0].reset();
-            // Para Select2, necesitas establecer el valor a vacío y triggerear el cambio
             $('#filtroIdProductoMermaMain').val('').trigger('change');
             setMermaMainDateMaxAttributes(); // Restablecer límites de fecha
             setMermaMainDateMinAttributes();
@@ -482,7 +478,7 @@
                         placeholder: "-- Seleccione o Busque un Producto --",
                         allowClear: true,
                         width: '100%',
-                        dropdownParent: $('#collapseMermaFilters') // Asegúrate de que el dropdown se muestre correctamente
+                        dropdownParent: $('#collapseMermaFilters') 
                     });
                 },
                 error: function(xhr, status, error) {
