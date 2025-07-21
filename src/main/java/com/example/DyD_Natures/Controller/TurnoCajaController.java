@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
-import java.security.Principal; // Importante para obtener el usuario autenticado
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,11 +84,9 @@ public class TurnoCajaController {
 
     @PostMapping("/cerrar")
     @ResponseBody
-    // Usamos Map<String, Object> para recibir el JSON sin un DTO específico
     public ResponseEntity<Map<String, String>> cerrarTurnoCaja(@RequestBody Map<String, Object> requestBody) {
         Map<String, String> response = new HashMap<>();
         try {
-            // Extraer los valores del mapa y castearlos
             Integer idTurnoCaja = (Integer) requestBody.get("idTurnoCaja");
             BigDecimal conteoFinalEfectivo = new BigDecimal(requestBody.get("conteoFinalEfectivo").toString());
             BigDecimal conteoFinalMonedero = new BigDecimal(requestBody.get("conteoFinalMonedero").toString());
@@ -122,15 +120,13 @@ public class TurnoCajaController {
     @GetMapping("/historial-caja")
     public String mostrarHistorialCaja(Model model, @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
-            return "redirect:/login"; // Redirige si no hay autenticación.
+            return "redirect:/login";
         }
 
-        // El DNI es el username en tu UserDetails
         String dniUsuarioAutenticado = userDetails.getUsername();
         Optional<Usuario> usuarioOpt = usuarioService.obtenerUsuarioPorDni(dniUsuarioAutenticado);
 
         if (usuarioOpt.isEmpty()) {
-            // Esto sería un error grave: usuario autenticado pero no encontrado en BD.
             model.addAttribute("errorMessage", "Error: No se pudo cargar la información completa del usuario autenticado.");
             return "errorPage"; // O una página de error más específica
         }
@@ -138,6 +134,6 @@ public class TurnoCajaController {
         Usuario usuarioActual = usuarioOpt.get();
         List<TurnoCaja> historial = turnoCajaService.getHistorialTurnosCaja(usuarioActual);
         model.addAttribute("historialTurnos", historial);
-        return "caja/historialCaja"; // Vista para mostrar el historial
+        return "caja/historialCaja";
     }
 }
