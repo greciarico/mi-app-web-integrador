@@ -23,14 +23,14 @@ public class MermaService {
     private MermaRepository mermaRepository;
 
     @Autowired
-    private ProductoRepository productoRepository; // Necesario para interactuar con el stock del producto
+    private ProductoRepository productoRepository; 
 
     /**
      * Lista todos los registros de Merma.
      * @return Lista de registros de Merma.
      */
     public List<Merma> listarMermas() {
-        return mermaRepository.findAll(); // Merma no tiene campo estado, así que listar todos
+        return mermaRepository.findAll(); 
     }
 
     /**
@@ -48,7 +48,7 @@ public class MermaService {
      * @param merma El objeto Merma a guardar.
      * @throws RuntimeException Si el producto no se encuentra o el stock es insuficiente.
      */
-    @Transactional // Asegura que ambas operaciones (Merma y Producto) sean atómicas
+    @Transactional 
     public Merma guardarMerma(Merma merma) {
         Producto producto = merma.getProducto();
         if (producto == null || producto.getIdProducto() == null) {
@@ -62,7 +62,7 @@ public class MermaService {
         Producto productoExistente = productoOpt.get();
 
         Integer oldCantidadMerma = 0;
-        if (merma.getIdMerma() != null) { // Si es una edición, recupera la cantidad anterior
+        if (merma.getIdMerma() != null) { 
             Optional<Merma> oldMermaOpt = mermaRepository.findById(merma.getIdMerma());
             if (oldMermaOpt.isPresent()) {
                 oldCantidadMerma = oldMermaOpt.get().getCantidad();
@@ -82,16 +82,16 @@ public class MermaService {
         }
 
         productoExistente.setStock(nuevoStock);
-        productoRepository.save(productoExistente); // Guarda el producto con el stock actualizado
+        productoRepository.save(productoExistente); 
 
-        if (merma.getIdMerma() == null) { // Si es nuevo, establece la fecha de registro
+        if (merma.getIdMerma() == null) { 
             merma.setFechaRegistro(LocalDate.now());
-        } else { // Si es edición, mantiene la fecha de registro original
+        } else { 
             Optional<Merma> existingMermaOpt = mermaRepository.findById(merma.getIdMerma());
             existingMermaOpt.ifPresent(existingMerma -> merma.setFechaRegistro(existingMerma.getFechaRegistro()));
         }
 
-        return mermaRepository.save(merma); // Guarda la merma
+        return mermaRepository.save(merma); 
     }
 
     /**
@@ -116,11 +116,11 @@ public class MermaService {
         }
         Producto productoExistente = productoOpt.get();
 
-        // Reponer el stock del producto
+       
         productoExistente.setStock(productoExistente.getStock() + merma.getCantidad());
-        productoRepository.save(productoExistente); // Guarda el producto con el stock repuesto
+        productoRepository.save(productoExistente); 
 
-        mermaRepository.delete(merma); // Elimina el registro de merma
+        mermaRepository.delete(merma); 
     }
     /**
      * Busca registros de Merma aplicando filtros dinámicamente para la generación de reportes.
@@ -131,27 +131,22 @@ public class MermaService {
         return mermaRepository.findAll((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Unir con la entidad Producto para filtrar por sus atributos
             Join<Merma, Producto> productoJoin = root.join("producto");
 
-            // Filtro por nombre de producto
             if (filterDTO.getNombreProducto() != null && !filterDTO.getNombreProducto().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getNombreProducto().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(productoJoin.get("nombre")), searchTerm));
             }
 
-            // Filtro por descripción de la merma
             if (filterDTO.getDescripcionMerma() != null && !filterDTO.getDescripcionMerma().trim().isEmpty()) {
                 String searchTerm = "%" + filterDTO.getDescripcionMerma().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("descripcion")), searchTerm));
             }
 
-            // Filtro por un producto específico (por ID)
             if (filterDTO.getIdProducto() != null) {
                 predicates.add(criteriaBuilder.equal(productoJoin.get("idProducto"), filterDTO.getIdProducto()));
             }
 
-            // Filtro por rango de fecha de registro
             if (filterDTO.getFechaRegistroStart() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroStart()));
             }
@@ -159,7 +154,6 @@ public class MermaService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("fechaRegistro"), filterDTO.getFechaRegistroEnd()));
             }
 
-            // Filtro por rango de cantidad
             if (filterDTO.getCantidadMin() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("cantidad"), filterDTO.getCantidadMin()));
             }
